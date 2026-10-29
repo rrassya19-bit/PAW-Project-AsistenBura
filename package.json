@@ -1,0 +1,28 @@
+{
+  "name": "paw-project-asistenbura",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rrassya19-bit/PAW-Project-AsistenBura.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rrassya19-bit/PAW-Project-AsistenBura/issues"
+  },
+  "homepage": "https://github.com/rrassya19-bit/PAW-Project-AsistenBura#readme",
+  "dependencies": {
+    "ejs": "^7.0.2",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
