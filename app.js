@@ -15,6 +15,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Logger dipasang paling atas agar semua request tercatat
 app.use(requestLogger);
+app.use('/media', express.static(path.join(__dirname, 'assets')));
 
 // Semua route aplikasi
 app.use(routes);
