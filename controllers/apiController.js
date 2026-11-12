@@ -1,6 +1,5 @@
 const config = require('../config');
 const { cekKoneksi } = require('../config/database');
-const produkModel = require('../models/produkModel');
 
 // GET /api/status -> informasi singkat kondisi server dan database
 async function getStatus(req, res, next) {
@@ -20,9 +19,6 @@ async function getStatus(req, res, next) {
   }
 }
 
-// GET /api/produk -> daftar menu dari model
-function getProduk(req, res) {
-  res.json(produkModel.getAll());
-}
+// GET /api/produk -> ditangani controller produk
 
-module.exports = { getStatus, getProduk };
+module.exports = { getStatus };
