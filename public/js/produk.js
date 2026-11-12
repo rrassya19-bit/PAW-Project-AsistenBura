@@ -1,0 +1,243 @@
+// JavaScript sisi klien untuk form dan tombol hapus produk, tanpa library
+
+// Menjalankan seluruh pemasangan event setelah DOM siap
+document.addEventListener('DOMContentLoaded', function () {
+  // Menampilkan pesan sukses yang tersimpan dari halaman sebelumnya
+  tampilkanPesanSukses();
+
+  // Memasang event submit pada form bila halaman ini memiliki form
+  pasangFormProduk();
+
+  // Memasang event klik pada semua tombol hapus
+  pasangTombolHapus();
+});
+
+// Membaca respons sebagai JSON dengan aman bila body bukan JSON
+async function bacaJson(respons) {
+  try {
+    return await respons.json();
+  } catch (galat) {
+    return {};
+  }
+}
+
+// Menampilkan pesan sukses dari query string atau sessionStorage
+function tampilkanPesanSukses() {
+  // Kotak pesan hanya ada di halaman daftar produk
+  const kotak = document.getElementById('pesan-sukses');
+  if (!kotak) {
+    return;
+  }
+
+  // Pesan bisa berasal dari query string atau sessionStorage
+  const parameter = new URLSearchParams(window.location.search);
+  let pesan = parameter.get('pesan');
+  if (!pesan) {
+    pesan = sessionStorage.getItem('pesanProduk');
+  }
+
+  // Berhenti bila tidak ada pesan untuk ditampilkan
+  if (!pesan) {
+    return;
+  }
+
+  // Menampilkan pesan dan membersihkan penyimpanan sementara
+  kotak.textContent = pesan;
+  kotak.classList.remove('hidden');
+  sessionStorage.removeItem('pesanProduk');
+
+  // Menghapus query string pesan agar tidak muncul lagi saat halaman dimuat ulang
+  if (parameter.has('pesan')) {
+    parameter.delete('pesan');
+    const sisa = parameter.toString();
+    window.history.replaceState({}, '', window.location.pathname + (sisa ? '?' + sisa : ''));
+  }
+}
+
+// Memasang event submit pada form tambah atau ubah
+function pasangFormProduk() {
+  const form = document.getElementById('form-produk');
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    kirimForm(form);
+  });
+}
+
+// Mengirim data form ke API sesuai mode tambah atau ubah
+async function kirimForm(form) {
+  // Mengambil elemen pesan kesalahan dan tombol simpan
+  const kotakGalat = document.getElementById('kesalahan-validasi');
+  const daftarGalat = document.getElementById('daftar-kesalahan');
+  const tombol = document.getElementById('tombol-simpan');
+
+  // Membersihkan pesan kesalahan dari percobaan sebelumnya
+  sembunyikanKesalahan(kotakGalat, daftarGalat);
+
+  // Menyusun data yang akan dikirim ke API
+  const mode = form.dataset.mode;
+  const id = form.dataset.id;
+  const data = {
+    nama: form.elements.nama.value.trim(),
+    kategori: form.elements.kategori.value.trim(),
+    harga: form.elements.harga.value,
+    hargaMaks: form.elements.hargaMaks.value.trim() === '' ? null : form.elements.hargaMaks.value,
+    deskripsi: form.elements.deskripsi.value.trim(),
+    tersedia: form.elements.tersedia.checked,
+  };
+
+  // Menentukan alamat dan metode sesuai mode
+  const alamat = mode === 'ubah' ? '/api/produk/' + id : '/api/produk';
+  const metode = mode === 'ubah' ? 'PUT' : 'POST';
+
+  // Menonaktifkan tombol agar form tidak terkirim ganda
+  const teksAsli = tombol.textContent;
+  tombol.disabled = true;
+  tombol.textContent = 'Menyimpan...';
+
+  try {
+    // Mengirim data sebagai JSON ke backend
+    const respons = await fetch(alamat, {
+      method: metode,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const hasil = await bacaJson(respons);
+
+    // Menampilkan kesalahan dari API bila respons tidak berhasil
+    if (!respons.ok) {
+      tampilkanKesalahan(hasil, kotakGalat, daftarGalat);
+      return;
+    }
+
+    // Mengarahkan ke daftar produk dengan pesan sukses
+    const pesan = mode === 'ubah' ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan';
+    window.location.href = '/produk?pesan=' + encodeURIComponent(pesan);
+  } catch (galat) {
+    // Menampilkan pesan bila server tidak dapat dihubungi
+    tampilkanKesalahan(
+      { pesan: 'Tidak dapat menghubungi server. Coba lagi.', kesalahan: [] },
+      kotakGalat,
+      daftarGalat
+    );
+  } finally {
+    // Mengembalikan tombol ke keadaan semula
+    tombol.disabled = false;
+    tombol.textContent = teksAsli;
+  }
+}
+
+// Menyembunyikan dan mengosongkan kotak kesalahan validasi
+function sembunyikanKesalahan(kotak, daftar) {
+  if (kotak) {
+    kotak.classList.add('hidden');
+  }
+  if (daftar) {
+    daftar.innerHTML = '';
+  }
+}
+
+// Menampilkan pesan validasi dari API pada form
+function tampilkanKesalahan(hasil, kotak, daftar) {
+  if (!kotak || !daftar) {
+    return;
+  }
+
+  // Menulis pesan utama dari API
+  const pesanUtama = kotak.querySelector('[data-pesan-utama]');
+  if (pesanUtama) {
+    pesanUtama.textContent = hasil && hasil.pesan ? hasil.pesan : 'Validasi gagal';
+  }
+
+  // Mengosongkan daftar kesalahan lama
+  daftar.innerHTML = '';
+  const daftarKesalahan = hasil && Array.isArray(hasil.kesalahan) ? hasil.kesalahan : [];
+
+  // Menambahkan setiap kesalahan sebagai butir daftar
+  daftarKesalahan.forEach(function (teks) {
+    const item = document.createElement('li');
+    item.textContent = teks;
+    daftar.appendChild(item);
+  });
+
+  // Menyembunyikan daftar bila tidak ada butir kesalahan
+  if (daftarKesalahan.length === 0) {
+    daftar.classList.add('hidden');
+  } else {
+    daftar.classList.remove('hidden');
+  }
+
+  // Menampilkan kotak dan menggulir ke area kesalahan
+  kotak.classList.remove('hidden');
+  kotak.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Memasang event klik pada seluruh tombol hapus produk
+function pasangTombolHapus() {
+  const tombolHapus = document.querySelectorAll('[data-hapus]');
+  tombolHapus.forEach(function (tombol) {
+    tombol.addEventListener('click', function () {
+      hapusProduk(tombol);
+    });
+  });
+}
+
+// Menghapus produk setelah pengguna menyetujui dialog konfirmasi
+async function hapusProduk(tombol) {
+  // Mengambil identitas produk dari atribut data
+  const id = tombol.dataset.id;
+  const nama = tombol.dataset.nama;
+
+  // Meminta konfirmasi sebelum menghapus
+  const setuju = window.confirm('Hapus produk "' + nama + '"? Tindakan ini tidak dapat dibatalkan.');
+  if (!setuju) {
+    return;
+  }
+
+  // Menonaktifkan tombol selama request berjalan
+  const teksAsli = tombol.textContent;
+  tombol.disabled = true;
+  tombol.textContent = 'Menghapus...';
+
+  try {
+    // Mengirim permintaan hapus ke API
+    const respons = await fetch('/api/produk/' + id, { method: 'DELETE' });
+    const hasil = await bacaJson(respons);
+
+    // Menampilkan kesalahan dan mengaktifkan tombol kembali bila gagal
+    if (!respons.ok) {
+      tampilkanGalatHalaman(hasil && hasil.pesan ? hasil.pesan : 'Produk gagal dihapus.');
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+      return;
+    }
+
+    // Menyimpan pesan sukses lalu kembali ke daftar produk
+    sessionStorage.setItem('pesanProduk', hasil.pesan || 'Produk berhasil dihapus');
+    window.location.href = '/produk';
+  } catch (galat) {
+    // Menampilkan pesan bila server tidak dapat dihubungi
+    tampilkanGalatHalaman('Tidak dapat menghubungi server. Coba lagi.');
+    tombol.disabled = false;
+    tombol.textContent = teksAsli;
+  }
+}
+
+// Menampilkan pesan gagal pada halaman daftar produk
+function tampilkanGalatHalaman(pesan) {
+  const kotak = document.getElementById('pesan-galat');
+
+  // Memakai alert bila kotak pesan tidak tersedia
+  if (!kotak) {
+    window.alert(pesan);
+    return;
+  }
+
+  // Menulis pesan dan menampilkannya
+  kotak.textContent = pesan;
+  kotak.classList.remove('hidden');
+  kotak.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}

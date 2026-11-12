@@ -1,0 +1,48 @@
+<%# Partial head: dipakai ulang oleh semua halaman %>
+<!DOCTYPE html>
+<%# Bahasa halaman adalah Indonesia %>
+<html lang="id" class="scroll-smooth">
+<head>
+  <%# Pengaturan karakter dan tampilan responsif %>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <%# Judul halaman dikirim dari controller %>
+  <title><%= judul %> · Bura Bura Coffee</title>
+  <meta name="description" content="Menu dan pengelolaan produk Bura Bura Coffee, kedai kopi di Yogyakarta.">
+
+  <%# Tailwind CSS dimuat lewat CDN sesuai ketentuan tugas %>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <%# Konfigurasi warna dan tipografi tema kedai kopi %>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            krem: '#F6EFE6',
+            kremTua: '#EADDCB',
+            espresso: '#2B211B',
+            kopi: '#4A3428',
+            karamel: '#B07B4F',
+            aksen: '#C76B2E',
+            hijau: '#3F6B4F',
+            merah: '#A33A2A'
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['Fraunces', 'Georgia', 'serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <%# Tipografi dari Google Fonts dengan cadangan font sistem %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <%# CSS kecil untuk hal yang tidak praktis dilakukan dengan utility %>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<%# Awal body dengan warna dasar krem %>
+<body class="min-h-screen bg-krem font-sans text-espresso antialiased">

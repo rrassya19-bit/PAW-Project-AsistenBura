@@ -38,7 +38,7 @@ function errorHandler(err, req, res, next) {
   // Request halaman dirender dengan template error bila tersedia
   const berkasError = path.join(__dirname, '..', 'views', 'error.ejs');
   if (fs.existsSync(berkasError)) {
-    return res.status(status).render('error', { judul: 'Terjadi Kesalahan', status, pesan });
+    return res.status(status).render('error', { judul: 'Terjadi Kesalahan', halaman: '', status, pesan });
   }
 
   // Cadangan sederhana bila template belum dibuat

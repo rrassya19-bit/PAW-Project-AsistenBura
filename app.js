@@ -29,6 +29,12 @@ app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Menyediakan nama kedai untuk seluruh template EJS
+app.use((req, res, next) => {
+  res.locals.namaKafe = config.namaKafe;
+  next();
+});
+
 // Semua route aplikasi
 app.use(routes);
 

@@ -1,0 +1,116 @@
+<%# Halaman daftar produk: seluruh baris berasal dari database %>
+<%- include('../partials/head', { judul }) %>
+<%- include('../partials/navbar', { halaman }) %>
+<main id="konten" class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+  <%# Kepala halaman dengan jumlah data dan tombol tambah %>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-widest text-aksen">Pengelolaan</p>
+      <h1 class="mt-2 font-display text-3xl font-semibold tracking-tight text-espresso sm:text-4xl">Daftar Produk</h1>
+      <p class="mt-2 text-sm text-kopi"><%= jumlahProduk %> produk tersimpan di database.</p>
+    </div>
+    <a href="/produk/tambah" class="inline-flex items-center justify-center rounded-full bg-espresso px-5 py-3 text-sm font-semibold text-krem transition hover:bg-kopi focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
+      Tambah produk
+    </a>
+  </div>
+
+  <%# Kotak pesan sukses yang diisi oleh JavaScript %>
+  <div id="pesan-sukses" class="mt-6 hidden rounded-2xl border border-hijau/30 bg-hijau/10 px-4 py-3 text-sm font-medium text-hijau" role="status" aria-live="polite"></div>
+  <%# Kotak pesan gagal untuk operasi hapus %>
+  <div id="pesan-galat" class="mt-6 hidden rounded-2xl border border-merah/30 bg-merah/10 px-4 py-3 text-sm font-medium text-merah" role="alert"></div>
+
+  <%# Keadaan kosong bila belum ada produk %>
+  <% if (daftarProduk.length === 0) { %>
+    <div class="mt-10 rounded-3xl border border-dashed border-karamel/50 bg-white/60 p-10 text-center">
+      <p class="font-display text-xl font-semibold text-espresso">Daftar masih kosong</p>
+      <p class="mt-2 text-sm text-kopi">Tambahkan produk pertama untuk mulai mengisi menu.</p>
+      <a href="/produk/tambah" class="mt-5 inline-flex rounded-full bg-aksen px-4 py-2 text-sm font-semibold text-white transition hover:bg-aksen/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso">
+        Tambah produk
+      </a>
+    </div>
+  <% } else { %>
+    <%# Tabel untuk layar sedang dan besar %>
+    <div class="mt-8 hidden overflow-hidden rounded-2xl border border-kremTua bg-white/75 shadow-sm md:block">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-kremTua/60 text-xs uppercase tracking-wide text-kopi">
+          <tr>
+            <th scope="col" class="px-4 py-3 font-semibold">ID</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Produk</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Kategori</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Harga</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Status</th>
+            <th scope="col" class="px-4 py-3 text-right font-semibold">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-kremTua">
+          <%# Satu baris untuk setiap produk dari database %>
+          <% daftarProduk.forEach(function (produk) { %>
+            <tr class="align-top transition hover:bg-krem/60">
+              <td class="px-4 py-4 text-kopi"><%= produk.id %></td>
+              <td class="px-4 py-4">
+                <p class="font-semibold text-espresso"><%= produk.nama %></p>
+                <p class="mt-1 max-w-xs text-xs leading-relaxed text-kopi"><%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %></p>
+              </td>
+              <td class="px-4 py-4 text-kopi"><%= produk.kategori %></td>
+              <td class="px-4 py-4 font-semibold text-aksen"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></td>
+              <td class="px-4 py-4">
+                <%# Lencana status ketersediaan %>
+                <% if (produk.tersedia) { %>
+                  <span class="inline-flex rounded-full border border-hijau/30 bg-hijau/10 px-2 py-0.5 text-xs font-semibold text-hijau">Tersedia</span>
+                <% } else { %>
+                  <span class="inline-flex rounded-full border border-merah/30 bg-merah/10 px-2 py-0.5 text-xs font-semibold text-merah">Habis</span>
+                <% } %>
+              </td>
+              <td class="px-4 py-4">
+                <div class="flex justify-end gap-2">
+                  <%# Tautan menuju form ubah yang terisi data database %>
+                  <a href="/produk/<%= produk.id %>/ubah" class="rounded-full border border-espresso/20 px-3 py-1.5 text-xs font-semibold text-espresso transition hover:bg-kremTua focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
+                    Ubah
+                  </a>
+                  <%# Tombol hapus dengan data untuk JavaScript %>
+                  <button type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>" class="rounded-full border border-merah/30 px-3 py-1.5 text-xs font-semibold text-merah transition hover:bg-merah/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-merah disabled:cursor-not-allowed disabled:opacity-60">
+                    Hapus
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <%# Kartu untuk layar kecil %>
+    <div class="mt-8 space-y-3 md:hidden">
+      <% daftarProduk.forEach(function (produk) { %>
+        <article class="rounded-2xl border border-kremTua bg-white/75 p-4 shadow-sm">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold text-kopi">#<%= produk.id %></p>
+              <h2 class="mt-1 font-semibold text-espresso"><%= produk.nama %></h2>
+            </div>
+            <%# Lencana status pada tampilan kartu %>
+            <% if (produk.tersedia) { %>
+              <span class="shrink-0 rounded-full border border-hijau/30 bg-hijau/10 px-2 py-0.5 text-xs font-semibold text-hijau">Tersedia</span>
+            <% } else { %>
+              <span class="shrink-0 rounded-full border border-merah/30 bg-merah/10 px-2 py-0.5 text-xs font-semibold text-merah">Habis</span>
+            <% } %>
+          </div>
+          <p class="mt-2 text-xs font-medium uppercase tracking-wide text-kopi"><%= produk.kategori %></p>
+          <p class="mt-2 text-sm leading-relaxed text-kopi"><%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %></p>
+          <p class="mt-3 text-sm font-semibold text-aksen"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></p>
+          <div class="mt-4 flex gap-2">
+            <a href="/produk/<%= produk.id %>/ubah" class="flex-1 rounded-full border border-espresso/20 px-3 py-2 text-center text-xs font-semibold text-espresso transition hover:bg-kremTua focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
+              Ubah
+            </a>
+            <button type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>" class="flex-1 rounded-full border border-merah/30 px-3 py-2 text-xs font-semibold text-merah transition hover:bg-merah/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-merah disabled:cursor-not-allowed disabled:opacity-60">
+              Hapus
+            </button>
+          </div>
+        </article>
+      <% }); %>
+    </div>
+  <% } %>
+</main>
+<%# JavaScript sisi klien untuk tombol hapus dan pesan sukses %>
+<script src="/js/produk.js" defer></script>
+<%- include('../partials/footer', { namaKafe }) %>

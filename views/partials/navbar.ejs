@@ -1,0 +1,36 @@
+<%# Partial navbar: navigasi utama yang dipakai ulang %>
+<header class="sticky top-0 z-40 border-b border-kremTua/80 bg-krem/90 backdrop-blur">
+  <%# Tautan lompat konten untuk pengguna keyboard %>
+  <a href="#konten" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-espresso focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-krem">
+    Lewati ke konten
+  </a>
+  <%# Baris navigasi dengan lebar maksimum agar rapi di layar besar %>
+  <nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6" aria-label="Navigasi utama">
+    <%# Merek menuju beranda %>
+    <a href="/" class="flex items-center gap-2 rounded-full text-espresso focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-aksen">
+      <%# Ikon cangkir kopi sederhana %>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-7 w-7 text-aksen" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 8h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 9h2a3 3 0 0 1 0 6h-2" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M7 3v2M11 3v2" />
+      </svg>
+      <%# Nama kedai memakai font display %>
+      <span class="font-display text-lg font-semibold tracking-tight"><%= namaKafe %></span>
+    </a>
+    <%# Kumpulan tautan halaman %>
+    <div class="flex items-center gap-1 text-sm font-medium sm:gap-2">
+      <%# Tautan beranda dengan penanda halaman aktif %>
+      <a href="/" class="rounded-full px-3 py-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen <%= halaman === 'beranda' ? 'bg-espresso text-krem' : 'text-kopi hover:bg-kremTua' %>">
+        Beranda
+      </a>
+      <%# Tautan daftar menu dengan penanda halaman aktif %>
+      <a href="/produk" class="rounded-full px-3 py-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen <%= halaman === 'produk' ? 'bg-espresso text-krem' : 'text-kopi hover:bg-kremTua' %>">
+        Menu
+      </a>
+      <%# Tombol cepat menuju form tambah produk %>
+      <a href="/produk/tambah" class="rounded-full bg-aksen px-3 py-2 text-white transition hover:bg-aksen/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso sm:px-4">
+        Tambah
+      </a>
+    </div>
+  </nav>
+</header>

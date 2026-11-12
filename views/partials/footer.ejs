@@ -1,0 +1,37 @@
+<%# Partial footer: penutup semua halaman %>
+<%# Tahun berjalan dihitung saat halaman dirender %>
+<% const tahun = new Date().getFullYear(); %>
+<footer class="mt-16 border-t border-espresso/10 bg-espresso text-krem">
+  <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-3">
+    <%# Identitas kedai %>
+    <div>
+      <p class="font-display text-xl font-semibold"><%= namaKafe %></p>
+      <p class="mt-2 max-w-xs text-sm leading-relaxed text-krem/70">
+        Kopi, ruang, dan waktu yang lambat. Diseduh dengan tenang di Yogyakarta.
+      </p>
+    </div>
+    <%# Informasi kontak %>
+    <div class="text-sm text-krem/80">
+      <p class=" font-semibold text-krem">Kunjungi kami</p>
+      <p class="mt-2">Mangkubumi &amp; Kotabaru, Yogyakarta</p>
+      <p>Setiap hari · 07.00 – 22.00</p>
+    </div>
+    <%# Tautan pintas halaman %>
+    <div class="text-sm text-krem/80">
+      <p class="font-semibold text-krem">Tautan</p>
+      <ul class="mt-2 space-y-1">
+        <li><a href="/" class="rounded transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">Beranda</a></li>
+        <li><a href="/produk" class="rounded transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">Daftar Produk</a></li>
+        <li><a href="/produk/tambah" class="rounded transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">Tambah Produk</a></li>
+      </ul>
+    </div>
+  </div>
+  <%# Hak cipta dan keterangan tugas %>
+  <div class="border-t border-krem/10">
+    <p class="mx-auto max-w-6xl px-4 py-4 text-xs text-krem/60 sm:px-6">
+      © <%= tahun %> <%= namaKafe %>. Dibuat untuk tugas Pengembangan Aplikasi Web.
+    </p>
+  </div>
+</footer>
+</body>
+</html>

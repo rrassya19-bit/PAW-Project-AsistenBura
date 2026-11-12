@@ -1,0 +1,17 @@
+/* Memberi jarak gulir agar judul tidak tertutup navbar lengket */
+html {
+  scroll-padding-top: 5rem;
+}
+
+/* Menyesuaikan warna seleksi teks dengan tema kedai */
+::selection {
+  background-color: #C76B2E;
+  color: #FFFFFF;
+}
+
+/* Menonaktifkan gerak halus bagi pengguna yang memintanya */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
