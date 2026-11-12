@@ -1,11 +1,13 @@
 {
   "name": "paw-project-asistenbura",
   "version": "1.0.0",
-  "description": "",
+  "description": "Aplikasi web Bura Bura Coffee dengan Express, EJS, dan PostgreSQL",
   "main": "app.js",
   "scripts": {
+    "start": "node app.js",
     "dev": "node --watch app.js",
-    "start": "node app.js"
+    "seed": "node database/seed.js",
+    "uji": "node scripts/uji-api.js"
   },
   "repository": {
     "type": "git",
@@ -20,10 +22,9 @@
   },
   "homepage": "https://github.com/rrassya19-bit/PAW-Project-AsistenBura#readme",
   "dependencies": {
+    "dotenv": "^18.0.10",
     "ejs": "^7.0.2",
-    "express": "^5.3.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.14"
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
   }
 }
