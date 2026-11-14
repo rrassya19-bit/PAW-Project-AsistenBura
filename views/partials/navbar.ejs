@@ -3,6 +3,8 @@
   const aplikasi = typeof appName !== 'undefined' ? appName : 'Asisten Bura';
   // Halaman beranda memakai tautan jangkar, halaman lain memakai tautan absolut
   const diBeranda = typeof halaman !== 'undefined' && halaman === 'beranda';
+  // Nama halaman aktif dipakai untuk penanda navigasi halaman mandiri
+  const halamanAktif = typeof halaman !== 'undefined' ? halaman : '';
   // Awalan tautan bagian beranda disesuaikan dengan halaman aktif
   const awalan = diBeranda ? '' : '/';
 %>
@@ -32,8 +34,8 @@
     <nav class="primary-nav" aria-label="Navigasi utama">
       <a class="nav-link" href="<%= awalan %>#menu" data-nav>Menu</a>
       <a class="nav-link" href="<%= awalan %>#cerita" data-nav>Cerita</a>
-      <a class="nav-link" href="<%= awalan %>#galeri" data-nav>Galeri</a>
-      <a class="nav-link" href="<%= awalan %>#gerak" data-nav>Video</a>
+      <a class="nav-link" href="/galeri"<%= halamanAktif === 'galeri' ? ' aria-current="page"' : '' %>>Galeri</a>
+      <a class="nav-link" href="/video"<%= halamanAktif === 'video' ? ' aria-current="page"' : '' %>>Video</a>
       <a class="nav-link" href="<%= awalan %>#mampir" data-nav>Mampir</a>
     </nav>
 
@@ -43,8 +45,8 @@
       <nav aria-label="Navigasi seluler">
         <a href="<%= awalan %>#menu">Menu</a>
         <a href="<%= awalan %>#cerita">Cerita</a>
-        <a href="<%= awalan %>#galeri">Galeri</a>
-        <a href="<%= awalan %>#gerak">Video</a>
+        <a href="/galeri"<%= halamanAktif === 'galeri' ? ' aria-current="page"' : '' %>>Galeri</a>
+        <a href="/video"<%= halamanAktif === 'video' ? ' aria-current="page"' : '' %>>Video</a>
         <a href="<%= awalan %>#mampir">Mampir</a>
       </nav>
     </details>

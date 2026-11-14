@@ -9,6 +9,8 @@
   const sorotan = fotoRuang.slice(1, 4);
   const totalFoto = media.totalFoto;
   const totalVideo = media.totalVideo;
+  // Nomor kartu dipakai agar foto pertama dimuat lebih awal
+  let nomorKartu = 0;
 %>
 <%- include('partials/head', { judul }) %>
 <%- include('partials/navbar', { halaman, namaKafe, appName }) %>
@@ -89,7 +91,7 @@
               <% kategoriMenu.forEach(function (kategori) { %>
                 <section
                   id="<%= kategori.id %>"
-                  class="menu-group<%= kategori.nama === 'Additional' ? ' menu-group--compact' : '' %>"
+                  class="menu-group"
                   data-kategori-section
                   aria-labelledby="judul-<%= kategori.id %>"
                 >
@@ -98,23 +100,48 @@
                     <span class="menu-group__count"><%= kategori.jumlah %> pilihan</span>
                   </header>
 
-                  <div class="menu-grid">
-                    <% kategori.produk.forEach(function (produk, indeks) { %>
-                      <article class="menu-item<%= produk.tersedia ? '' : ' menu-item--out' %> reveal" style="--delay: <%= Math.min(indeks, 4) * 45 %>ms;">
-                        <div class="menu-item__top">
-                          <h4 class="menu-item__name"><%= produk.nama %></h4>
-                          <p class="menu-item__price">
-                            <% if (produk.hargaMaks != null && produk.hargaMaks > produk.harga) { %>
-                              <%= formatRupiah(produk.harga) %> &ndash; <%= formatRupiah(produk.hargaMaks) %>
-                            <% } else { %>
-                              <%= formatRupiah(produk.harga) %>
-                            <% } %>
-                          </p>
+                  <div class="menu-cards">
+                    <% kategori.produk.forEach(function (produk) { %>
+                      <%
+                        // Nomor kartu naik untuk menentukan prioritas pemuatan gambar
+                        nomorKartu += 1;
+                      %>
+                      <article class="menu-card<%= produk.tersedia ? '' : ' menu-card--out' %> reveal" style="--delay: <%= Math.min((nomorKartu - 1) % 4, 4) * 45 %>ms;">
+                        <%# Media kartu memakai rasio tetap dan placeholder inisial %>
+                        <div class="menu-card__media">
+                          <span class="menu-card__placeholder" aria-hidden="true"><%= ambilInisial(produk.nama) %></span>
+                          <% if (produk.foto) { %>
+                            <img
+                              src="<%= produk.foto %>"
+                              alt="<%= produk.nama %>"
+                              width="800"
+                              height="600"
+                              loading="<%= nomorKartu === 1 ? 'eager' : 'lazy' %>"
+                              decoding="async"
+                              onerror="this.hidden=true"
+                            />
+                          <% } %>
+                          <% if (!produk.tersedia) { %>
+                            <span class="menu-card__badge">Habis</span>
+                          <% } %>
                         </div>
-                        <p class="menu-item__desc"><%= produk.deskripsi %></p>
-                        <% if (!produk.tersedia) { %>
-                          <span class="menu-item__badge">Habis</span>
-                        <% } %>
+
+                        <%# Identitas dan harga produk %>
+                        <div class="menu-card__body">
+                          <div class="menu-card__top">
+                            <h4 class="menu-card__name"><%= produk.nama %></h4>
+                            <p class="menu-card__price">
+                              <% if (produk.hargaMaks != null && produk.hargaMaks > produk.harga) { %>
+                                <%= formatRupiah(produk.harga) %> &ndash; <%= formatRupiah(produk.hargaMaks) %>
+                              <% } else { %>
+                                <%= formatRupiah(produk.harga) %>
+                              <% } %>
+                            </p>
+                          </div>
+                          <% if (produk.deskripsi) { %>
+                            <p class="menu-card__desc"><%= produk.deskripsi %></p>
+                          <% } %>
+                        </div>
                       </article>
                     <% }); %>
                   </div>
@@ -182,85 +209,74 @@
       </div>
     </section>
 
-    <section id="galeri" class="section section--paper" aria-labelledby="judul-galeri">
-      <div class="shell">
-        <header class="section-head">
-          <div class="section-head__aside reveal"></div>
-          <div class="reveal" style="--delay: 80ms;">
-            <h2 id="judul-galeri" class="section-head__title">Sudut, cangkir, dan orang-orangnya.</h2>
-            <p class="section-head__sub">Seluruh dokumentasi Bura Bura dalam satu tempat: ruang, menu signature, dirty latte, pastry, pagi yang sibuk, dan tim yang menyeduhnya.</p>
-            <p class="section-head__meta"><%= totalFoto %> foto · <%= media.koleksi.length %> koleksi</p>
-          </div>
-        </header>
+    <% if (totalFoto > 0 || totalVideo > 0) { %>
+      <section id="media" class="section section--paper" aria-labelledby="judul-media">
+        <div class="shell">
+          <header class="section-head">
+            <div class="section-head__aside reveal"></div>
+            <div class="reveal" style="--delay: 80ms;">
+              <h2 id="judul-media" class="section-head__title">Lihat lebih dekat.</h2>
+              <p class="section-head__sub">Sedikit suasana dari ruang dan menu kami. Buka galeri untuk melihat seluruh foto, atau tonton kumpulan video tanpa putar otomatis.</p>
+              <p class="section-head__meta"><%= totalFoto %> foto · <%= totalVideo %> video</p>
+            </div>
+          </header>
 
-        <div class="filters reveal" role="group" aria-label="Filter galeri">
-          <button class="filter is-active" type="button" data-filter="all" aria-pressed="true">Semua <span><%= totalFoto %></span></button>
-          <% media.koleksi.forEach(function (item) { %>
-            <button class="filter" type="button" data-filter="<%= item.nama %>" aria-pressed="false"><%= item.nama %> <span><%= item.jumlah %></span></button>
-          <% }); %>
-        </div>
+          <div class="media-preview">
+            <% if (totalFoto > 0) { %>
+              <div class="media-preview__block reveal">
+                <div class="media-preview__head">
+                  <h3 class="media-preview__title">Galeri</h3>
+                  <p class="media-preview__meta"><%= totalFoto %> foto dalam <%= media.koleksi.length %> koleksi</p>
+                </div>
 
-        <div class="gallery-grid" data-gallery-grid>
-          <% foto.forEach(function (item, indeks) { %>
-            <a
-              class="gallery-item reveal"
-              href="<%= item.src %>"
-              data-gallery-item
-              data-koleksi="<%= item.koleksi %>"
-              data-src="<%= item.src %>"
-              data-alt="<%= item.alt %>"
-              data-nomor="<%= indeks + 1 %>"
-              style="--delay: <%= (indeks % 4) * 45 %>ms;"
-              aria-label="Buka foto <%= indeks + 1 %> dari <%= totalFoto %>, koleksi <%= item.koleksi %>"
-            >
-              <img src="<%= item.src %>" alt="<%= item.alt %>" width="1080" height="1350" loading="lazy" decoding="async" />
-              <span class="gallery-item__meta">
-                <span class="gallery-item__koleksi"><%= item.koleksi %></span>
-                <span class="gallery-item__zoom" aria-hidden="true">+</span>
-              </span>
-            </a>
-          <% }); %>
-        </div>
-      </div>
-    </section>
+                <div class="media-preview__photos">
+                  <% foto.slice(0, 4).forEach(function (item, indeks) { %>
+                    <figure class="media-preview__photo">
+                      <img
+                        src="<%= item.src %>"
+                        alt="<%= item.alt %>"
+                        width="600"
+                        height="600"
+                        loading="lazy"
+                        decoding="async"
+                        onerror="this.hidden=true"
+                      />
+                      <figcaption><%= item.koleksi %></figcaption>
+                    </figure>
+                  <% }); %>
+                </div>
 
-    <section id="gerak" class="section section--white" aria-labelledby="judul-gerak">
-      <div class="shell">
-        <header class="section-head">
-          <div class="section-head__aside reveal"></div>
-          <div class="reveal" style="--delay: 80ms;">
-            <h2 id="judul-gerak" class="section-head__title">Sepotong suasana, terus berjalan.</h2>
-            <p class="section-head__sub">Cuplikan dari balik bar dan sudut ruang kami. Semua video berputar otomatis dan berulang, tanpa perlu dimainkan atau dijeda.</p>
-          </div>
-        </header>
-
-        <div class="video-grid">
-          <% video.forEach(function (item, indeks) { %>
-            <figure class="video-card reveal" style="--delay: <%= (indeks % 3) * 70 %>ms;" data-video-card>
-              <div class="video-card__frame">
-                <video
-                  autoplay
-                  muted
-                  loop
-                  playsinline
-                  preload="metadata"
-                  poster="<%= item.poster %>"
-                  data-video
-                  aria-label="Cuplikan <%= item.koleksi %> Bura Bura Coffee"
-                >
-                  <source src="<%= item.src %>" type="video/mp4" />
-                </video>
-                <span class="video-card__badge"><span class="video-card__dot" aria-hidden="true"></span>Loop</span>
+                <a class="btn btn--outline media-preview__button" href="/galeri">Lihat semua foto</a>
               </div>
-              <figcaption class="video-card__caption">
-                <span class="video-card__koleksi"><%= item.koleksi %></span>
-                <span class="video-card__num"><%= String(indeks + 1).padStart(2, '0') %> / <%= String(totalVideo).padStart(2, '0') %></span>
-              </figcaption>
-            </figure>
-          <% }); %>
+            <% } %>
+
+            <% if (totalVideo > 0) { %>
+              <div class="media-preview__block reveal" style="--delay: 80ms;">
+                <div class="media-preview__head">
+                  <h3 class="media-preview__title">Video</h3>
+                  <p class="media-preview__meta"><%= totalVideo %> cuplikan suasana</p>
+                </div>
+
+                <div class="media-preview__video">
+                  <video
+                    controls
+                    muted
+                    playsinline
+                    preload="metadata"
+                    poster="<%= video[0].poster %>"
+                    aria-label="Cuplikan <%= video[0].koleksi %> Bura Bura Coffee"
+                  >
+                    <source src="<%= video[0].src %>" type="video/mp4" />
+                  </video>
+                </div>
+
+                <a class="btn btn--outline media-preview__button" href="/video">Lihat video</a>
+              </div>
+            <% } %>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    <% } %>
 
     <section id="mampir" class="visit" aria-labelledby="judul-mampir">
       <div class="shell visit__inner">

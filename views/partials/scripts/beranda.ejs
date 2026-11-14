@@ -1,4 +1,4 @@
-<%# Skrip beranda disalin persis dari public/js/beranda.js %>
+<%# Skrip beranda dan halaman media, tanpa library %>
 <script>// Skrip beranda: animasi gulir, galeri, filter, video, dan detail foto
 (function () {
       'use strict';
@@ -68,8 +68,11 @@
       updateScroll();
 
       if ('IntersectionObserver' in window && navLinks.length) {
+        // Hanya tautan jangkar pada halaman yang sama yang dijadikan target
         var navSections = navLinks.map(function (link) {
-          return doc.querySelector(link.getAttribute('href'));
+          var tujuan = link.getAttribute('href');
+          if (!tujuan || tujuan.charAt(0) !== '#') return null;
+          return doc.querySelector(tujuan);
         }).filter(Boolean);
 
         var navObserver = new IntersectionObserver(function (entries) {

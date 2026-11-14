@@ -4,6 +4,7 @@ const produkModel = require('../models/produkModel');
 const mediaModel = require('../models/mediaModel');
 const { formatRupiah, formatRentangHarga, formatWaktu } = require('../utils/formatter');
 const { kelompokkanProduk } = require('../utils/kelompokKategori');
+const { ambilInisial } = require('../utils/inisial');
 
 // Data konteks yang dipakai bersama oleh header, footer, dan halaman
 function konteksHalaman() {
@@ -39,6 +40,7 @@ async function home(req, res, next) {
       media,
       formatRupiah,
       formatRentangHarga,
+      ambilInisial,
       waktuTerformat: formatWaktu(new Date()),
     });
   } catch (err) {
