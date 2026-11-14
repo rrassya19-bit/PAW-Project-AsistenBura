@@ -7,6 +7,8 @@
     "start": "node app.js",
     "dev": "node --watch app.js",
     "seed": "node database/seed.js",
+    "migrasi": "node database/migrasi.js",
+    "foto:isi": "node scripts/isi-foto.js",
     "uji": "node scripts/uji-api.js"
   },
   "repository": {

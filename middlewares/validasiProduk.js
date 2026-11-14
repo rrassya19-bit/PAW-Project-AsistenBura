@@ -54,6 +54,33 @@ function validasiProduk(req, res, next) {
     }
   }
 
+  // Validasi foto: opsional, boleh kosong, berupa path /media/... atau URL https
+  let foto = null;
+  if (!(body.foto === '' || body.foto === null || body.foto === undefined)) {
+    if (typeof body.foto !== 'string') {
+      kesalahan.push('Foto harus berupa teks');
+    } else {
+      const fotoTeks = body.foto.trim();
+
+      if (fotoTeks.length > 255) {
+        kesalahan.push('Foto maksimal 255 karakter');
+      } else if (fotoTeks.length > 0) {
+        const urlHttps = /^https:\/\/[^\s]+$/i.test(fotoTeks);
+        const pathMedia =
+          /^\/media\/[A-Za-z0-9._\-\/]+$/.test(fotoTeks) &&
+          fotoTeks.indexOf('..') === -1;
+
+        if (!urlHttps && !pathMedia) {
+          kesalahan.push(
+            'Foto harus berupa URL https:// atau path /media/... tanpa karakter terlarang'
+          );
+        } else {
+          foto = fotoTeks;
+        }
+      }
+    }
+  }
+
   // Validasi tersedia: boolean, default true bila tidak dikirim
   let tersedia = true;
   if (!(body.tersedia === undefined || body.tersedia === null)) {
@@ -74,7 +101,7 @@ function validasiProduk(req, res, next) {
   }
 
   // Meneruskan data yang sudah dibersihkan dan dikonversi ke controller
-  req.produkTervalidasi = { nama, kategori, harga, hargaMaks, deskripsi, tersedia };
+  req.produkTervalidasi = { nama, kategori, harga, hargaMaks, deskripsi, foto, tersedia };
   return next();
 }
 

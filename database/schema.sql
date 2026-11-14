@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS produk (
   harga_maks INTEGER CHECK (harga_maks IS NULL OR harga_maks >= harga),
   -- Deskripsi menu boleh kosong
   deskripsi TEXT,
+  -- Alamat foto menu, boleh kosong bila belum tersedia
+  foto VARCHAR(255),
   -- Status ketersediaan menu, default tersedia
   tersedia BOOLEAN NOT NULL DEFAULT TRUE,
   -- Waktu data dibuat

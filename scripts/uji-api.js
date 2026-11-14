@@ -19,6 +19,10 @@ let jumlahGagal = 0;
 // Menyimpan id produk uji agar bisa dibersihkan bila perlu
 let idUji = null;
 
+// Menyimpan id produk uji foto agar bisa dibersihkan bila perlu
+let idFotoUji = null;
+let idTanpaFotoUji = null;
+
 // Mencetak status PASS/FAIL untuk setiap langkah
 function lapor(nama, lulus, keterangan) {
   const label = lulus ? 'PASS' : 'FAIL';
@@ -68,6 +72,144 @@ async function hitungBaris() {
 async function bacaBaris(id) {
   const hasil = await pool.query('SELECT * FROM produk WHERE id = $1', [id]);
   return hasil.rows[0] || null;
+}
+
+// Menguji penyimpanan foto valid, foto kosong, dan penolakan foto tidak aman
+async function ujiFoto() {
+  // Data dasar dipakai ulang oleh seluruh skenario foto
+  const dataDasar = {
+    kategori: 'Uji Foto',
+    harga: 15000,
+    hargaMaks: null,
+    deskripsi: 'Data uji kolom foto',
+    tersedia: true,
+  };
+
+  // Langkah foto 1: POST dengan path /media yang valid
+  const fotoValid = '/media/menu/uji-api.jpg';
+  const sebelumFoto = await hitungBaris();
+  const postFoto = await minta(
+    '/api/produk',
+    opsiJson('POST', { ...dataDasar, nama: `Uji Foto ${Date.now()}`, foto: fotoValid })
+  );
+  if (postFoto.data && Number.isInteger(postFoto.data.id)) {
+    idFotoUji = postFoto.data.id;
+  }
+  const barisFoto = idFotoUji === null ? null : await bacaBaris(idFotoUji);
+  const sesudahFoto = await hitungBaris();
+  lapor(
+    'POST /api/produk menyimpan foto valid',
+    postFoto.respons.status === 201 &&
+      postFoto.data &&
+      postFoto.data.foto === fotoValid &&
+      barisFoto &&
+      barisFoto.foto === fotoValid &&
+      sesudahFoto === sebelumFoto + 1,
+    `status ${postFoto.respons.status}, id ${idFotoUji}`
+  );
+
+  // Langkah foto 2: POST tanpa foto harus menyimpan null
+  const sebelumTanpaFoto = await hitungBaris();
+  const postTanpaFoto = await minta(
+    '/api/produk',
+    opsiJson('POST', { ...dataDasar, nama: `Uji Tanpa Foto ${Date.now()}` })
+  );
+  if (postTanpaFoto.data && Number.isInteger(postTanpaFoto.data.id)) {
+    idTanpaFotoUji = postTanpaFoto.data.id;
+  }
+  const barisTanpaFoto =
+    idTanpaFotoUji === null ? null : await bacaBaris(idTanpaFotoUji);
+  const sesudahTanpaFoto = await hitungBaris();
+  lapor(
+    'POST /api/produk menerima produk tanpa foto',
+    postTanpaFoto.respons.status === 201 &&
+      postTanpaFoto.data &&
+      postTanpaFoto.data.foto === null &&
+      barisTanpaFoto &&
+      barisTanpaFoto.foto === null &&
+      sesudahTanpaFoto === sebelumTanpaFoto + 1,
+    `status ${postTanpaFoto.respons.status}, foto null`
+  );
+
+  // Langkah foto 3: skema berbahaya harus ditolak tanpa menambah baris
+  const sebelumSkema = await hitungBaris();
+  const postSkema = await minta(
+    '/api/produk',
+    opsiJson('POST', {
+      ...dataDasar,
+      nama: `Uji Foto Skema ${Date.now()}`,
+      foto: 'javascript:alert(1)',
+    })
+  );
+  const sesudahSkema = await hitungBaris();
+  lapor(
+    'POST /api/produk menolak foto javascript:',
+    postSkema.respons.status === 400 &&
+      Array.isArray(postSkema.data && postSkema.data.kesalahan) &&
+      sesudahSkema === sebelumSkema,
+    `status ${postSkema.respons.status}, DB tetap ${sesudahSkema} baris`
+  );
+
+  // Langkah foto 4: path traversal harus ditolak tanpa menambah baris
+  const sebelumTraversal = await hitungBaris();
+  const postTraversal = await minta(
+    '/api/produk',
+    opsiJson('POST', {
+      ...dataDasar,
+      nama: `Uji Foto Traversal ${Date.now()}`,
+      foto: '../foto.jpg',
+    })
+  );
+  const sesudahTraversal = await hitungBaris();
+  lapor(
+    'POST /api/produk menolak foto ../',
+    postTraversal.respons.status === 400 &&
+      Array.isArray(postTraversal.data && postTraversal.data.kesalahan) &&
+      sesudahTraversal === sebelumTraversal,
+    `status ${postTraversal.respons.status}, DB tetap ${sesudahTraversal} baris`
+  );
+
+  // Langkah foto 5: PUT dengan URL https harus memperbarui kolom foto
+  if (idFotoUji === null) {
+    lapor('PUT /api/produk/:id memperbarui foto', false, 'id uji foto tidak tersedia');
+  } else {
+    const fotoHttps = 'https://example.com/foto-menu.jpg';
+    const putFoto = await minta(
+      `/api/produk/${idFotoUji}`,
+      opsiJson('PUT', {
+        ...dataDasar,
+        nama: `Uji Foto Diubah ${Date.now()}`,
+        foto: fotoHttps,
+      })
+    );
+    const barisPutFoto = await bacaBaris(idFotoUji);
+    lapor(
+      'PUT /api/produk/:id memperbarui foto',
+      putFoto.respons.status === 200 &&
+        putFoto.data &&
+        putFoto.data.foto === fotoHttps &&
+        barisPutFoto &&
+        barisPutFoto.foto === fotoHttps,
+      `status ${putFoto.respons.status}, URL https tersimpan`
+    );
+  }
+
+  // Membersihkan produk uji foto agar jumlah data kembali seperti semula
+  if (idFotoUji !== null) {
+    const hapusFoto = await minta(`/api/produk/${idFotoUji}`, opsiAdmin('DELETE'));
+    if (hapusFoto.respons.ok) {
+      idFotoUji = null;
+    }
+  }
+  if (idTanpaFotoUji !== null) {
+    const hapusTanpaFoto = await minta(
+      `/api/produk/${idTanpaFotoUji}`,
+      opsiAdmin('DELETE')
+    );
+    if (hapusTanpaFoto.respons.ok) {
+      idTanpaFotoUji = null;
+    }
+  }
 }
 
 // Menjalankan seluruh skenario pengujian
@@ -185,6 +327,9 @@ async function jalankan() {
     lulus401Hapus,
     `status ${hapus401.respons.status}, data tetap ada`
   );
+
+  // Pengujian kolom foto dijalankan sebelum CRUD utama
+  await ujiFoto();
 
   // Langkah 2: membaca satu produk
   const satu = await minta(`/api/produk/${produkContoh.id}`);
@@ -314,6 +459,14 @@ async function bersihkan() {
   if (idUji !== null) {
     await pool.query('DELETE FROM produk WHERE id = $1', [idUji]);
     console.log(`Pembersihan: produk uji id ${idUji} dihapus`);
+  }
+  if (idFotoUji !== null) {
+    await pool.query('DELETE FROM produk WHERE id = $1', [idFotoUji]);
+    console.log(`Pembersihan: produk uji foto id ${idFotoUji} dihapus`);
+  }
+  if (idTanpaFotoUji !== null) {
+    await pool.query('DELETE FROM produk WHERE id = $1', [idTanpaFotoUji]);
+    console.log(`Pembersihan: produk uji tanpa foto id ${idTanpaFotoUji} dihapus`);
   }
 }
 
