@@ -2,6 +2,7 @@
 const config = require('../config');
 const produkModel = require('../models/produkModel');
 const { formatRupiah, formatRentangHarga } = require('../utils/formatter');
+const { ambilInisial } = require('../utils/inisial');
 
 // Data konteks yang dipakai bersama oleh header, footer, dan halaman admin
 function konteksHalaman() {
@@ -37,6 +38,7 @@ async function daftar(req, res, next) {
       jumlahProduk: daftarProduk.length,
       formatRupiah,
       formatRentangHarga,
+      ambilInisial,
     });
   } catch (err) {
     next(err);

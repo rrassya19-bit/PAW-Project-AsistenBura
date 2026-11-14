@@ -69,6 +69,15 @@
           <textarea class="crud-input" id="deskripsi" name="deskripsi" rows="4" placeholder="Bahan atau catatan singkat tentang produk"><%= produk ? produk.deskripsi : '' %></textarea>
         </div>
 
+        <%# Foto menu opsional berupa path /media atau URL https %>
+        <div>
+          <label class="crud-label" for="foto">Foto <span class="font-normal">(opsional)</span></label>
+          <input class="crud-input" id="foto" name="foto" type="text" maxlength="255" autocomplete="off" value="<%= produk && produk.foto ? produk.foto : '' %>" placeholder="/media/menu/espresso.jpg">
+          <p class="crud-muted mt-2">Gunakan path <code>/media/menu/nama-menu.jpg</code> atau URL <code>https://...</code>.</p>
+          <%# Pratinjau foto diisi oleh skrip admin tanpa menampilkan ikon gambar rusak %>
+          <img id="pratinjau-foto" class="crud-foto-preview mt-3" alt="Pratinjau foto produk" width="320" height="240" hidden />
+        </div>
+
         <%# Status ketersediaan produk %>
         <div class="crud-check">
           <input id="tersedia" name="tersedia" type="checkbox" <%= !produk || produk.tersedia ? 'checked' : '' %>>

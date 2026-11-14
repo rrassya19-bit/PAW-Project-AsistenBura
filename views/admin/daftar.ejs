@@ -46,6 +46,7 @@
         <thead>
           <tr>
             <th scope="col">ID</th>
+            <th scope="col">Foto</th>
             <th scope="col">Produk</th>
             <th scope="col">Kategori</th>
             <th scope="col">Harga</th>
@@ -59,6 +60,15 @@
             <tr>
               <%# Nomor id produk %>
               <td class="crud-muted"><%= produk.id %></td>
+              <%# Gambar mini dengan placeholder inisial bila foto kosong %>
+              <td>
+                <div class="crud-thumb">
+                  <span class="crud-thumb__placeholder" aria-hidden="true"><%= ambilInisial(produk.nama) %></span>
+                  <% if (produk.foto) { %>
+                    <img src="<%= produk.foto %>" alt="Foto <%= produk.nama %>" width="54" height="54" loading="lazy" decoding="async" onerror="this.hidden=true" />
+                  <% } %>
+                </div>
+              </td>
               <%# Nama dan deskripsi singkat produk %>
               <td>
                 <p class="crud-name"><%= produk.nama %></p>
@@ -95,9 +105,18 @@
         <article class="crud-card-item">
           <%# Identitas dan status produk %>
           <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="crud-muted">#<%= produk.id %></p>
-              <h2 class="crud-name mt-1"><%= produk.nama %></h2>
+            <div class="flex min-w-0 items-start gap-3">
+              <%# Gambar mini produk pada tampilan kartu %>
+              <div class="crud-thumb crud-thumb--small">
+                <span class="crud-thumb__placeholder" aria-hidden="true"><%= ambilInisial(produk.nama) %></span>
+                <% if (produk.foto) { %>
+                  <img src="<%= produk.foto %>" alt="Foto <%= produk.nama %>" width="44" height="44" loading="lazy" decoding="async" onerror="this.hidden=true" />
+                <% } %>
+              </div>
+              <div class="min-w-0">
+                <p class="crud-muted">#<%= produk.id %></p>
+                <h2 class="crud-name mt-1"><%= produk.nama %></h2>
+              </div>
             </div>
             <% if (produk.tersedia) { %>
               <span class="crud-badge crud-badge--online">Tersedia</span>

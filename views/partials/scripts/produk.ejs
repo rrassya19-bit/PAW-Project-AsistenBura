@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Memasang event submit pada form bila halaman ini memiliki form
   pasangFormProduk();
 
+  // Menampilkan pratinjau foto saat alamat foto diketik
+  pasangPratinjauFoto();
+
   // Memasang event klik pada semua tombol hapus
   pasangTombolHapus();
 });
@@ -68,6 +71,41 @@ function pasangFormProduk() {
   });
 }
 
+// Memasang pratinjau foto pada input alamat foto di form
+function pasangPratinjauFoto() {
+  const input = document.getElementById('foto');
+  const gambar = document.getElementById('pratinjau-foto');
+
+  // Pratinjau hanya dipasang bila halaman memiliki input dan gambar
+  if (!input || !gambar) {
+    return;
+  }
+
+  // Memperbarui gambar setiap kali alamat foto berubah
+  function perbaruiPratinjau() {
+    const alamat = input.value.trim();
+    gambar.hidden = true;
+
+    // Alamat kosong menghapus pratinjau tanpa memuat gambar
+    if (!alamat) {
+      gambar.removeAttribute('src');
+      return;
+    }
+
+    // Gambar hanya ditampilkan setelah berhasil dimuat
+    gambar.onload = function () {
+      gambar.hidden = false;
+    };
+    gambar.onerror = function () {
+      gambar.hidden = true;
+    };
+    gambar.src = alamat;
+  }
+
+  input.addEventListener('input', perbaruiPratinjau);
+  perbaruiPratinjau();
+}
+
 // Mengirim data form ke API sesuai mode tambah atau ubah
 async function kirimForm(form) {
   // Mengambil elemen pesan kesalahan dan tombol simpan
@@ -87,6 +125,7 @@ async function kirimForm(form) {
     harga: form.elements.harga.value,
     hargaMaks: form.elements.hargaMaks.value.trim() === '' ? null : form.elements.hargaMaks.value,
     deskripsi: form.elements.deskripsi.value.trim(),
+    foto: form.elements.foto.value.trim() === '' ? null : form.elements.foto.value.trim(),
     tersedia: form.elements.tersedia.checked,
   };
 
