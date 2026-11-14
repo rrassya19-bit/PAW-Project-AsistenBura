@@ -1,0 +1,95 @@
+<%# Halaman galeri foto lengkap dari folder assets %>
+<%- include('partials/head', { judul }) %>
+<%- include('partials/navbar', { halaman, namaKafe, appName }) %>
+<a class="skip-link" href="#konten">Lewati ke konten</a>
+
+<main id="konten" class="page-main section section--paper">
+  <div class="shell">
+    <%# Tautan kembali ke beranda selalu tersedia di halaman mandiri %>
+    <a class="page-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      Kembali ke beranda
+    </a>
+
+    <%# Kepala halaman memakai pola desain beranda %>
+    <header class="section-head">
+      <div class="section-head__aside reveal"></div>
+      <div class="reveal" style="--delay: 80ms;">
+        <h1 id="judul-galeri" class="section-head__title">Sudut, cangkir, dan orang-orangnya.</h1>
+        <p class="section-head__sub">Seluruh dokumentasi Bura Bura dalam satu tempat: ruang, menu signature, dirty latte, pastry, pagi yang sibuk, dan tim yang menyeduhnya.</p>
+        <p class="section-head__meta"><%= totalFoto %> foto · <%= media.koleksi.length %> koleksi</p>
+      </div>
+    </header>
+
+    <% if (totalFoto === 0) { %>
+      <%# Keadaan kosong tetap rapi saat folder aset belum berisi foto %>
+      <div class="page-empty">
+        <h2 class="page-empty__title">Belum ada foto.</h2>
+        <p class="page-empty__text">Tambahkan berkas foto ke folder <code>assets/</code> lalu muat ulang halaman ini. Menu tetap dapat dilihat di beranda.</p>
+        <a class="btn btn--primary" href="/">Kembali ke beranda</a>
+      </div>
+    <% } else { %>
+      <%# Filter koleksi memakai skrip beranda yang sudah ada %>
+      <div class="filters reveal" role="group" aria-label="Filter galeri">
+        <button class="filter is-active" type="button" data-filter="all" aria-pressed="true">Semua <span><%= totalFoto %></span></button>
+        <% media.koleksi.forEach(function (item) { %>
+          <button class="filter" type="button" data-filter="<%= item.nama %>" aria-pressed="false"><%= item.nama %> <span><%= item.jumlah %></span></button>
+        <% }); %>
+      </div>
+
+      <%# Setiap tautan membuka lightbox, dengan tautan gambar sebagai cadangan %>
+      <div class="gallery-grid" data-gallery-grid>
+        <% media.photos.forEach(function (item, indeks) { %>
+          <a
+            class="gallery-item reveal"
+            href="<%= item.src %>"
+            data-gallery-item
+            data-koleksi="<%= item.koleksi %>"
+            data-src="<%= item.src %>"
+            data-alt="<%= item.alt %>"
+            data-nomor="<%= indeks + 1 %>"
+            style="--delay: <%= (indeks % 4) * 45 %>ms;"
+            aria-label="Buka foto <%= indeks + 1 %> dari <%= totalFoto %>, koleksi <%= item.koleksi %>"
+          >
+            <img src="<%= item.src %>" alt="<%= item.alt %>" width="1080" height="1350" loading="lazy" decoding="async" />
+            <span class="gallery-item__meta">
+              <span class="gallery-item__koleksi"><%= item.koleksi %></span>
+              <span class="gallery-item__zoom" aria-hidden="true">+</span>
+            </span>
+          </a>
+        <% }); %>
+      </div>
+
+      <%# Dialog lightbox dipakai oleh skrip beranda untuk pratinjau foto %>
+      <dialog class="lightbox" data-lightbox aria-label="Pratinjau foto galeri">
+        <div class="lightbox__panel">
+          <button class="lightbox__nav lightbox__nav--prev" type="button" data-lightbox-prev aria-label="Foto sebelumnya">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+
+          <figure class="lightbox__figure">
+            <img data-lightbox-img alt="" />
+          </figure>
+
+          <button class="lightbox__nav lightbox__nav--next" type="button" data-lightbox-next aria-label="Foto berikutnya">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+
+          <button class="lightbox__close" type="button" data-lightbox-close aria-label="Tutup pratinjau">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+          </button>
+
+          <p class="lightbox__caption" data-lightbox-caption></p>
+        </div>
+      </dialog>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# Skrip beranda menyediakan reveal, filter, dan lightbox %>
+<%- include('partials/scripts/beranda') %>
+<%# Skrip status dipasang terakhir untuk seluruh halaman %>
+<%- include('partials/scripts/status') %>
+</body>
+</html>

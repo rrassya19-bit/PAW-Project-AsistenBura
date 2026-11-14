@@ -1,0 +1,65 @@
+<%# Halaman video lengkap dari folder assets %>
+<%- include('partials/head', { judul }) %>
+<%- include('partials/navbar', { halaman, namaKafe, appName }) %>
+<a class="skip-link" href="#konten">Lewati ke konten</a>
+
+<main id="konten" class="page-main section section--white">
+  <div class="shell">
+    <%# Tautan kembali ke beranda selalu tersedia di halaman mandiri %>
+    <a class="page-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      Kembali ke beranda
+    </a>
+
+    <%# Kepala halaman memakai pola desain beranda %>
+    <header class="section-head">
+      <div class="section-head__aside reveal"></div>
+      <div class="reveal" style="--delay: 80ms;">
+        <h1 id="judul-video" class="section-head__title">Sepotong suasana, tanpa buru-buru.</h1>
+        <p class="section-head__sub">Cuplikan dari balik bar dan sudut ruang kami. Semua video memakai kontrol pemutar dan tidak berputar otomatis, jadi kamu bisa menonton sesuai tempo sendiri.</p>
+        <p class="section-head__meta"><%= totalVideo %> video</p>
+      </div>
+    </header>
+
+    <% if (totalVideo === 0) { %>
+      <%# Keadaan kosong tetap rapi saat folder aset belum berisi video %>
+      <div class="page-empty">
+        <h2 class="page-empty__title">Belum ada video.</h2>
+        <p class="page-empty__text">Tambahkan berkas video ke folder <code>assets/</code> lalu muat ulang halaman ini. Menu tetap dapat dilihat di beranda.</p>
+        <a class="btn btn--primary" href="/">Kembali ke beranda</a>
+      </div>
+    <% } else { %>
+      <%# Video memakai kontrol, tanpa autoplay dan tanpa data-video %>
+      <div class="video-grid video-grid--page">
+        <% media.videos.forEach(function (item, indeks) { %>
+          <figure class="video-card reveal" style="--delay: <%= (indeks % 3) * 70 %>ms;">
+            <div class="video-card__frame">
+              <video
+                controls
+                muted
+                playsinline
+                preload="metadata"
+                poster="<%= item.poster %>"
+                aria-label="Cuplikan <%= item.koleksi %> Bura Bura Coffee"
+              >
+                <source src="<%= item.src %>" type="video/mp4" />
+              </video>
+            </div>
+            <figcaption class="video-card__caption">
+              <span class="video-card__koleksi"><%= item.koleksi %></span>
+              <span class="video-card__num"><%= String(indeks + 1).padStart(2, '0') %> / <%= String(totalVideo).padStart(2, '0') %></span>
+            </figcaption>
+          </figure>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# Skrip beranda dipakai untuk reveal dan status tanpa memutar video %>
+<%- include('partials/scripts/beranda') %>
+<%# Skrip status dipasang terakhir untuk seluruh halaman %>
+<%- include('partials/scripts/status') %>
+</body>
+</html>

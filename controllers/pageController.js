@@ -48,4 +48,40 @@ async function home(req, res, next) {
   }
 }
 
-module.exports = { home };
+// GET /galeri -> halaman galeri foto lengkap
+async function galeri(req, res, next) {
+  try {
+    // Media dibaca dari folder assets melalui model
+    const media = mediaModel.getAll();
+
+    res.render('galeri', {
+      judul: 'Galeri',
+      halaman: 'galeri',
+      ...konteksHalaman(),
+      media,
+      totalFoto: media.totalFoto,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /video -> halaman seluruh video dengan kontrol pemutar
+async function video(req, res, next) {
+  try {
+    // Media dibaca dari folder assets melalui model
+    const media = mediaModel.getAll();
+
+    res.render('video', {
+      judul: 'Video',
+      halaman: 'video',
+      ...konteksHalaman(),
+      media,
+      totalVideo: media.totalVideo,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { home, galeri, video };

@@ -1447,6 +1447,67 @@
       display: none;
     }
 
+    /* ---------- Halaman media ---------- */
+
+    /* Jarak atas halaman mandiri memberi ruang untuk header tetap */
+    .page-main {
+      padding-top: calc(var(--nav-h) + clamp(42px, 6vw, 78px));
+    }
+
+    /* Tautan kembali ke beranda pada halaman galeri dan video */
+    .page-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 26px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .page-back:hover {
+      color: var(--cobalt);
+    }
+
+    .page-back svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Keadaan kosong untuk halaman media tanpa berkas */
+    .page-empty {
+      padding: clamp(38px, 6vw, 70px) 24px;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      background: var(--white);
+      text-align: center;
+    }
+
+    .page-empty__title {
+      font-family: var(--display);
+      font-size: clamp(1.4rem, 2.4vw, 2rem);
+      font-weight: 500;
+      letter-spacing: -0.025em;
+    }
+
+    .page-empty__text {
+      max-width: 42ch;
+      margin: 12px auto 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .page-empty .btn {
+      margin-top: 22px;
+    }
+
+    /* Grid video halaman penuh memakai tiga kolom seperti beranda */
+    .video-grid--page {
+      margin-top: 4px;
+    }
+
     /* ---------- Kunjungi ---------- */
 
     .visit {
