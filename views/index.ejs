@@ -326,6 +326,10 @@
     </section>
   </main>
 
-  <%# Skrip beranda dimuat setelah seluruh markup selesai %>
-  <script src="/js/beranda.js" defer></script>
-  <%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# Skrip beranda dimuat inline di akhir body agar waktunya sama seperti defer %>
+<%- include('partials/scripts/beranda') %>
+<%# Skrip status dipasang terakhir untuk seluruh halaman %>
+<%- include('partials/scripts/status') %>
+</body>
+</html>

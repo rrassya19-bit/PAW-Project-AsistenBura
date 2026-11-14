@@ -60,14 +60,11 @@
 
   <div class="shell footer__bottom">
     <span>&copy; <%= tahunFooter %> <%= namaKafe %> · dibuat oleh <%= aplikasiFooter %></span>
-    <%# Indikator status diperbarui oleh public/js/status.js %>
+    <%# Indikator status diperbarui oleh partial scripts/status.ejs %>
     <p class="footer__status" data-status aria-live="polite">
       <span class="status-dot" aria-hidden="true"></span>
       <span data-status-text>Memeriksa...</span>
     </p>
   </div>
 </footer>
-<%# Skrip bersama untuk memeriksa status server dari API %>
-<script src="/js/status.js" defer></script>
-</body>
-</html>
+<%# Skrip halaman dan status dimuat oleh masing-masing template setelah footer %>

@@ -28,8 +28,8 @@
   <script>// Menonaktifkan preflight tanpa mengubah utility Tailwind
     tailwind.config = { corePlugins: { preflight: false } };</script>
 
-  <%# CSS utama hasil pemindahan blok style beranda lama %>
-  <link rel="stylesheet" href="/css/style.css" />
+  <%# CSS utama dimuat dari partial EJS pada posisi yang sama setelah Tailwind %>
+  <%- include('style') %>
 </head>
 <%# Awal body memakai latar kertas dari CSS lama %>
 <body>

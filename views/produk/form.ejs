@@ -26,7 +26,7 @@
       <ul id="daftar-kesalahan" class="mt-2 list-disc space-y-1 pl-5"></ul>
     </div>
 
-    <%# Form dikirim lewat fetch oleh public/js/produk.js %>
+    <%# Form dikirim lewat fetch oleh partial scripts/produk.ejs %>
     <form id="form-produk" data-mode="<%= mode %>" data-id="<%= produk ? produk.id : '' %>" class="crud-card mt-8 p-5 sm:p-8">
       <div class="space-y-6">
         <%# Input nama produk %>
@@ -89,6 +89,10 @@
     </form>
   </div>
 </main>
-<%# JavaScript sisi klien untuk mengirim form lewat fetch %>
-<script src="/js/produk.js" defer></script>
 <%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# JavaScript sisi klien untuk mengirim form lewat fetch %>
+<%- include('../partials/scripts/produk') %>
+<%# Skrip status dipasang terakhir untuk seluruh halaman %>
+<%- include('../partials/scripts/status') %>
+</body>
+</html>

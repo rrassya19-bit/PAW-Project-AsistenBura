@@ -7,8 +7,8 @@ Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Apli
 - Node.js dan Express.js 5
 - EJS sebagai view engine
 - Tailwind CSS melalui CDN dengan preflight dimatikan agar CSS desain lama tidak berubah
-- CSS utama hasil pemulihan desain Week 7 pada `public/css/style.css`
-- JavaScript sisi klien tanpa library pada `public/js/`
+- CSS utama hasil pemulihan desain Week 7 berada di partial `views/partials/style.ejs`
+- JavaScript sisi klien tanpa library berada di partial `views/partials/scripts/`
 - PostgreSQL dengan driver `pg` (node-postgres) memakai `Pool`, tanpa ORM
 - Arsitektur MVC
 
@@ -20,9 +20,8 @@ controllers/   Alur request dan response; tidak menulis query SQL
 middlewares/   Logger, validasi, notFound, dan errorHandler
 models/        Seluruh operasi dan query database
 routes/        Pemetaan endpoint ke controller
-views/         Template EJS (partials, beranda, produk, 404, error)
+views/         Template EJS (partials, style.ejs, scripts/*.ejs, beranda, produk, 404, error)
 utils/         Fungsi bantu format rupiah, waktu, dan pengelompokan kategori
-public/        Aset statis: CSS desain beranda, JavaScript beranda/status/produk
 database/      Skema SQL, data awal, dan skrip seed
 scripts/       Skrip uji API
 app.js         Titik masuk aplikasi
