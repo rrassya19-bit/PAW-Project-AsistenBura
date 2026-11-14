@@ -1,37 +1,73 @@
-<%# Partial footer: penutup semua halaman %>
-<%# Tahun berjalan dihitung saat halaman dirender %>
-<% const tahun = new Date().getFullYear(); %>
-<footer class="mt-16 border-t border-espresso/10 bg-espresso text-krem">
-  <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-3">
-    <%# Identitas kedai %>
+<%
+  // Tahun berjalan dihitung saat halaman dirender
+  const tahunFooter = new Date().getFullYear();
+  // Nama aplikasi dan slogan memakai nilai controller dengan cadangan aman
+  const aplikasiFooter = typeof appName !== 'undefined' ? appName : 'Asisten Bura';
+  const sloganFooter = typeof tagline !== 'undefined' ? tagline : 'Kopi, ruang, dan waktu yang lambat.';
+  // Kontak memakai nilai controller; halaman 404 memakai tautan cadangan
+  const kontakFooter = typeof kontak !== 'undefined' ? kontak : {
+    peta: 'https://www.google.com/maps/search/?api=1&query=Bura+Bura+Coffee+Yogyakarta',
+    instagram: 'https://www.instagram.com/explore/tags/buraburacoffee/',
+  };
+  // Tautan bagian footer menyesuaikan halaman yang sedang dibuka
+  const diBerandaFooter = typeof halaman !== 'undefined' && halaman === 'beranda';
+  const awalanFooter = diBerandaFooter ? '' : '/';
+%>
+<%# Footer lama: identitas kedai, direktori tautan, dan status server %>
+<footer class="footer">
+  <div class="shell footer__main">
     <div>
-      <p class="font-display text-xl font-semibold"><%= namaKafe %></p>
-      <p class="mt-2 max-w-xs text-sm leading-relaxed text-krem/70">
-        Kopi, ruang, dan waktu yang lambat. Diseduh dengan tenang di Yogyakarta.
-      </p>
+      <div class="footer__brand">
+        <span class="footer__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="9" fill="#002FA7" />
+            <rect x="6" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+            <rect x="18" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+            <circle cx="10" cy="13" r="1.4" fill="#002FA7" />
+            <circle cx="10" cy="19" r="1.4" fill="#002FA7" />
+            <circle cx="22" cy="13" r="1.4" fill="#002FA7" />
+            <circle cx="22" cy="19" r="1.4" fill="#002FA7" />
+          </svg>
+        </span>
+        <span class="footer__text">
+          <span class="footer__name"><%= namaKafe %></span>
+          <span class="footer__app"><%= aplikasiFooter %></span>
+        </span>
+      </div>
+      <p class="footer__tagline"><%= sloganFooter %></p>
     </div>
-    <%# Informasi kontak %>
-    <div class="text-sm text-krem/80">
-      <p class=" font-semibold text-krem">Kunjungi kami</p>
-      <p class="mt-2">Mangkubumi &amp; Kotabaru, Yogyakarta</p>
-      <p>Setiap hari · 07.00 – 22.00</p>
-    </div>
-    <%# Tautan pintas halaman %>
-    <div class="text-sm text-krem/80">
-      <p class="font-semibold text-krem">Tautan</p>
-      <ul class="mt-2 space-y-1">
-        <li><a href="/" class="rounded transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">Beranda</a></li>
-        <li><a href="/produk" class="rounded transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">Daftar Produk</a></li>
-        <li><a href="/produk/tambah" class="rounded transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">Tambah Produk</a></li>
-      </ul>
+
+    <div class="footer__directory">
+      <div class="footer__group">
+        <p class="footer__group-title">Jelajahi</p>
+        <nav class="footer__links" aria-label="Navigasi footer">
+          <a href="<%= awalanFooter %>#menu">Menu</a>
+          <a href="<%= awalanFooter %>#cerita">Cerita</a>
+          <a href="<%= awalanFooter %>#galeri">Galeri</a>
+          <a href="<%= awalanFooter %>#gerak">Video</a>
+        </nav>
+      </div>
+      <div class="footer__group">
+        <p class="footer__group-title">Temukan</p>
+        <nav class="footer__links" aria-label="Tautan eksternal">
+          <a href="<%= kontakFooter.peta %>" target="_blank" rel="noopener noreferrer">Peta</a>
+          <a href="<%= kontakFooter.instagram %>" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <a href="<%= awalanFooter %>#mampir">Jam buka</a>
+        </nav>
+      </div>
     </div>
   </div>
-  <%# Hak cipta dan keterangan tugas %>
-  <div class="border-t border-krem/10">
-    <p class="mx-auto max-w-6xl px-4 py-4 text-xs text-krem/60 sm:px-6">
-      © <%= tahun %> <%= namaKafe %>. Dibuat untuk tugas Pengembangan Aplikasi Web.
+
+  <div class="shell footer__bottom">
+    <span>&copy; <%= tahunFooter %> <%= namaKafe %> · dibuat oleh <%= aplikasiFooter %></span>
+    <%# Indikator status diperbarui oleh public/js/status.js %>
+    <p class="footer__status" data-status aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span data-status-text>Memeriksa...</span>
     </p>
   </div>
 </footer>
+<%# Skrip bersama untuk memeriksa status server dari API %>
+<script src="/js/status.js" defer></script>
 </body>
 </html>

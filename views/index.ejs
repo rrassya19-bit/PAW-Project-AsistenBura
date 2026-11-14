@@ -1,130 +1,331 @@
-<%# Halaman beranda: seluruh menu berasal dari database %>
+<%
+  // Kategori menu sudah dikelompokkan controller dari data database
+  // Seluruh variabel media berasal dari mediaModel seperti pada Week 7
+  const foto = media.photos;
+  const video = media.videos;
+  const heroFoto = media.hero;
+  const marqueeFoto = media.marquee;
+  const fotoRuang = foto.filter(function (item) { return item.koleksi === 'Ruang'; });
+  const sorotan = fotoRuang.slice(1, 4);
+  const totalFoto = media.totalFoto;
+  const totalVideo = media.totalVideo;
+%>
 <%- include('partials/head', { judul }) %>
-<%- include('partials/navbar', { halaman }) %>
-<main id="konten">
-  <%# Bagian hero dengan latar hangat dan informasi utama kedai %>
-  <section class="relative overflow-hidden border-b border-kremTua">
-    <div class="absolute inset-0 bg-gradient-to-br from-krem via-kremTua/70 to-karamel/30" aria-hidden="true"></div>
-    <div class="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:py-24">
-      <%# Kolom kiri: judul, deskripsi, dan tombol aksi %>
-      <div>
-        <p class="inline-flex items-center gap-2 rounded-full border border-karamel/40 bg-white/60 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-kopi">
-          Kedai kopi · Yogyakarta
-        </p>
-        <h1 class="mt-5 max-w-2xl font-display text-4xl font-semibold leading-tight tracking-tight text-espresso sm:text-5xl lg:text-6xl">
-          Kopi yang menemani waktu lambat.
-        </h1>
-        <p class="mt-5 max-w-xl text-base leading-relaxed text-kopi sm:text-lg">
-          <%= tagline %> <%= deskripsi %>
-        </p>
-        <%# Tombol menuju menu dan pengelolaan produk %>
-        <div class="mt-8 flex flex-wrap items-center gap-3">
-          <a href="#menu" class="rounded-full bg-espresso px-5 py-3 text-sm font-semibold text-krem transition hover:bg-kopi focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-            Lihat menu
-          </a>
-          <a href="/produk" class="rounded-full border border-espresso/20 bg-white/70 px-5 py-3 text-sm font-semibold text-espresso transition hover:border-espresso/40 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-            Kelola produk
-          </a>
-        </div>
-        <%# Lencana status server dan database dari controller %>
-        <div class="mt-8 flex flex-wrap items-center gap-2 text-xs font-semibold">
-          <span class="inline-flex items-center gap-2 rounded-full border border-hijau/30 bg-hijau/10 px-3 py-1 text-hijau">
-            <span class="h-2 w-2 rounded-full bg-hijau" aria-hidden="true"></span>
-            Server <%= statusServer %>
-          </span>
-          <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 <%= statusDatabase === 'terhubung' ? 'border-hijau/30 bg-hijau/10 text-hijau' : 'border-merah/30 bg-merah/10 text-merah' %>">
-            <span class="h-2 w-2 rounded-full <%= statusDatabase === 'terhubung' ? 'bg-hijau' : 'bg-merah' %>" aria-hidden="true"></span>
-            Database <%= statusDatabase %>
-          </span>
-          <span class="rounded-full border border-karamel/30 bg-white/60 px-3 py-1 text-kopi">
-            Diperbarui <%= waktuTerformat %>
-          </span>
-        </div>
+<%- include('partials/navbar', { halaman, namaKafe, appName }) %>
+<a class="skip-link" href="#konten">Lewati ke konten</a>
+
+
+
+  <main id="konten">
+    <section id="atas" class="hero" data-hero aria-labelledby="judul-hero">
+      <div class="hero__media" data-hero-media aria-hidden="true">
+        <% if (heroFoto) { %>
+          <img src="<%= heroFoto.src %>" alt="" width="1600" height="2000" fetchpriority="high" decoding="async" />
+        <% } %>
       </div>
-      <%# Kolom kanan: ringkasan jumlah menu dari database %>
-      <aside class="rounded-3xl border border-karamel/30 bg-white/70 p-6 shadow-sm backdrop-blur sm:p-8">
-        <p class="text-xs font-semibold uppercase tracking-widest text-aksen">Ringkasan menu</p>
-        <div class="mt-4 grid grid-cols-2 gap-4">
-          <div class="rounded-2xl bg-kremTua/70 p-4">
-            <p class="font-display text-4xl font-semibold text-espresso"><%= jumlahProduk %></p>
-            <p class="mt-1 text-sm text-kopi">Produk tersimpan</p>
-          </div>
-          <div class="rounded-2xl bg-kremTua/70 p-4">
-            <p class="font-display text-4xl font-semibold text-espresso"><%= jumlahKategori %></p>
-            <p class="mt-1 text-sm text-kopi">Kategori menu</p>
+      <div class="hero__veil" aria-hidden="true"></div>
+
+      <div class="shell hero__inner">
+        <div class="hero__top">
+          <p class="kicker hero__eyebrow reveal"><%= namaKafe %> · Yogyakarta</p>
+          <span class="hero__loc reveal" style="--delay: 80ms;"><%= kontak.alamat %></span>
+        </div>
+
+        <h1 id="judul-hero" class="hero__title reveal" style="--delay: 120ms;">Kopi, ruang, dan waktu yang lambat.</h1>
+
+        <div class="hero__foot reveal" style="--delay: 220ms;">
+          <p class="hero__desc"><%= deskripsi %></p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#menu">
+              Lihat menu
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+            <a class="btn btn--ghost" href="#mampir">Mampir</a>
+            <%# Satu tombol tambahan menuju form tambah menu %>
+            <a class="btn btn--ghost" href="/produk/tambah">Tambah Menu</a>
           </div>
         </div>
-        <p class="mt-5 text-sm leading-relaxed text-kopi">
-          Semua data di halaman ini dibaca langsung dari PostgreSQL melalui REST API internal aplikasi.
-        </p>
-        <a href="/produk/tambah" class="mt-5 inline-flex rounded-full bg-aksen px-4 py-2 text-sm font-semibold text-white transition hover:bg-aksen/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso">
-          Tambah produk baru
-        </a>
-      </aside>
-    </div>
-  </section>
-
-  <%# Bagian menu yang dikelompokkan per kategori %>
-  <section id="menu" class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-aksen">Dari database</p>
-        <h2 class="mt-2 font-display text-3xl font-semibold tracking-tight text-espresso sm:text-4xl">Menu Bura Bura</h2>
       </div>
-      <p class="text-sm text-kopi"><%= jumlahProduk %> produk dalam <%= jumlahKategori %> kategori</p>
+    </section>
+
+    <div class="strip" aria-hidden="true">
+      <div class="strip__track">
+        <% marqueeFoto.concat(marqueeFoto).forEach(function (item, indeks) { %>
+          <span class="strip__item">
+            <img src="<%= item.src %>" alt="" width="400" height="500" loading="<%= indeks < 4 ? 'eager' : 'lazy' %>" decoding="async" />
+          </span>
+        <% }); %>
+      </div>
     </div>
 
-    <%# Keadaan kosong bila database belum berisi produk %>
-    <% if (kategoriMenu.length === 0) { %>
-      <div class="mt-10 rounded-3xl border border-dashed border-karamel/50 bg-white/60 p-10 text-center">
-        <p class="font-display text-xl font-semibold text-espresso">Belum ada menu</p>
-        <p class="mt-2 text-sm text-kopi">Tambahkan produk pertama agar daftar menu muncul di sini.</p>
-        <a href="/produk/tambah" class="mt-5 inline-flex rounded-full bg-espresso px-4 py-2 text-sm font-semibold text-krem transition hover:bg-kopi focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-          Tambah produk
-        </a>
-      </div>
-    <% } %>
+    <section id="menu" class="section section--paper" aria-labelledby="judul-menu">
+      <div class="shell">
+        <header class="section-head">
+          <div class="section-head__aside reveal">
+            <p class="kicker">Menu</p>
+            <span class="section-head__index">01 — Daftar</span>
+          </div>
+          <div class="reveal" style="--delay: 80ms;">
+            <h2 id="judul-menu" class="section-head__title">Yang kami seduh, setiap hari.</h2>
+            <p class="section-head__sub">Dari dirty latte sampai kopi hitam sederhana. Semua harga sudah termasuk pajak, disajikan untuk dinikmati pelan-pelan.</p>
+            <p class="section-head__meta"><%= daftarProduk.length %> pilihan menu · <%= kategoriMenu.length %> kategori</p>
+          </div>
+        </header>
 
-    <%# Setiap kategori dirender sebagai satu kelompok kartu %>
-    <% kategoriMenu.forEach(function (kategori) { %>
-      <section class="mt-12">
-        <div class="flex items-baseline justify-between gap-4 border-b border-kremTua pb-3">
-          <h3 class="font-display text-2xl font-semibold text-espresso"><%= kategori.nama %></h3>
-          <span class="text-sm text-kopi"><%= kategori.jumlah %> menu</span>
-        </div>
-        <%# Grid kartu produk yang responsif %>
-        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <% kategori.produk.forEach(function (produk) { %>
-            <article class="flex h-full flex-col justify-between rounded-2xl border border-kremTua bg-white/75 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-karamel/50 hover:shadow-md">
+        <% if (daftarProduk.length === 0) { %>
+          <p class="menu-empty">Belum ada menu.</p>
+        <% } else { %>
+          <div class="menu__layout">
+            <aside class="menu__side reveal">
+              <p class="menu__side-title">Kategori</p>
+              <nav class="menu-nav" aria-label="Kategori menu">
+                <% kategoriMenu.forEach(function (kategori, indeks) { %>
+                  <a
+                    class="menu-nav__item"
+                    href="#<%= kategori.id %>"
+                    data-kategori-link="<%= kategori.id %>"
+                    <% if (indeks === 0) { %>aria-current="true"<% } %>
+                  >
+                    <span class="menu-nav__num"><%= kategori.nomor %></span>
+                    <span><%= kategori.nama %></span>
+                    <span class="menu-nav__count"><%= kategori.jumlah %></span>
+                  </a>
+                <% }); %>
+              </nav>
+              <p class="menu__note">Harga dapat berubah mengikuti edisi menu. Tanyakan ketersediaan hari ini kepada barista kami.</p>
+            </aside>
+
+            <div class="menu-list">
+              <% kategoriMenu.forEach(function (kategori) { %>
+                <section
+                  id="<%= kategori.id %>"
+                  class="menu-group<%= kategori.nama === 'Additional' ? ' menu-group--compact' : '' %>"
+                  data-kategori-section
+                  aria-labelledby="judul-<%= kategori.id %>"
+                >
+                  <header class="menu-group__head reveal">
+                    <h3 id="judul-<%= kategori.id %>" class="menu-group__title"><%= kategori.nama %></h3>
+                    <span class="menu-group__count"><%= kategori.jumlah %> pilihan</span>
+                  </header>
+
+                  <div class="menu-grid">
+                    <% kategori.produk.forEach(function (produk, indeks) { %>
+                      <article class="menu-item<%= produk.tersedia ? '' : ' menu-item--out' %> reveal" style="--delay: <%= Math.min(indeks, 4) * 45 %>ms;">
+                        <div class="menu-item__top">
+                          <h4 class="menu-item__name"><%= produk.nama %></h4>
+                          <p class="menu-item__price">
+                            <% if (produk.hargaMaks != null && produk.hargaMaks > produk.harga) { %>
+                              <%= formatRupiah(produk.harga) %> &ndash; <%= formatRupiah(produk.hargaMaks) %>
+                            <% } else { %>
+                              <%= formatRupiah(produk.harga) %>
+                            <% } %>
+                          </p>
+                        </div>
+                        <p class="menu-item__desc"><%= produk.deskripsi %></p>
+                        <% if (!produk.tersedia) { %>
+                          <span class="menu-item__badge">Habis</span>
+                        <% } %>
+                      </article>
+                    <% }); %>
+                  </div>
+                </section>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <section id="cerita" class="section section--white" aria-labelledby="judul-cerita">
+      <div class="shell">
+        <header class="section-head">
+          <div class="section-head__aside reveal">
+            <p class="kicker">Cerita</p>
+            <span class="section-head__index">02 — Di balik cangkir</span>
+          </div>
+          <div class="reveal" style="--delay: 80ms;">
+            <h2 id="judul-cerita" class="section-head__title">Dari dirty latte ke ruang tempat orang berhenti sebentar.</h2>
+            <p class="section-head__sub">Bura Bura tumbuh dari obrolan kecil soal kopi yang jujur: seduhan yang konsisten, ruang yang nyaman, dan orang-orang yang datang bukan cuma untuk mengambil minuman.</p>
+          </div>
+        </header>
+
+        <div class="story__layout">
+          <aside class="story__aside reveal">
+            <div class="story__media">
+              <% sorotan.forEach(function (item, indeks) { %>
+                <figure>
+                  <img src="<%= item.src %>" alt="<%= item.alt %>" width="900" height="1200" loading="lazy" decoding="async" />
+                </figure>
+              <% }); %>
+            </div>
+            <p class="story__caption">Sudut-sudut Bura Bura di Mangkubumi dan Kotabaru. Tempat kami menemani pagi, sore, dan percakapan yang tidak buru-buru selesai.</p>
+          </aside>
+
+          <ol class="principles">
+            <li class="principle reveal">
+              <span class="principle__num">01</span>
               <div>
-                <div class="flex items-start justify-between gap-3">
-                  <h4 class="font-semibold leading-snug text-espresso"><%= produk.nama %></h4>
-                  <%# Tanda habis hanya muncul bila produk tidak tersedia %>
-                  <% if (!produk.tersedia) { %>
-                    <span class="shrink-0 rounded-full border border-merah/30 bg-merah/10 px-2 py-0.5 text-xs font-semibold text-merah">Habis</span>
-                  <% } %>
-                </div>
-                <p class="mt-2 text-sm leading-relaxed text-kopi">
-                  <%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %>
-                </p>
+                <h3 class="principle__title">Biji dan resep yang jelas.</h3>
+                <p class="principle__desc">Setiap cangkir dimulai dari pilihan biji dan takaran yang bisa dipertanggungjawabkan. Tidak ada rasa yang disembunyikan di balik gula berlebih.</p>
               </div>
-              <p class="mt-4 text-sm font-semibold text-aksen"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></p>
-            </article>
+            </li>
+            <li class="principle reveal" style="--delay: 60ms;">
+              <span class="principle__num">02</span>
+              <div>
+                <h3 class="principle__title">Seduh yang konsisten.</h3>
+                <p class="principle__desc">Dirty latte yang kamu suka hari ini harus terasa sama minggu depan. Barista kami menjaga standar seduh, suhu, dan tekstur susu di setiap shift.</p>
+              </div>
+            </li>
+            <li class="principle reveal" style="--delay: 120ms;">
+              <span class="principle__num">03</span>
+              <div>
+                <h3 class="principle__title">Ruang yang ramah.</h3>
+                <p class="principle__desc">Cahaya pagi, meja kayu, dan sudut outdoor yang teduh. Kami mendesain ruang untuk duduk lebih lama, bukan untuk cepat pergi.</p>
+              </div>
+            </li>
+            <li class="principle reveal" style="--delay: 180ms;">
+              <span class="principle__num">04</span>
+              <div>
+                <h3 class="principle__title">Orang, bukan sekadar transaksi.</h3>
+                <p class="principle__desc">Kami mengenal pelanggan tetap, kolaborator, dan tetangga sekitar. Kopi adalah alasan untuk bertemu, bukan satu-satunya tujuan.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="galeri" class="section section--paper" aria-labelledby="judul-galeri">
+      <div class="shell">
+        <header class="section-head">
+          <div class="section-head__aside reveal">
+            <p class="kicker">Galeri</p>
+            <span class="section-head__index">03 — Arsip visual</span>
+          </div>
+          <div class="reveal" style="--delay: 80ms;">
+            <h2 id="judul-galeri" class="section-head__title">Sudut, cangkir, dan orang-orangnya.</h2>
+            <p class="section-head__sub">Seluruh dokumentasi Bura Bura dalam satu tempat: ruang, menu signature, dirty latte, pastry, pagi yang sibuk, dan tim yang menyeduhnya.</p>
+            <p class="section-head__meta"><%= totalFoto %> foto · <%= media.koleksi.length %> koleksi</p>
+          </div>
+        </header>
+
+        <div class="filters reveal" role="group" aria-label="Filter galeri">
+          <button class="filter is-active" type="button" data-filter="all" aria-pressed="true">Semua <span><%= totalFoto %></span></button>
+          <% media.koleksi.forEach(function (item) { %>
+            <button class="filter" type="button" data-filter="<%= item.nama %>" aria-pressed="false"><%= item.nama %> <span><%= item.jumlah %></span></button>
           <% }); %>
         </div>
-      </section>
-    <% }); %>
 
-    <%# Ajakan mengelola data produk %>
-    <div class="mt-14 flex flex-col items-start justify-between gap-4 rounded-3xl bg-espresso px-6 py-8 text-krem sm:flex-row sm:items-center sm:px-8">
-      <div>
-        <p class="font-display text-2xl font-semibold">Perlu memperbarui menu?</p>
-        <p class="mt-1 text-sm text-krem/75">Tambah, ubah, atau hapus produk langsung dari halaman pengelolaan.</p>
+        <div class="gallery-grid" data-gallery-grid>
+          <% foto.forEach(function (item, indeks) { %>
+            <a
+              class="gallery-item reveal"
+              href="<%= item.src %>"
+              data-gallery-item
+              data-koleksi="<%= item.koleksi %>"
+              data-src="<%= item.src %>"
+              data-alt="<%= item.alt %>"
+              data-nomor="<%= indeks + 1 %>"
+              style="--delay: <%= (indeks % 4) * 45 %>ms;"
+              aria-label="Buka foto <%= indeks + 1 %> dari <%= totalFoto %>, koleksi <%= item.koleksi %>"
+            >
+              <img src="<%= item.src %>" alt="<%= item.alt %>" width="1080" height="1350" loading="lazy" decoding="async" />
+              <span class="gallery-item__meta">
+                <span class="gallery-item__koleksi"><%= item.koleksi %></span>
+                <span class="gallery-item__zoom" aria-hidden="true">+</span>
+              </span>
+            </a>
+          <% }); %>
+        </div>
       </div>
-      <a href="/produk" class="rounded-full bg-aksen px-5 py-3 text-sm font-semibold text-white transition hover:bg-aksen/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-krem">
-        Buka daftar produk
-      </a>
-    </div>
-  </section>
-</main>
-<%- include('partials/footer', { namaKafe }) %>
+    </section>
+
+    <section id="gerak" class="section section--white" aria-labelledby="judul-gerak">
+      <div class="shell">
+        <header class="section-head">
+          <div class="section-head__aside reveal">
+            <p class="kicker">Dalam gerak</p>
+            <span class="section-head__index">04 — Video</span>
+          </div>
+          <div class="reveal" style="--delay: 80ms;">
+            <h2 id="judul-gerak" class="section-head__title">Sepotong suasana, terus berjalan.</h2>
+            <p class="section-head__sub">Cuplikan dari balik bar dan sudut ruang kami. Semua video berputar otomatis dan berulang, tanpa perlu dimainkan atau dijeda.</p>
+          </div>
+        </header>
+
+        <div class="video-head reveal">
+          <span class="video-note">Autoplay · Loop · Tanpa jeda</span>
+          <span class="section-head__meta"><%= totalVideo %> video</span>
+        </div>
+
+        <div class="video-grid">
+          <% video.forEach(function (item, indeks) { %>
+            <figure class="video-card reveal" style="--delay: <%= (indeks % 3) * 70 %>ms;" data-video-card>
+              <div class="video-card__frame">
+                <video
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                  poster="<%= item.poster %>"
+                  data-video
+                  aria-label="Cuplikan <%= item.koleksi %> Bura Bura Coffee"
+                >
+                  <source src="<%= item.src %>" type="video/mp4" />
+                </video>
+                <span class="video-card__badge"><span class="video-card__dot" aria-hidden="true"></span>Loop</span>
+              </div>
+              <figcaption class="video-card__caption">
+                <span class="video-card__koleksi"><%= item.koleksi %></span>
+                <span class="video-card__num"><%= String(indeks + 1).padStart(2, '0') %> / <%= String(totalVideo).padStart(2, '0') %></span>
+              </figcaption>
+            </figure>
+          <% }); %>
+        </div>
+      </div>
+    </section>
+
+    <section id="mampir" class="visit" aria-labelledby="judul-mampir">
+      <div class="shell visit__inner">
+        <div class="reveal">
+          <p class="kicker">Mampir</p>
+          <h2 id="judul-mampir" class="visit__title">Mampir, duduk, dan pesan satu cangkir.</h2>
+          <p class="visit__desc">Kami buka setiap hari di Mangkubumi dan Kotabaru. Datang untuk kopi, tinggal untuk suasananya.</p>
+        </div>
+
+        <div class="visit__panel reveal" style="--delay: 100ms;">
+          <dl class="visit__list">
+            <div class="visit__row">
+              <dt>Lokasi</dt>
+              <dd><%= kontak.alamat %></dd>
+            </div>
+            <div class="visit__row">
+              <dt>Jam buka</dt>
+              <dd><%= kontak.jam %></dd>
+            </div>
+            <div class="visit__row">
+              <dt>Menu</dt>
+              <dd><%= daftarProduk.length %> pilihan, dari espresso sampai non coffee</dd>
+            </div>
+            <div class="visit__row">
+              <dt>Media</dt>
+              <dd><%= totalFoto %> foto dan <%= totalVideo %> cuplikan video</dd>
+            </div>
+          </dl>
+
+          <div class="visit__actions">
+            <a class="btn btn--primary" href="<%= kontak.peta %>" target="_blank" rel="noopener noreferrer">
+              Buka peta
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+            <a class="btn btn--ghost" href="<%= kontak.instagram %>" target="_blank" rel="noopener noreferrer">Instagram</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%# Skrip beranda dimuat setelah seluruh markup selesai %>
+  <script src="/js/beranda.js" defer></script>
+  <%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>

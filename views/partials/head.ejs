@@ -1,48 +1,35 @@
-<%# Partial head: dipakai ulang oleh semua halaman %>
+<%# Partial head: dipakai ulang oleh beranda dan seluruh halaman pengelolaan %>
 <!DOCTYPE html>
 <%# Bahasa halaman adalah Indonesia %>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 <head>
   <%# Pengaturan karakter dan tampilan responsif %>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <%# Judul halaman dikirim dari controller %>
-  <title><%= judul %> · Bura Bura Coffee</title>
-  <meta name="description" content="Menu dan pengelolaan produk Bura Bura Coffee, kedai kopi di Yogyakarta.">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <%# Judul mengikuti nama halaman yang dikirim controller %>
+  <title><%= judul %> - <%= namaKafe %> · <%= typeof appName !== 'undefined' ? appName : 'Asisten Bura' %></title>
+  <%# Deskripsi memakai nilai dari controller, dengan cadangan untuk halaman lain %>
+  <meta name="description" content="<%= typeof deskripsi !== 'undefined' ? deskripsi : 'Menu dan pengelolaan produk Bura Bura Coffee.' %>" />
+  <%# Warna bilah peramban mengikuti warna cobalt desain lama %>
+  <meta name="theme-color" content="#002FA7" />
+  <%# Ikon situs berupa cangkir kopi sederhana %>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23002FA7'/%3E%3Crect x='6' y='9' width='8' height='14' rx='2' fill='%23FFFFFF'/%3E%3Crect x='18' y='9' width='8' height='14' rx='2' fill='%23FFFFFF'/%3E%3Ccircle cx='10' cy='13' r='1.4' fill='%23002FA7'/%3E%3Ccircle cx='10' cy='19' r='1.4' fill='%23002FA7'/%3E%3Ccircle cx='22' cy='13' r='1.4' fill='%23002FA7'/%3E%3Ccircle cx='22' cy='19' r='1.4' fill='%23002FA7'/%3E%3C/svg%3E" />
+  <%# Penanda JavaScript aktif dipakai animasi reveal di beranda %>
+  <script>document.documentElement.classList.add('js');</script>
+
+  <%# Tipografi Outfit dan Plus Jakarta Sans sama seperti desain Week 7 %>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
 
   <%# Tailwind CSS dimuat lewat CDN sesuai ketentuan tugas %>
   <script src="https://cdn.tailwindcss.com"></script>
-  <%# Konfigurasi warna dan tipografi tema kedai kopi %>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            krem: '#F6EFE6',
-            kremTua: '#EADDCB',
-            espresso: '#2B211B',
-            kopi: '#4A3428',
-            karamel: '#B07B4F',
-            aksen: '#C76B2E',
-            hijau: '#3F6B4F',
-            merah: '#A33A2A'
-          },
-          fontFamily: {
-            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-            display: ['Fraunces', 'Georgia', 'serif']
-          }
-        }
-      }
-    };
-  </script>
+  <%# Preflight dimatikan agar aturan CSS lama tidak berubah %>
+  <script>// Menonaktifkan preflight tanpa mengubah utility Tailwind
+    tailwind.config = { corePlugins: { preflight: false } };</script>
 
-  <%# Tipografi dari Google Fonts dengan cadangan font sistem %>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <%# CSS kecil untuk hal yang tidak praktis dilakukan dengan utility %>
-  <link rel="stylesheet" href="/css/style.css">
+  <%# CSS utama hasil pemindahan blok style beranda lama %>
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
-<%# Awal body dengan warna dasar krem %>
-<body class="min-h-screen bg-krem font-sans text-espresso antialiased">
+<%# Awal body memakai latar kertas dari CSS lama %>
+<body>

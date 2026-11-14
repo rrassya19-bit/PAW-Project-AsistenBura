@@ -1,0 +1,31 @@
+// Skrip status: memperbarui indikator koneksi server pada footer
+(function () {
+  'use strict';
+
+  // Elemen dokumen dipakai untuk mencari indikator status
+  var doc = document;
+
+  /* ---------- Status server ---------- */
+
+var status = doc.querySelector('[data-status]');
+      var statusText = doc.querySelector('[data-status-text]');
+
+      if (status && statusText) {
+        fetch('/api/status', { headers: { Accept: 'application/json' } })
+          .then(function (response) {
+            if (!response.ok) throw new Error('status');
+            return response.json();
+          })
+          .then(function (data) {
+            var online = data && data.status === 'aktif';
+
+            status.classList.toggle('is-online', online);
+            status.classList.toggle('is-offline', !online);
+            statusText.textContent = online ? 'Server aktif' : 'Tidak terhubung';
+          })
+          .catch(function () {
+            status.classList.add('is-offline');
+            statusText.textContent = 'Tidak terhubung';
+          });
+      }
+})();

@@ -1,16 +1,31 @@
 // Controller halaman: menyiapkan data dari model untuk template EJS
 const config = require('../config');
 const produkModel = require('../models/produkModel');
-const { cekKoneksi } = require('../config/database');
+const mediaModel = require('../models/mediaModel');
 const { formatRupiah, formatRentangHarga, formatWaktu } = require('../utils/formatter');
 const { kelompokkanProduk } = require('../utils/kelompokKategori');
 
-// Merender halaman 404 yang rapi untuk data halaman yang tidak ditemukan
-function tampilkanTidakDitemukan(res) {
-  return res.status(404).render('404', { judul: 'Halaman Tidak Ditemukan', halaman: '' });
+// Data konteks yang dipakai bersama oleh header, footer, dan halaman
+function konteksHalaman() {
+  return {
+    appName: config.appName,
+    namaKafe: config.namaKafe,
+    tagline: config.tagline,
+    deskripsi: config.deskripsi,
+    kontak: config.kontak,
+  };
 }
 
-// GET / -> beranda dengan menu dari database
+// Merender halaman 404 yang rapi untuk data halaman yang tidak ditemukan
+function tampilkanTidakDitemukan(res) {
+  return res.status(404).render('404', {
+    judul: 'Halaman Tidak Ditemukan',
+    halaman: '',
+    ...konteksHalaman(),
+  });
+}
+
+// GET / -> beranda dengan menu dari database dan media dari folder assets
 async function home(req, res, next) {
   try {
     // Seluruh data menu diambil dari database melalui model
@@ -19,23 +34,18 @@ async function home(req, res, next) {
     // Menu dikelompokkan per kategori lewat util
     const kategoriMenu = kelompokkanProduk(daftarProduk);
 
-    // Status database diperiksa untuk lencana pada beranda
-    const terhubung = await cekKoneksi();
+    // Galeri beranda tetap memakai mediaModel seperti pada Week 7
+    const media = mediaModel.getAll();
 
     res.render('index', {
       judul: 'Beranda',
       halaman: 'beranda',
-      appName: config.appName,
-      namaKafe: config.namaKafe,
-      tagline: config.tagline,
-      deskripsi: config.deskripsi,
-      kontak: config.kontak,
+      ...konteksHalaman(),
       daftarProduk,
       kategoriMenu,
       jumlahProduk: daftarProduk.length,
       jumlahKategori: kategoriMenu.length,
-      statusServer: 'aktif',
-      statusDatabase: terhubung ? 'terhubung' : 'terputus',
+      media,
       formatRupiah,
       formatRentangHarga,
       waktuTerformat: formatWaktu(new Date()),
@@ -53,7 +63,7 @@ async function daftarProduk(req, res, next) {
     res.render('produk/daftar', {
       judul: 'Daftar Produk',
       halaman: 'produk',
-      namaKafe: config.namaKafe,
+      ...konteksHalaman(),
       daftarProduk: daftar,
       jumlahProduk: daftar.length,
       formatRupiah,
@@ -73,7 +83,7 @@ async function formTambah(req, res, next) {
     res.render('produk/form', {
       judul: 'Tambah Produk',
       halaman: 'tambah',
-      namaKafe: config.namaKafe,
+      ...konteksHalaman(),
       mode: 'tambah',
       produk: null,
       daftarKategori,
@@ -104,7 +114,7 @@ async function formUbah(req, res, next) {
     return res.render('produk/form', {
       judul: 'Ubah Produk',
       halaman: 'produk',
-      namaKafe: config.namaKafe,
+      ...konteksHalaman(),
       mode: 'ubah',
       produk,
       daftarKategori,
