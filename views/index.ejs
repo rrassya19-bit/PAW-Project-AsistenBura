@@ -26,11 +26,6 @@
       <div class="hero__veil" aria-hidden="true"></div>
 
       <div class="shell hero__inner">
-        <div class="hero__top">
-          <p class="kicker hero__eyebrow reveal"><%= namaKafe %> · Yogyakarta</p>
-          <span class="hero__loc reveal" style="--delay: 80ms;"><%= kontak.alamat %></span>
-        </div>
-
         <h1 id="judul-hero" class="hero__title reveal" style="--delay: 120ms;">Kopi, ruang, dan waktu yang lambat.</h1>
 
         <div class="hero__foot reveal" style="--delay: 220ms;">
@@ -59,10 +54,7 @@
     <section id="menu" class="section section--paper" aria-labelledby="judul-menu">
       <div class="shell">
         <header class="section-head">
-          <div class="section-head__aside reveal">
-            <p class="kicker">Menu</p>
-            <span class="section-head__index">01 — Daftar</span>
-          </div>
+          <div class="section-head__aside reveal"></div>
           <div class="reveal" style="--delay: 80ms;">
             <h2 id="judul-menu" class="section-head__title">Yang kami seduh, setiap hari.</h2>
             <p class="section-head__sub">Dari dirty latte sampai kopi hitam sederhana. Semua harga sudah termasuk pajak, disajikan untuk dinikmati pelan-pelan.</p>
@@ -137,10 +129,7 @@
     <section id="cerita" class="section section--white" aria-labelledby="judul-cerita">
       <div class="shell">
         <header class="section-head">
-          <div class="section-head__aside reveal">
-            <p class="kicker">Cerita</p>
-            <span class="section-head__index">02 — Di balik cangkir</span>
-          </div>
+          <div class="section-head__aside reveal"></div>
           <div class="reveal" style="--delay: 80ms;">
             <h2 id="judul-cerita" class="section-head__title">Dari dirty latte ke ruang tempat orang berhenti sebentar.</h2>
             <p class="section-head__sub">Bura Bura tumbuh dari obrolan kecil soal kopi yang jujur: seduhan yang konsisten, ruang yang nyaman, dan orang-orang yang datang bukan cuma untuk mengambil minuman.</p>
@@ -196,10 +185,7 @@
     <section id="galeri" class="section section--paper" aria-labelledby="judul-galeri">
       <div class="shell">
         <header class="section-head">
-          <div class="section-head__aside reveal">
-            <p class="kicker">Galeri</p>
-            <span class="section-head__index">03 — Arsip visual</span>
-          </div>
+          <div class="section-head__aside reveal"></div>
           <div class="reveal" style="--delay: 80ms;">
             <h2 id="judul-galeri" class="section-head__title">Sudut, cangkir, dan orang-orangnya.</h2>
             <p class="section-head__sub">Seluruh dokumentasi Bura Bura dalam satu tempat: ruang, menu signature, dirty latte, pastry, pagi yang sibuk, dan tim yang menyeduhnya.</p>
@@ -241,20 +227,12 @@
     <section id="gerak" class="section section--white" aria-labelledby="judul-gerak">
       <div class="shell">
         <header class="section-head">
-          <div class="section-head__aside reveal">
-            <p class="kicker">Dalam gerak</p>
-            <span class="section-head__index">04 — Video</span>
-          </div>
+          <div class="section-head__aside reveal"></div>
           <div class="reveal" style="--delay: 80ms;">
             <h2 id="judul-gerak" class="section-head__title">Sepotong suasana, terus berjalan.</h2>
             <p class="section-head__sub">Cuplikan dari balik bar dan sudut ruang kami. Semua video berputar otomatis dan berulang, tanpa perlu dimainkan atau dijeda.</p>
           </div>
         </header>
-
-        <div class="video-head reveal">
-          <span class="video-note">Autoplay · Loop · Tanpa jeda</span>
-          <span class="section-head__meta"><%= totalVideo %> video</span>
-        </div>
 
         <div class="video-grid">
           <% video.forEach(function (item, indeks) { %>
@@ -287,7 +265,6 @@
     <section id="mampir" class="visit" aria-labelledby="judul-mampir">
       <div class="shell visit__inner">
         <div class="reveal">
-          <p class="kicker">Mampir</p>
           <h2 id="judul-mampir" class="visit__title">Mampir, duduk, dan pesan satu cangkir.</h2>
           <p class="visit__desc">Kami buka setiap hari di Mangkubumi dan Kotabaru. Datang untuk kopi, tinggal untuk suasananya.</p>
         </div>
