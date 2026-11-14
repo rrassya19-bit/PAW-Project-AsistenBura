@@ -20,6 +20,11 @@ const config = {
     password: process.env.DB_PASSWORD || '',
     name: process.env.DB_NAME || 'bura_db',
   },
+  // Akun admin untuk HTTP Basic Authentication; kosong berarti belum dikonfigurasi
+  admin: {
+    user: process.env.ADMIN_USER || '',
+    password: process.env.ADMIN_PASSWORD || '',
+  },
   kontak: {
     alamat: 'Mangkubumi & Kotabaru, Yogyakarta',
     jam: 'Setiap hari · 07.00 – 22.00',

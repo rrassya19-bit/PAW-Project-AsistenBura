@@ -48,6 +48,15 @@ app.use(errorHandler);
 app.listen(config.port, async () => {
   console.log(`Server berjalan di http://localhost:${config.port}`);
 
+  // Menampilkan status konfigurasi admin tanpa pernah mencetak kredensialnya
+  const adminSiap = Boolean(config.admin.user && config.admin.password);
+  console.log(adminSiap ? 'Akses admin: aktif' : 'Akses admin: BELUM dikonfigurasi');
+
+  // Mengingatkan bila kata sandi admin terlalu pendek, tanpa menampilkan nilainya
+  if (config.admin.password && config.admin.password.length < 8) {
+    console.log('Peringatan: ADMIN_PASSWORD kurang dari 8 karakter');
+  }
+
   const terhubung = await cekKoneksi();
   if (terhubung) {
     console.log('Database terhubung');
