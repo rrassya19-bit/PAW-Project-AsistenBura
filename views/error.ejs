@@ -1,20 +1,20 @@
 <%# Halaman error: ditampilkan ketika terjadi kesalahan pada server %>
 <%- include('partials/head', { judul }) %>
-<%- include('partials/navbar', { halaman }) %>
-<main id="konten" class="mx-auto flex max-w-3xl flex-col items-center px-4 py-20 text-center sm:px-6">
-  <%# Kode status kesalahan %>
-  <p class="font-display text-7xl font-semibold text-merah sm:text-8xl"><%= status %></p>
-  <h1 class="mt-4 font-display text-3xl font-semibold text-espresso sm:text-4xl">Terjadi kesalahan</h1>
-  <%# Pesan ramah yang tidak membocorkan detail internal %>
-  <p class="mt-3 max-w-md text-sm leading-relaxed text-kopi"><%= pesan %></p>
-  <%# Tombol menuju beranda dan daftar produk %>
-  <div class="mt-8 flex flex-wrap justify-center gap-3">
-    <a href="/" class="rounded-full bg-espresso px-5 py-3 text-sm font-semibold text-krem transition hover:bg-kopi focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-      Ke beranda
-    </a>
-    <a href="/produk" class="rounded-full border border-espresso/20 px-5 py-3 text-sm font-semibold text-espresso transition hover:bg-kremTua focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-      Lihat produk
-    </a>
+<%- include('partials/navbar') %>
+<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
+<main id="konten" class="shell pt-32 pb-24">
+  <div class="crud-empty mx-auto max-w-2xl">
+    <%# Kode status kesalahan %>
+    <p class="kicker justify-center">Kesalahan server</p>
+    <p class="mt-4" style="font-family: var(--display); font-size: clamp(4rem, 12vw, 7rem); font-weight: 500; line-height: 0.9; letter-spacing: -0.05em; color: var(--cobalt);"><%= status %></p>
+    <h1 class="mt-4" style="font-family: var(--display); font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 500; letter-spacing: -0.03em;">Terjadi kesalahan</h1>
+    <%# Pesan ramah yang tidak membocorkan detail internal %>
+    <p class="crud-muted mx-auto mt-3 max-w-md"><%= pesan %></p>
+    <%# Tombol menuju beranda dan daftar produk %>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a class="btn btn--primary" href="/">Ke beranda</a>
+      <a class="btn btn--outline" href="/produk">Lihat produk</a>
+    </div>
   </div>
 </main>
 <%- include('partials/footer') %>

@@ -1,76 +1,86 @@
 <%# Halaman daftar produk: seluruh baris berasal dari database %>
 <%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar', { halaman }) %>
-<main id="konten" class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
-  <%# Kepala halaman dengan jumlah data dan tombol tambah %>
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-widest text-aksen">Pengelolaan</p>
-      <h1 class="mt-2 font-display text-3xl font-semibold tracking-tight text-espresso sm:text-4xl">Daftar Produk</h1>
-      <p class="mt-2 text-sm text-kopi"><%= jumlahProduk %> produk tersimpan di database.</p>
+<%- include('../partials/navbar', { halaman, namaKafe, appName }) %>
+<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
+<main id="konten" class="shell pt-32 pb-24">
+  <%# Kepala halaman memakai pola section-head desain lama %>
+  <header class="section-head">
+    <%# Kolom kiri berisi penanda bagian %>
+    <div class="section-head__aside">
+      <p class="kicker">Pengelolaan</p>
+      <span class="section-head__index">02 — Daftar produk</span>
     </div>
-    <a href="/produk/tambah" class="inline-flex items-center justify-center rounded-full bg-espresso px-5 py-3 text-sm font-semibold text-krem transition hover:bg-kopi focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-      Tambah produk
-    </a>
-  </div>
+    <%# Kolom kanan berisi judul, keterangan, dan tombol aksi %>
+    <div>
+      <h1 class="section-head__title">Kelola menu Bura Bura.</h1>
+      <p class="section-head__sub">
+        Seluruh produk di halaman ini dibaca dari PostgreSQL melalui model. Tambah, ubah, atau hapus data tanpa meninggalkan gaya beranda.
+      </p>
+      <%# Jumlah data dan tombol menuju form tambah %>
+      <p class="section-head__meta"><%= jumlahProduk %> produk tersimpan di database</p>
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <a class="btn btn--primary" href="/produk/tambah">Tambah Menu</a>
+        <a class="btn btn--outline" href="/">Kembali ke beranda</a>
+      </div>
+    </div>
+  </header>
 
   <%# Kotak pesan sukses yang diisi oleh JavaScript %>
-  <div id="pesan-sukses" class="mt-6 hidden rounded-2xl border border-hijau/30 bg-hijau/10 px-4 py-3 text-sm font-medium text-hijau" role="status" aria-live="polite"></div>
+  <div id="pesan-sukses" class="crud-alert crud-alert--sukses hidden" role="status" aria-live="polite"></div>
   <%# Kotak pesan gagal untuk operasi hapus %>
-  <div id="pesan-galat" class="mt-6 hidden rounded-2xl border border-merah/30 bg-merah/10 px-4 py-3 text-sm font-medium text-merah" role="alert"></div>
+  <div id="pesan-galat" class="crud-alert crud-alert--galat hidden" role="alert"></div>
 
-  <%# Keadaan kosong bila belum ada produk %>
+  <%# Keadaan kosong bila database belum berisi produk %>
   <% if (daftarProduk.length === 0) { %>
-    <div class="mt-10 rounded-3xl border border-dashed border-karamel/50 bg-white/60 p-10 text-center">
-      <p class="font-display text-xl font-semibold text-espresso">Daftar masih kosong</p>
-      <p class="mt-2 text-sm text-kopi">Tambahkan produk pertama untuk mulai mengisi menu.</p>
-      <a href="/produk/tambah" class="mt-5 inline-flex rounded-full bg-aksen px-4 py-2 text-sm font-semibold text-white transition hover:bg-aksen/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso">
-        Tambah produk
-      </a>
+    <div class="crud-empty mt-10">
+      <p class="kicker justify-center">Belum ada data</p>
+      <h2 class="mt-3" style="font-family: var(--display); font-size: 1.5rem;">Daftar masih kosong</h2>
+      <p class="crud-muted mt-2">Tambahkan produk pertama untuk mulai mengisi menu.</p>
+      <a class="btn btn--primary mt-6" href="/produk/tambah">Tambah Menu</a>
     </div>
   <% } else { %>
     <%# Tabel untuk layar sedang dan besar %>
-    <div class="mt-8 hidden overflow-hidden rounded-2xl border border-kremTua bg-white/75 shadow-sm md:block">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-kremTua/60 text-xs uppercase tracking-wide text-kopi">
+    <div class="crud-card mt-8 hidden md:block">
+      <table class="crud-table">
+        <%# Kepala tabel memakai label kecil berhuruf kapital %>
+        <thead>
           <tr>
-            <th scope="col" class="px-4 py-3 font-semibold">ID</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Produk</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Kategori</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Harga</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Status</th>
-            <th scope="col" class="px-4 py-3 text-right font-semibold">Aksi</th>
+            <th scope="col">ID</th>
+            <th scope="col">Produk</th>
+            <th scope="col">Kategori</th>
+            <th scope="col">Harga</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-kremTua">
+        <tbody>
           <%# Satu baris untuk setiap produk dari database %>
           <% daftarProduk.forEach(function (produk) { %>
-            <tr class="align-top transition hover:bg-krem/60">
-              <td class="px-4 py-4 text-kopi"><%= produk.id %></td>
-              <td class="px-4 py-4">
-                <p class="font-semibold text-espresso"><%= produk.nama %></p>
-                <p class="mt-1 max-w-xs text-xs leading-relaxed text-kopi"><%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %></p>
+            <tr>
+              <%# Nomor id produk %>
+              <td class="crud-muted"><%= produk.id %></td>
+              <%# Nama dan deskripsi singkat produk %>
+              <td>
+                <p class="crud-name"><%= produk.nama %></p>
+                <p class="crud-muted mt-1 max-w-xs"><%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %></p>
               </td>
-              <td class="px-4 py-4 text-kopi"><%= produk.kategori %></td>
-              <td class="px-4 py-4 font-semibold text-aksen"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></td>
-              <td class="px-4 py-4">
-                <%# Lencana status ketersediaan %>
+              <%# Kategori produk dari database %>
+              <td class="crud-muted"><%= produk.kategori %></td>
+              <%# Harga utama atau rentang harga %>
+              <td class="crud-price"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></td>
+              <%# Lencana status ketersediaan %>
+              <td>
                 <% if (produk.tersedia) { %>
-                  <span class="inline-flex rounded-full border border-hijau/30 bg-hijau/10 px-2 py-0.5 text-xs font-semibold text-hijau">Tersedia</span>
+                  <span class="crud-badge crud-badge--online">Tersedia</span>
                 <% } else { %>
-                  <span class="inline-flex rounded-full border border-merah/30 bg-merah/10 px-2 py-0.5 text-xs font-semibold text-merah">Habis</span>
+                  <span class="crud-badge crud-badge--offline">Habis</span>
                 <% } %>
               </td>
-              <td class="px-4 py-4">
+              <%# Tombol ubah dan hapus per baris %>
+              <td>
                 <div class="flex justify-end gap-2">
-                  <%# Tautan menuju form ubah yang terisi data database %>
-                  <a href="/produk/<%= produk.id %>/ubah" class="rounded-full border border-espresso/20 px-3 py-1.5 text-xs font-semibold text-espresso transition hover:bg-kremTua focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-                    Ubah
-                  </a>
-                  <%# Tombol hapus dengan data untuk JavaScript %>
-                  <button type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>" class="rounded-full border border-merah/30 px-3 py-1.5 text-xs font-semibold text-merah transition hover:bg-merah/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-merah disabled:cursor-not-allowed disabled:opacity-60">
-                    Hapus
-                  </button>
+                  <a class="crud-btn" href="/produk/<%= produk.id %>/ubah">Ubah</a>
+                  <button class="crud-btn crud-btn--danger" type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>">Hapus</button>
                 </div>
               </td>
             </tr>
@@ -79,32 +89,30 @@
       </table>
     </div>
 
-    <%# Kartu untuk layar kecil %>
+    <%# Kartu produk untuk layar kecil %>
     <div class="mt-8 space-y-3 md:hidden">
       <% daftarProduk.forEach(function (produk) { %>
-        <article class="rounded-2xl border border-kremTua bg-white/75 p-4 shadow-sm">
+        <article class="crud-card-item">
+          <%# Identitas dan status produk %>
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold text-kopi">#<%= produk.id %></p>
-              <h2 class="mt-1 font-semibold text-espresso"><%= produk.nama %></h2>
+              <p class="crud-muted">#<%= produk.id %></p>
+              <h2 class="crud-name mt-1"><%= produk.nama %></h2>
             </div>
-            <%# Lencana status pada tampilan kartu %>
             <% if (produk.tersedia) { %>
-              <span class="shrink-0 rounded-full border border-hijau/30 bg-hijau/10 px-2 py-0.5 text-xs font-semibold text-hijau">Tersedia</span>
+              <span class="crud-badge crud-badge--online">Tersedia</span>
             <% } else { %>
-              <span class="shrink-0 rounded-full border border-merah/30 bg-merah/10 px-2 py-0.5 text-xs font-semibold text-merah">Habis</span>
+              <span class="crud-badge crud-badge--offline">Habis</span>
             <% } %>
           </div>
-          <p class="mt-2 text-xs font-medium uppercase tracking-wide text-kopi"><%= produk.kategori %></p>
-          <p class="mt-2 text-sm leading-relaxed text-kopi"><%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %></p>
-          <p class="mt-3 text-sm font-semibold text-aksen"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></p>
+          <%# Kategori, deskripsi, dan harga produk %>
+          <p class="crud-muted mt-2 uppercase tracking-wide"><%= produk.kategori %></p>
+          <p class="crud-muted mt-2"><%= produk.deskripsi ? produk.deskripsi : 'Tanpa deskripsi.' %></p>
+          <p class="crud-price mt-3"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></p>
+          <%# Aksi ubah dan hapus pada tampilan kartu %>
           <div class="mt-4 flex gap-2">
-            <a href="/produk/<%= produk.id %>/ubah" class="flex-1 rounded-full border border-espresso/20 px-3 py-2 text-center text-xs font-semibold text-espresso transition hover:bg-kremTua focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-              Ubah
-            </a>
-            <button type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>" class="flex-1 rounded-full border border-merah/30 px-3 py-2 text-xs font-semibold text-merah transition hover:bg-merah/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-merah disabled:cursor-not-allowed disabled:opacity-60">
-              Hapus
-            </button>
+            <a class="crud-btn flex-1" href="/produk/<%= produk.id %>/ubah">Ubah</a>
+            <button class="crud-btn crud-btn--danger flex-1" type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>">Hapus</button>
           </div>
         </article>
       <% }); %>
@@ -113,4 +121,4 @@
 </main>
 <%# JavaScript sisi klien untuk tombol hapus dan pesan sukses %>
 <script src="/js/produk.js" defer></script>
-<%- include('../partials/footer', { namaKafe }) %>
+<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>

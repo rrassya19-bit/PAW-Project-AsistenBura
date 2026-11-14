@@ -1,91 +1,94 @@
 <%# Halaman form: dipakai untuk tambah dan ubah produk %>
 <%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar', { halaman }) %>
-<main id="konten" class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
-  <%# Navigasi kecil kembali ke daftar produk %>
-  <a href="/produk" class="inline-flex items-center gap-2 text-sm font-semibold text-kopi transition hover:text-espresso focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-    <span aria-hidden="true">&larr;</span> Kembali ke daftar
-  </a>
+<%- include('../partials/navbar', { halaman, namaKafe, appName }) %>
+<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
+<main id="konten" class="shell pt-32 pb-24">
+  <div class="max-w-3xl">
+    <%# Tautan kecil kembali ke daftar produk %>
+    <a class="crud-muted inline-flex items-center gap-2" href="/produk">
+      <span aria-hidden="true">&larr;</span> Kembali ke daftar
+    </a>
 
-  <%# Judul menyesuaikan mode tambah atau ubah %>
-  <div class="mt-4">
-    <p class="text-xs font-semibold uppercase tracking-widest text-aksen"><%= mode === 'ubah' ? 'Perbarui data' : 'Data baru' %></p>
-    <h1 class="mt-2 font-display text-3xl font-semibold tracking-tight text-espresso sm:text-4xl">
-      <%= mode === 'ubah' ? 'Ubah Produk' : 'Tambah Produk' %>
-    </h1>
-    <p class="mt-2 text-sm text-kopi">
-      <%= mode === 'ubah' ? 'Ubah data produk lalu simpan. Perubahan langsung tersimpan di database.' : 'Isi data produk baru. Data akan disimpan ke database melalui API.' %>
-    </p>
+    <%# Judul menyesuaikan mode tambah atau ubah %>
+    <header class="mt-5">
+      <p class="kicker"><%= mode === 'ubah' ? 'Perbarui data' : 'Data baru' %></p>
+      <h1 class="mt-3" style="font-family: var(--display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; line-height: 1; letter-spacing: -0.04em;">
+        <%= mode === 'ubah' ? 'Ubah Produk' : 'Tambah Produk' %>
+      </h1>
+      <p class="crud-muted mt-3 max-w-xl">
+        <%= mode === 'ubah' ? 'Ubah data produk lalu simpan. Perubahan langsung tersimpan di database.' : 'Isi data produk baru. Data akan disimpan ke database melalui API.' %>
+      </p>
+    </header>
+
+    <%# Kotak kesalahan validasi dari API, awalnya tersembunyi %>
+    <div id="kesalahan-validasi" class="crud-alert crud-alert--galat hidden" role="alert">
+      <p data-pesan-utama class="font-semibold">Validasi gagal</p>
+      <ul id="daftar-kesalahan" class="mt-2 list-disc space-y-1 pl-5"></ul>
+    </div>
+
+    <%# Form dikirim lewat fetch oleh public/js/produk.js %>
+    <form id="form-produk" data-mode="<%= mode %>" data-id="<%= produk ? produk.id : '' %>" class="crud-card mt-8 p-5 sm:p-8">
+      <div class="space-y-6">
+        <%# Input nama produk %>
+        <div>
+          <label class="crud-label" for="nama">Nama produk</label>
+          <input class="crud-input" id="nama" name="nama" type="text" maxlength="100" required autocomplete="off" value="<%= produk ? produk.nama : '' %>" placeholder="Contoh: Dirty Latte">
+          <p class="crud-muted mt-2">Wajib diisi, maksimal 100 karakter.</p>
+        </div>
+
+        <%# Input kategori dengan saran dari kategori yang sudah ada %>
+        <div>
+          <label class="crud-label" for="kategori">Kategori</label>
+          <input class="crud-input" id="kategori" name="kategori" type="text" maxlength="50" required autocomplete="off" list="daftar-kategori" value="<%= produk ? produk.kategori : '' %>" placeholder="Contoh: Coffee Milk Based">
+          <p class="crud-muted mt-2">Pilih kategori yang ada atau ketik kategori baru.</p>
+          <%# Datalist berisi kategori unik dari database %>
+          <datalist id="daftar-kategori">
+            <% daftarKategori.forEach(function (kategori) { %>
+              <option value="<%= kategori %>"></option>
+            <% }); %>
+          </datalist>
+        </div>
+
+        <%# Harga utama dan harga maksimum opsional %>
+        <div class="grid gap-6 sm:grid-cols-2">
+          <div>
+            <label class="crud-label" for="harga">Harga</label>
+            <input class="crud-input" id="harga" name="harga" type="number" min="0" step="1" required value="<%= produk ? produk.harga : '' %>" placeholder="35000">
+            <p class="crud-muted mt-2">Bilangan bulat minimal 0.</p>
+          </div>
+          <div>
+            <label class="crud-label" for="hargaMaks">Harga maksimum <span class="font-normal">(opsional)</span></label>
+            <input class="crud-input" id="hargaMaks" name="hargaMaks" type="number" min="0" step="1" value="<%= produk && produk.hargaMaks !== null ? produk.hargaMaks : '' %>" placeholder="Kosongkan bila tidak ada rentang">
+            <p class="crud-muted mt-2">Harus lebih besar atau sama dengan harga utama.</p>
+          </div>
+        </div>
+
+        <%# Deskripsi opsional %>
+        <div>
+          <label class="crud-label" for="deskripsi">Deskripsi <span class="font-normal">(opsional)</span></label>
+          <textarea class="crud-input" id="deskripsi" name="deskripsi" rows="4" placeholder="Bahan atau catatan singkat tentang produk"><%= produk ? produk.deskripsi : '' %></textarea>
+        </div>
+
+        <%# Status ketersediaan produk %>
+        <div class="crud-check">
+          <input id="tersedia" name="tersedia" type="checkbox" <%= !produk || produk.tersedia ? 'checked' : '' %>>
+          <div>
+            <label class="crud-label mb-0" for="tersedia">Produk tersedia</label>
+            <p class="crud-muted">Hilangkan centang bila produk sedang habis.</p>
+          </div>
+        </div>
+      </div>
+
+      <%# Tombol simpan dan batal %>
+      <div class="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-end" style="border-color: var(--line);">
+        <a class="btn btn--outline" href="/produk">Batal</a>
+        <button id="tombol-simpan" class="btn btn--primary" type="submit">
+          <%= mode === 'ubah' ? 'Simpan perubahan' : 'Simpan produk' %>
+        </button>
+      </div>
+    </form>
   </div>
-
-  <%# Kotak kesalahan validasi dari API, awalnya tersembunyi %>
-  <div id="kesalahan-validasi" class="mt-6 hidden rounded-2xl border border-merah/30 bg-merah/10 px-4 py-3 text-sm text-merah" role="alert">
-    <p data-pesan-utama class="font-semibold">Validasi gagal</p>
-    <ul id="daftar-kesalahan" class="mt-2 list-disc space-y-1 pl-5"></ul>
-  </div>
-
-  <%# Form dikirim lewat fetch oleh public/js/produk.js %>
-  <form id="form-produk" data-mode="<%= mode %>" data-id="<%= produk ? produk.id : '' %>" class="mt-8 space-y-6 rounded-3xl border border-kremTua bg-white/75 p-5 shadow-sm sm:p-8">
-    <%# Input nama produk %>
-    <div>
-      <label for="nama" class="block text-sm font-semibold text-espresso">Nama produk</label>
-      <input id="nama" name="nama" type="text" maxlength="100" required autocomplete="off" value="<%= produk ? produk.nama : '' %>" class="mt-2 w-full rounded-xl border border-kremTua bg-krem/60 px-4 py-3 text-sm text-espresso outline-none transition placeholder:text-kopi/50 focus:border-aksen focus:ring-2 focus:ring-aksen/30" placeholder="Contoh: Dirty Latte">
-      <p class="mt-1 text-xs text-kopi">Wajib diisi, maksimal 100 karakter.</p>
-    </div>
-
-    <%# Input kategori dengan saran dari kategori yang sudah ada %>
-    <div>
-      <label for="kategori" class="block text-sm font-semibold text-espresso">Kategori</label>
-      <input id="kategori" name="kategori" type="text" maxlength="50" required autocomplete="off" list="daftar-kategori" value="<%= produk ? produk.kategori : '' %>" class="mt-2 w-full rounded-xl border border-kremTua bg-krem/60 px-4 py-3 text-sm text-espresso outline-none transition placeholder:text-kopi/50 focus:border-aksen focus:ring-2 focus:ring-aksen/30" placeholder="Contoh: Coffee Milk Based">
-      <p class="mt-1 text-xs text-kopi">Pilih kategori yang ada atau ketik kategori baru.</p>
-      <%# Datalist berisi kategori unik dari database %>
-      <datalist id="daftar-kategori">
-        <% daftarKategori.forEach(function (kategori) { %>
-          <option value="<%= kategori %>"></option>
-        <% }); %>
-      </datalist>
-    </div>
-
-    <%# Harga utama dan harga maksimum opsional %>
-    <div class="grid gap-6 sm:grid-cols-2">
-      <div>
-        <label for="harga" class="block text-sm font-semibold text-espresso">Harga</label>
-        <input id="harga" name="harga" type="number" min="0" step="1" required value="<%= produk ? produk.harga : '' %>" class="mt-2 w-full rounded-xl border border-kremTua bg-krem/60 px-4 py-3 text-sm text-espresso outline-none transition placeholder:text-kopi/50 focus:border-aksen focus:ring-2 focus:ring-aksen/30" placeholder="35000">
-        <p class="mt-1 text-xs text-kopi">Bilangan bulat minimal 0.</p>
-      </div>
-      <div>
-        <label for="hargaMaks" class="block text-sm font-semibold text-espresso">Harga maksimum <span class="font-normal text-kopi">(opsional)</span></label>
-        <input id="hargaMaks" name="hargaMaks" type="number" min="0" step="1" value="<%= produk && produk.hargaMaks !== null ? produk.hargaMaks : '' %>" class="mt-2 w-full rounded-xl border border-kremTua bg-krem/60 px-4 py-3 text-sm text-espresso outline-none transition placeholder:text-kopi/50 focus:border-aksen focus:ring-2 focus:ring-aksen/30" placeholder="Kosongkan bila tidak ada rentang">
-        <p class="mt-1 text-xs text-kopi">Harus lebih besar atau sama dengan harga utama.</p>
-      </div>
-    </div>
-
-    <%# Deskripsi opsional %>
-    <div>
-      <label for="deskripsi" class="block text-sm font-semibold text-espresso">Deskripsi <span class="font-normal text-kopi">(opsional)</span></label>
-      <textarea id="deskripsi" name="deskripsi" rows="4" class="mt-2 w-full rounded-xl border border-kremTua bg-krem/60 px-4 py-3 text-sm text-espresso outline-none transition placeholder:text-kopi/50 focus:border-aksen focus:ring-2 focus:ring-aksen/30" placeholder="Bahan atau catatan singkat tentang produk"><%= produk ? produk.deskripsi : '' %></textarea>
-    </div>
-
-    <%# Status ketersediaan produk %>
-    <div class="flex items-start gap-3 rounded-xl border border-kremTua bg-krem/60 p-4">
-      <input id="tersedia" name="tersedia" type="checkbox" <%= !produk || produk.tersedia ? 'checked' : '' %> class="mt-1 h-4 w-4 rounded border-kremTua text-aksen focus:ring-2 focus:ring-aksen/40">
-      <div>
-        <label for="tersedia" class="text-sm font-semibold text-espresso">Produk tersedia</label>
-        <p class="text-xs text-kopi">Hilangkan centang bila produk sedang habis.</p>
-      </div>
-    </div>
-
-    <%# Tombol simpan dan batal %>
-    <div class="flex flex-col gap-3 border-t border-kremTua pt-6 sm:flex-row sm:items-center sm:justify-end">
-      <a href="/produk" class="rounded-full border border-espresso/20 px-5 py-3 text-center text-sm font-semibold text-espresso transition hover:bg-kremTua focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aksen">
-        Batal
-      </a>
-      <button id="tombol-simpan" type="submit" class="rounded-full bg-aksen px-5 py-3 text-sm font-semibold text-white transition hover:bg-aksen/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso disabled:cursor-not-allowed disabled:opacity-60">
-        <%= mode === 'ubah' ? 'Simpan perubahan' : 'Simpan produk' %>
-      </button>
-    </div>
-  </form>
 </main>
 <%# JavaScript sisi klien untuk mengirim form lewat fetch %>
 <script src="/js/produk.js" defer></script>
-<%- include('../partials/footer', { namaKafe }) %>
+<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
