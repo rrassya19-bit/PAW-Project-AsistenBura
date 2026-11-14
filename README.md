@@ -1,12 +1,14 @@
 # PAW Project Asisten Bura
 
-Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Aplikasi Web. Aplikasi menampilkan daftar menu kedai kopi dan menyediakan CRUD produk penuh melalui REST API dengan data yang tersimpan di PostgreSQL.
+Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Aplikasi Web. Aplikasi menampilkan daftar menu kedai kopi dengan tampilan beranda yang dipertahankan dari Week 7, lalu menyediakan CRUD produk penuh melalui REST API dengan data yang tersimpan di PostgreSQL. Halaman pengelolaan produk memakai bahasa visual yang sama dengan beranda.
 
 ## Teknologi
 
 - Node.js dan Express.js 5
 - EJS sebagai view engine
-- Tailwind CSS melalui CDN
+- Tailwind CSS melalui CDN dengan preflight dimatikan agar CSS desain lama tidak berubah
+- CSS utama hasil pemulihan desain Week 7 pada `public/css/style.css`
+- JavaScript sisi klien tanpa library pada `public/js/`
 - PostgreSQL dengan driver `pg` (node-postgres) memakai `Pool`, tanpa ORM
 - Arsitektur MVC
 
@@ -19,8 +21,8 @@ middlewares/   Logger, validasi, notFound, dan errorHandler
 models/        Seluruh operasi dan query database
 routes/        Pemetaan endpoint ke controller
 views/         Template EJS (partials, beranda, produk, 404, error)
-utils/         Fungsi bantu format rupiah dan pengelompokan kategori
-public/        Aset statis: JavaScript sisi klien dan CSS kecil
+utils/         Fungsi bantu format rupiah, waktu, dan pengelompokan kategori
+public/        Aset statis: CSS desain beranda, JavaScript beranda/status/produk
 database/      Skema SQL, data awal, dan skrip seed
 scripts/       Skrip uji API
 app.js         Titik masuk aplikasi
@@ -221,12 +223,13 @@ Skrip `scripts/uji-api.js` menguji seluruh endpoint CRUD, memeriksa langsung per
 
 ### Uji manual frontend
 
-1. Buka `http://localhost:3000` dan pastikan menu tampil dikelompokkan per kategori serta harga berformat rupiah.
-2. Buka `http://localhost:3000/produk`, lalu klik **Tambah produk**, isi form, dan simpan. Pastikan produk baru muncul di daftar.
-3. Klik **Ubah** pada salah satu produk, ubah nilainya, lalu simpan. Pastikan data terbaru tampil di daftar dan form ubah.
-4. Klik **Hapus**, setujui dialog konfirmasi, lalu pastikan produk hilang dari daftar.
-5. Periksa database dengan `psql` atau pgAdmin untuk memastikan penambahan, perubahan, dan penghapusan benar-benar tercermin di tabel `produk`.
-6. Buka `http://localhost:3000/produk/99999/ubah` dan alamat ngawur untuk memastikan halaman 404 tampil rapi.
+1. Buka `http://localhost:3000` dan pastikan tampilan beranda sama dengan desain Week 7: header transparan, hero, galeri, video, dan menu dari database. Menu tampil dikelompokkan per kategori dengan harga berformat rupiah.
+2. Pastikan tautan **Kelola Menu** pada navigasi dan tombol **Tambah Menu** pada hero membuka halaman pengelolaan.
+3. Buka `http://localhost:3000/produk`, lalu klik **Tambah Menu**, isi form, dan simpan. Pastikan produk baru muncul di daftar dan beranda.
+4. Klik **Ubah** pada salah satu produk, ubah nilainya, lalu simpan. Pastikan data terbaru tampil di daftar dan form ubah terisi data dari database.
+5. Klik **Hapus**, setujui dialog konfirmasi, lalu pastikan produk hilang dari daftar dan beranda.
+6. Periksa database dengan `psql` atau pgAdmin untuk memastikan penambahan, perubahan, dan penghapusan benar-benar tercermin di tabel `produk`.
+7. Buka `http://localhost:3000/produk/99999/ubah` dan alamat ngawur untuk memastikan halaman 404 tampil rapi dengan gaya yang sama.
 
 ## Catatan Keamanan
 
