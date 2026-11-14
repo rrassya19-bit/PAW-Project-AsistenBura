@@ -1,6 +1,6 @@
 # PAW Project Asisten Bura
 
-Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Aplikasi Web. Aplikasi menampilkan daftar menu kedai kopi dengan tampilan beranda yang dipertahankan dari Week 7, lalu menyediakan CRUD produk penuh melalui REST API dengan data yang tersimpan di PostgreSQL. Halaman pengelolaan produk memakai bahasa visual yang sama dengan beranda.
+Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Aplikasi Web. Aplikasi menampilkan daftar menu kedai kopi dengan tampilan beranda yang dipertahankan dari Week 7, lalu menyediakan CRUD produk penuh melalui REST API dengan data yang tersimpan di PostgreSQL. Halaman pengelolaan produk berada di area admin terproteksi HTTP Basic Authentication dan memakai bahasa visual yang sama dengan beranda.
 
 ## Teknologi
 
@@ -10,6 +10,7 @@ Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Apli
 - CSS utama hasil pemulihan desain Week 7 berada di partial `views/partials/style.ejs`
 - JavaScript sisi klien tanpa library berada di partial `views/partials/scripts/`
 - PostgreSQL dengan driver `pg` (node-postgres) memakai `Pool`, tanpa ORM
+- HTTP Basic Authentication untuk area admin, tanpa sesi dan tanpa tabel pengguna
 - Arsitektur MVC
 
 ## Struktur Folder
@@ -17,10 +18,10 @@ Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Apli
 ```
 config/        Konfigurasi aplikasi dan koneksi database (config/database.js)
 controllers/   Alur request dan response; tidak menulis query SQL
-middlewares/   Logger, validasi, notFound, dan errorHandler
+middlewares/   Logger, validasi, autentikasi admin, notFound, dan errorHandler
 models/        Seluruh operasi dan query database
-routes/        Pemetaan endpoint ke controller
-views/         Template EJS (partials, style.ejs, scripts/*.ejs, beranda, produk, 404, error)
+routes/        Pemetaan endpoint ke controller, termasuk area /admin
+views/         Template EJS (partials, style.ejs, scripts/*.ejs, beranda, admin, 404, error)
 utils/         Fungsi bantu format rupiah, waktu, dan pengelompokan kategori
 database/      Skema SQL, data awal, dan skrip seed
 scripts/       Skrip uji API
@@ -53,7 +54,7 @@ app.js         Titik masuk aplikasi
    Copy-Item .env.example .env
    ```
 
-   Variabel yang dipakai: `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
+   Variabel yang dipakai: `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `ADMIN_USER`, `ADMIN_PASSWORD`. Isi `ADMIN_USER` dan `ADMIN_PASSWORD` dengan akun admin pilihan Anda; jangan memakai nilai contoh di server nyata.
 
 3. Pasang dependensi:
 
@@ -79,18 +80,40 @@ app.js         Titik masuk aplikasi
    npm run dev
    ```
 
-   Server berjalan di `http://localhost:3000`. Terminal akan menampilkan `Database terhubung` bila koneksi berhasil.
+   Server berjalan di `http://localhost:3000`. Terminal akan menampilkan `Akses admin: aktif` bila `ADMIN_USER` dan `ADMIN_PASSWORD` terisi, atau `Akses admin: BELUM dikonfigurasi` bila belum. Terminal juga menampilkan `Database terhubung` bila koneksi berhasil.
+
+## Akses Admin
+
+Halaman pengelolaan menu hanya tersedia di area admin:
+
+| Halaman | Alamat |
+| --- | --- |
+| Daftar menu | `/admin` |
+| Form tambah produk | `/admin/tambah` |
+| Form ubah produk | `/admin/:id/ubah` |
+
+Area ini memakai HTTP Basic Authentication. Saat membuka `/admin`, peramban menampilkan dialog login; masukkan nilai `ADMIN_USER` sebagai nama pengguna dan `ADMIN_PASSWORD` sebagai kata sandi. Kredensial yang sama dipakai otomatis oleh form dan tombol hapus saat mengirim request ke API.
+
+Aturan akses:
+
+- `GET /api/status`, `GET /api/produk`, dan `GET /api/produk/:id` tetap publik.
+- `POST`, `PUT`, dan `DELETE` pada `/api/produk` wajib menyertakan kredensial admin.
+- Tanpa kredensial atau dengan kredensial salah, server membalas `401` dan header `WWW-Authenticate`.
+- Bila `ADMIN_USER` atau `ADMIN_PASSWORD` kosong, server membalas `503` dengan pesan `Akses admin belum dikonfigurasi di server`.
+- Kata sandi admin sebaiknya minimal 8 karakter; server hanya mencetak peringatan bila lebih pendek, bukan menolak konfigurasi.
 
 ## Endpoint REST
 
 | Method | Endpoint | Keterangan |
 | --- | --- | --- |
-| GET | `/api/status` | Status server dan database |
-| GET | `/api/produk` | Seluruh produk |
-| GET | `/api/produk/:id` | Satu produk berdasarkan id |
-| POST | `/api/produk` | Menambah produk |
-| PUT | `/api/produk/:id` | Mengubah produk |
-| DELETE | `/api/produk/:id` | Menghapus produk |
+| GET | `/api/status` | Status server dan database (publik) |
+| GET | `/api/produk` | Seluruh produk (publik) |
+| GET | `/api/produk/:id` | Satu produk berdasarkan id (publik) |
+| POST | `/api/produk` | Menambah produk (wajib admin) |
+| PUT | `/api/produk/:id` | Mengubah produk (wajib admin) |
+| DELETE | `/api/produk/:id` | Menghapus produk (wajib admin) |
+
+Endpoint tulis memakai header `Authorization: Basic ...`. Contoh di bawah memakai `-u` dari `curl.exe`; ganti `admin:ganti_dengan_password_kuat` dengan kredensial pada `.env` Anda.
 
 ### Contoh Request dan Response
 
@@ -147,7 +170,7 @@ Response `200` berisi satu objek produk seperti contoh di atas. Bila id tidak ad
 `POST /api/produk`
 
 ```powershell
-curl.exe -X POST http://localhost:3000/api/produk -H "Content-Type: application/json" -d "{\"nama\":\"Dirty Latte\",\"kategori\":\"Coffee Milk Based\",\"harga\":35000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Distilled Milk\",\"tersedia\":true}"
+curl.exe -X POST http://localhost:3000/api/produk -u admin:ganti_dengan_password_kuat -H "Content-Type: application/json" -d "{\"nama\":\"Dirty Latte\",\"kategori\":\"Coffee Milk Based\",\"harga\":35000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Distilled Milk\",\"tersedia\":true}"
 ```
 
 Response `201` berisi objek produk yang baru dibuat, termasuk `id`, `dibuatPada`, dan `diubahPada`.
@@ -155,7 +178,7 @@ Response `201` berisi objek produk yang baru dibuat, termasuk `id`, `dibuatPada`
 `PUT /api/produk/1`
 
 ```powershell
-curl.exe -X PUT http://localhost:3000/api/produk/1 -H "Content-Type: application/json" -d "{\"nama\":\"Boring Dirty Baru\",\"kategori\":\"Espresso & Filter Coffee\",\"harga\":46000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Special Distilled Milk\",\"tersedia\":true}"
+curl.exe -X PUT http://localhost:3000/api/produk/1 -u admin:ganti_dengan_password_kuat -H "Content-Type: application/json" -d "{\"nama\":\"Boring Dirty Baru\",\"kategori\":\"Espresso & Filter Coffee\",\"harga\":46000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Special Distilled Milk\",\"tersedia\":true}"
 ```
 
 Response `200` berisi objek yang sudah diperbarui. Bila id tidak ada, response `404`.
@@ -163,7 +186,7 @@ Response `200` berisi objek yang sudah diperbarui. Bila id tidak ada, response `
 `DELETE /api/produk/1`
 
 ```powershell
-curl.exe -X DELETE http://localhost:3000/api/produk/1
+curl.exe -X DELETE http://localhost:3000/api/produk/1 -u admin:ganti_dengan_password_kuat
 ```
 
 ```json
@@ -192,6 +215,18 @@ Bila validasi gagal, response `400`:
 }
 ```
 
+Respons autentikasi pada endpoint tulis:
+
+```json
+{ "pesan": "Autentikasi admin diperlukan" }
+```
+
+Response di atas berstatus `401` bila kredensial tidak dikirim atau salah. Bila server belum memiliki `ADMIN_USER` atau `ADMIN_PASSWORD`, endpoint tulis membalas `503`:
+
+```json
+{ "pesan": "Akses admin belum dikonfigurasi di server" }
+```
+
 ## Cara Menguji
 
 ### Uji otomatis API
@@ -208,30 +243,34 @@ Jalankan pengujian di terminal lain:
 npm run uji
 ```
 
-Skrip `scripts/uji-api.js` menguji seluruh endpoint CRUD, memeriksa langsung perubahan data ke database setelah setiap operasi, membersihkan data uji, dan mencetak `PASS`/`FAIL` beserta ringkasan. Skrip keluar dengan kode 1 bila ada langkah yang gagal.
+Skrip `scripts/uji-api.js` menguji seluruh endpoint CRUD, memeriksa langsung perubahan data ke database setelah setiap operasi, membersihkan data uji, dan mencetak `PASS`/`FAIL` beserta ringkasan. Skrip juga menguji penolakan `401` untuk operasi tulis tanpa kredensial atau dengan kredensial salah. Kredensial admin dibaca dari `.env` yang sama dengan server dan tidak pernah dicetak. Skrip keluar dengan kode 1 bila ada langkah yang gagal.
 
 ### Uji manual dengan Thunder Client atau Postman
 
 1. Jalankan `npm run dev`.
-2. Buat request `GET` ke `http://localhost:3000/api/produk` dan pastikan response `200` berisi array produk.
+2. Buat request `GET` ke `http://localhost:3000/api/produk` dan pastikan response `200` berisi array produk tanpa perlu kredensial.
 3. Buat request `GET` ke `http://localhost:3000/api/produk/1` dan pastikan response `200` berisi satu produk.
-4. Buat request `POST` ke `http://localhost:3000/api/produk` dengan body JSON berisi `nama`, `kategori`, `harga`, `hargaMaks`, `deskripsi`, dan `tersedia`. Pastikan response `201`.
-5. Buat request `PUT` ke `http://localhost:3000/api/produk/<id>` dengan body JSON yang sudah diubah. Pastikan response `200` dan nilainya berubah.
-6. Buat request `DELETE` ke `http://localhost:3000/api/produk/<id>`. Pastikan response `200`.
+4. Buat request `POST` ke `http://localhost:3000/api/produk` dengan body JSON berisi `nama`, `kategori`, `harga`, `hargaMaks`, `deskripsi`, dan `tersedia`, serta Authorization tipe Basic berisi `ADMIN_USER` dan `ADMIN_PASSWORD`. Pastikan response `201`.
+5. Buat request `PUT` ke `http://localhost:3000/api/produk/<id>` dengan body JSON yang sudah diubah dan Authorization Basic yang sama. Pastikan response `200` dan nilainya berubah.
+6. Buat request `DELETE` ke `http://localhost:3000/api/produk/<id>` dengan Authorization Basic yang sama. Pastikan response `200`.
 7. Ulangi `GET` ke id yang baru dihapus dan pastikan response `404`.
+8. Kirim ulang `POST` tanpa Authorization dan pastikan response `401` berisi `Autentikasi admin diperlukan`.
 
 ### Uji manual frontend
 
 1. Buka `http://localhost:3000` dan pastikan tampilan beranda sama dengan desain Week 7: header transparan, hero, galeri, video, dan menu dari database. Menu tampil dikelompokkan per kategori dengan harga berformat rupiah.
-2. Pastikan tautan **Kelola Menu** pada navigasi dan tombol **Tambah Menu** pada hero membuka halaman pengelolaan.
-3. Buka `http://localhost:3000/produk`, lalu klik **Tambah Menu**, isi form, dan simpan. Pastikan produk baru muncul di daftar dan beranda.
-4. Klik **Ubah** pada salah satu produk, ubah nilainya, lalu simpan. Pastikan data terbaru tampil di daftar dan form ubah terisi data dari database.
-5. Klik **Hapus**, setujui dialog konfirmasi, lalu pastikan produk hilang dari daftar dan beranda.
-6. Periksa database dengan `psql` atau pgAdmin untuk memastikan penambahan, perubahan, dan penghapusan benar-benar tercermin di tabel `produk`.
-7. Buka `http://localhost:3000/produk/99999/ubah` dan alamat ngawur untuk memastikan halaman 404 tampil rapi dengan gaya yang sama.
+2. Pastikan navigasi publik dan hero tidak lagi menampilkan tautan ke area pengelolaan.
+3. Buka `http://localhost:3000/admin`; peramban meminta kredensial Basic. Masukkan `ADMIN_USER` dan `ADMIN_PASSWORD` dari `.env`.
+4. Dari daftar menu admin, klik **Tambah Menu**, isi form, dan simpan. Pastikan produk baru muncul di daftar admin dan beranda.
+5. Klik **Ubah** pada salah satu produk, ubah nilainya, lalu simpan. Pastikan data terbaru tampil di daftar dan form ubah terisi data dari database.
+6. Klik **Hapus**, setujui dialog konfirmasi, lalu pastikan produk hilang dari daftar dan beranda.
+7. Periksa database dengan `psql` atau pgAdmin untuk memastikan penambahan, perubahan, dan penghapusan benar-benar tercermin di tabel `produk`.
+8. Buka `http://localhost:3000/admin/99999/ubah` dan alamat ngawur untuk memastikan halaman 404 tampil rapi dengan gaya yang sama. Buka juga alamat lama halaman pengelolaan untuk memastikan sudah tidak tersedia.
 
 ## Catatan Keamanan
 
-- File `.env` berisi kredensial database dan **tidak diunggah** ke repository karena sudah masuk `.gitignore`.
+- File `.env` berisi kredensial database dan akun admin, dan **tidak diunggah** ke repository karena sudah masuk `.gitignore`.
 - Gunakan `.env.example` sebagai contoh konfigurasi tanpa rahasia.
+- HTTP Basic Authentication mengirim kredensial pada setiap request; gunakan HTTPS saat aplikasi dipasang di server publik.
+- Perbandingan kredensial admin memakai `crypto.timingSafeEqual` atas digest SHA-256 agar waktu pembandingan tidak membocorkan informasi.
 - Seluruh query memakai parameter `$1`, `$2`, dan seterusnya; tidak ada penggabungan string SQL dengan input pengguna.
