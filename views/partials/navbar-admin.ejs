@@ -1,0 +1,48 @@
+<%
+  // Nama aplikasi dipakai sebagai teks kecil di bawah merek
+  const aplikasi = typeof appName !== 'undefined' ? appName : 'Asisten Bura';
+%>
+<%# Header khusus area admin: merek, tautan situs publik, aksi tambah, dan lencana %>
+<header class="site-header site-header--page" data-header>
+  <div class="shell nav-shell">
+    <%# Merek menuju daftar menu di area admin %>
+    <a class="brand" href="/admin" aria-label="<%= namaKafe %>, kembali ke daftar menu admin">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="9" fill="#002FA7" />
+          <rect x="6" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+          <rect x="18" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+          <circle cx="10" cy="13" r="1.4" fill="#002FA7" />
+          <circle cx="10" cy="19" r="1.4" fill="#002FA7" />
+          <circle cx="22" cy="13" r="1.4" fill="#002FA7" />
+          <circle cx="22" cy="19" r="1.4" fill="#002FA7" />
+        </svg>
+      </span>
+      <span class="brand__text">
+        <span class="brand__name"><%= namaKafe %></span>
+        <span class="brand__app"><%= aplikasi %></span>
+      </span>
+    </a>
+
+    <%# Navigasi utama area admin menuju situs publik dan form tambah %>
+    <nav class="primary-nav" aria-label="Navigasi admin">
+      <a class="nav-link" href="/">Lihat Situs</a>
+      <a class="nav-link" href="/admin/tambah">Tambah Menu</a>
+    </nav>
+
+    <%# Lencana dan navigasi seluler tetap terlihat pada layar kecil %>
+    <div class="flex items-center gap-3">
+      <span class="crud-badge crud-badge--online">Admin</span>
+      <details class="mobile-nav">
+        <summary aria-label="Buka navigasi admin">Menu</summary>
+        <nav aria-label="Navigasi admin seluler">
+          <a href="/admin">Daftar Menu</a>
+          <a href="/admin/tambah">Tambah Menu</a>
+          <a href="/">Lihat Situs</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+  <%# Bilah kemajuan gulir milik desain lama %>
+  <div class="progress" aria-hidden="true"><span class="progress__bar" data-progress></span></div>
+</header>

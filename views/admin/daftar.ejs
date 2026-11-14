@@ -1,6 +1,6 @@
 <%# Halaman daftar produk: seluruh baris berasal dari database %>
 <%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar', { halaman, namaKafe, appName }) %>
+<%- include('../partials/navbar-admin', { namaKafe, appName }) %>
 <%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
 <main id="konten" class="shell pt-32 pb-24">
   <%# Kepala halaman memakai pola section-head desain lama %>
@@ -8,7 +8,7 @@
     <%# Kolom kiri berisi penanda bagian %>
     <div class="section-head__aside">
       <p class="kicker">Pengelolaan</p>
-      <span class="section-head__index">02 — Daftar produk</span>
+      <span class="section-head__index">02 â€” Daftar produk</span>
     </div>
     <%# Kolom kanan berisi judul, keterangan, dan tombol aksi %>
     <div>
@@ -19,7 +19,7 @@
       <%# Jumlah data dan tombol menuju form tambah %>
       <p class="section-head__meta"><%= jumlahProduk %> produk tersimpan di database</p>
       <div class="mt-6 flex flex-wrap items-center gap-3">
-        <a class="btn btn--primary" href="/produk/tambah">Tambah Menu</a>
+        <a class="btn btn--primary" href="/admin/tambah">Tambah Menu</a>
         <a class="btn btn--outline" href="/">Kembali ke beranda</a>
       </div>
     </div>
@@ -36,7 +36,7 @@
       <p class="kicker justify-center">Belum ada data</p>
       <h2 class="mt-3" style="font-family: var(--display); font-size: 1.5rem;">Daftar masih kosong</h2>
       <p class="crud-muted mt-2">Tambahkan produk pertama untuk mulai mengisi menu.</p>
-      <a class="btn btn--primary mt-6" href="/produk/tambah">Tambah Menu</a>
+      <a class="btn btn--primary mt-6" href="/admin/tambah">Tambah Menu</a>
     </div>
   <% } else { %>
     <%# Tabel untuk layar sedang dan besar %>
@@ -79,7 +79,7 @@
               <%# Tombol ubah dan hapus per baris %>
               <td>
                 <div class="flex justify-end gap-2">
-                  <a class="crud-btn" href="/produk/<%= produk.id %>/ubah">Ubah</a>
+                  <a class="crud-btn" href="/admin/<%= produk.id %>/ubah">Ubah</a>
                   <button class="crud-btn crud-btn--danger" type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>">Hapus</button>
                 </div>
               </td>
@@ -111,7 +111,7 @@
           <p class="crud-price mt-3"><%= formatRentangHarga(produk.harga, produk.hargaMaks) %></p>
           <%# Aksi ubah dan hapus pada tampilan kartu %>
           <div class="mt-4 flex gap-2">
-            <a class="crud-btn flex-1" href="/produk/<%= produk.id %>/ubah">Ubah</a>
+            <a class="crud-btn flex-1" href="/admin/<%= produk.id %>/ubah">Ubah</a>
             <button class="crud-btn crud-btn--danger flex-1" type="button" data-hapus data-id="<%= produk.id %>" data-nama="<%= produk.nama %>">Hapus</button>
           </div>
         </article>

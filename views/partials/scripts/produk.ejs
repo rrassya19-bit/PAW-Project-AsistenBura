@@ -1,5 +1,5 @@
-<%# Skrip produk disalin persis dari public/js/produk.js %>
-<script>// JavaScript sisi klien untuk form dan tombol hapus produk, tanpa library
+<%# Skrip pengelolaan produk untuk area admin, tanpa library %>
+<script>// JavaScript sisi klien untuk form dan tombol hapus produk admin, tanpa library
 
 // Menjalankan seluruh pemasangan event setelah DOM siap
 document.addEventListener('DOMContentLoaded', function () {
@@ -100,11 +100,12 @@ async function kirimForm(form) {
   tombol.textContent = 'Menyimpan...';
 
   try {
-    // Mengirim data sebagai JSON ke backend
+    // Mengirim data sebagai JSON ke backend dengan kredensial Basic yang sama
     const respons = await fetch(alamat, {
       method: metode,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+      credentials: 'same-origin',
     });
     const hasil = await bacaJson(respons);
 
@@ -114,9 +115,9 @@ async function kirimForm(form) {
       return;
     }
 
-    // Mengarahkan ke daftar produk dengan pesan sukses
+    // Mengarahkan ke daftar menu admin dengan pesan sukses
     const pesan = mode === 'ubah' ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan';
-    window.location.href = '/produk?pesan=' + encodeURIComponent(pesan);
+    window.location.href = '/admin?pesan=' + encodeURIComponent(pesan);
   } catch (galat) {
     // Menampilkan pesan bila server tidak dapat dihubungi
     tampilkanKesalahan(
@@ -204,8 +205,11 @@ async function hapusProduk(tombol) {
   tombol.textContent = 'Menghapus...';
 
   try {
-    // Mengirim permintaan hapus ke API
-    const respons = await fetch('/api/produk/' + id, { method: 'DELETE' });
+    // Mengirim permintaan hapus ke API dengan kredensial Basic yang sama
+    const respons = await fetch('/api/produk/' + id, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
     const hasil = await bacaJson(respons);
 
     // Menampilkan kesalahan dan mengaktifkan tombol kembali bila gagal
@@ -216,9 +220,9 @@ async function hapusProduk(tombol) {
       return;
     }
 
-    // Menyimpan pesan sukses lalu kembali ke daftar produk
+    // Menyimpan pesan sukses lalu kembali ke daftar menu admin
     sessionStorage.setItem('pesanProduk', hasil.pesan || 'Produk berhasil dihapus');
-    window.location.href = '/produk';
+    window.location.href = '/admin';
   } catch (galat) {
     // Menampilkan pesan bila server tidak dapat dihubungi
     tampilkanGalatHalaman('Tidak dapat menghubungi server. Coba lagi.');

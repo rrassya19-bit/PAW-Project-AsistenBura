@@ -28,15 +28,13 @@
       </span>
     </a>
 
-    <%# Navigasi utama dengan tautan bagian beranda dan tautan kelola menu %>
+    <%# Navigasi utama berisi tautan bagian beranda %>
     <nav class="primary-nav" aria-label="Navigasi utama">
       <a class="nav-link" href="<%= awalan %>#menu" data-nav>Menu</a>
       <a class="nav-link" href="<%= awalan %>#cerita" data-nav>Cerita</a>
       <a class="nav-link" href="<%= awalan %>#galeri" data-nav>Galeri</a>
       <a class="nav-link" href="<%= awalan %>#gerak" data-nav>Video</a>
       <a class="nav-link" href="<%= awalan %>#mampir" data-nav>Mampir</a>
-      <%# Satu tautan tambahan menuju halaman pengelolaan menu %>
-      <a class="nav-link" href="/produk" <%= typeof halaman !== 'undefined' && (halaman === 'produk' || halaman === 'tambah') ? 'aria-current="true"' : '' %>>Kelola Menu</a>
     </nav>
 
     <%# Navigasi seluler memakai daftar yang sama %>
@@ -48,7 +46,6 @@
         <a href="<%= awalan %>#galeri">Galeri</a>
         <a href="<%= awalan %>#gerak">Video</a>
         <a href="<%= awalan %>#mampir">Mampir</a>
-        <a href="/produk">Kelola Menu</a>
       </nav>
     </details>
   </div>

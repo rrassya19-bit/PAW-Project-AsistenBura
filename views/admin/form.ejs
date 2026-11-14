@@ -1,11 +1,11 @@
 <%# Halaman form: dipakai untuk tambah dan ubah produk %>
 <%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar', { halaman, namaKafe, appName }) %>
+<%- include('../partials/navbar-admin', { namaKafe, appName }) %>
 <%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
 <main id="konten" class="shell pt-32 pb-24">
   <div class="max-w-3xl">
     <%# Tautan kecil kembali ke daftar produk %>
-    <a class="crud-muted inline-flex items-center gap-2" href="/produk">
+    <a class="crud-muted inline-flex items-center gap-2" href="/admin">
       <span aria-hidden="true">&larr;</span> Kembali ke daftar
     </a>
 
@@ -81,7 +81,7 @@
 
       <%# Tombol simpan dan batal %>
       <div class="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-end" style="border-color: var(--line);">
-        <a class="btn btn--outline" href="/produk">Batal</a>
+        <a class="btn btn--outline" href="/admin">Batal</a>
         <button id="tombol-simpan" class="btn btn--primary" type="submit">
           <%= mode === 'ubah' ? 'Simpan perubahan' : 'Simpan produk' %>
         </button>
