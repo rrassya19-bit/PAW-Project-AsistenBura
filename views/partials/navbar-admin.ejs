@@ -1,6 +1,8 @@
 <%
   // Nama aplikasi dipakai sebagai teks kecil di bawah merek
   const aplikasi = typeof appName !== 'undefined' ? appName : 'Asisten Bura';
+  // Tab aktif dipakai untuk menandai navigasi halaman admin
+  const tabSaatIni = typeof tabAktif !== 'undefined' ? tabAktif : 'produk';
 %>
 <%# Header khusus area admin: merek, tautan situs publik, aksi tambah, dan lencana %>
 <header class="site-header site-header--page" data-header>
@@ -24,10 +26,12 @@
       </span>
     </a>
 
-    <%# Navigasi utama area admin menuju situs publik dan form tambah %>
+    <%# Navigasi utama area admin menuju produk, foto, video, dan situs publik %>
     <nav class="primary-nav" aria-label="Navigasi admin">
+      <a class="nav-link" href="/admin"<%= tabSaatIni === 'produk' ? ' aria-current="true"' : '' %>>Produk</a>
+      <a class="nav-link" href="/admin/foto"<%= tabSaatIni === 'foto' ? ' aria-current="true"' : '' %>>Foto</a>
+      <a class="nav-link" href="/admin/video"<%= tabSaatIni === 'video' ? ' aria-current="true"' : '' %>>Video</a>
       <a class="nav-link" href="/">Lihat Situs</a>
-      <a class="nav-link" href="/admin/tambah">Tambah Menu</a>
     </nav>
 
     <%# Lencana dan navigasi seluler tetap terlihat pada layar kecil %>
@@ -36,8 +40,9 @@
       <details class="mobile-nav">
         <summary aria-label="Buka navigasi admin">Menu</summary>
         <nav aria-label="Navigasi admin seluler">
-          <a href="/admin">Daftar Menu</a>
-          <a href="/admin/tambah">Tambah Menu</a>
+          <a href="/admin"<%= tabSaatIni === 'produk' ? ' aria-current="true"' : '' %>>Produk</a>
+          <a href="/admin/foto"<%= tabSaatIni === 'foto' ? ' aria-current="true"' : '' %>>Foto</a>
+          <a href="/admin/video"<%= tabSaatIni === 'video' ? ' aria-current="true"' : '' %>>Video</a>
           <a href="/">Lihat Situs</a>
         </nav>
       </details>

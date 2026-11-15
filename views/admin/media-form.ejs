@@ -1,0 +1,97 @@
+<%# Halaman form media: dipakai untuk tambah dan ubah foto atau video %>
+<%- include('../partials/head', { judul }) %>
+<%- include('../partials/navbar-admin', { namaKafe, appName, tabAktif }) %>
+<%
+  // Alamat daftar, label, dan tipe berkas menyesuaikan jenis media
+  const alamatDaftar = '/admin/' + jenis;
+  const labelJenis = jenis === 'foto' ? 'Foto' : 'Video';
+  const tipeBerkas = jenis === 'foto' ? 'image/jpeg,image/png,image/webp' : 'video/mp4,video/webm';
+%>
+<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
+<main id="konten" class="shell pt-32 pb-24">
+  <div class="max-w-3xl">
+    <%# Tautan kembali ke daftar media %>
+    <a class="crud-muted inline-flex items-center gap-2" href="<%= alamatDaftar %>">
+      <span aria-hidden="true">&larr;</span> Kembali ke daftar
+    </a>
+
+    <%# Judul menyesuaikan mode tambah atau ubah, tanpa label hiasan %>
+    <header class="mt-5">
+      <h1 style="font-family: var(--display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; line-height: 1; letter-spacing: -0.04em;">
+        <%= mode === 'ubah' ? 'Ubah ' + labelJenis : 'Tambah ' + labelJenis %>
+      </h1>
+    </header>
+
+    <%# Kotak kesalahan validasi dari API, awalnya tersembunyi %>
+    <div id="kesalahan-validasi" class="crud-alert crud-alert--galat hidden" role="alert">
+      <p data-pesan-utama class="font-semibold">Validasi gagal</p>
+      <ul id="daftar-kesalahan" class="mt-2 list-disc space-y-1 pl-5"></ul>
+    </div>
+
+    <%# Form dikirim lewat XMLHttpRequest oleh partial scripts/media.ejs %>
+    <form id="form-media" data-mode="<%= mode %>" data-id="<%= media ? media.id : '' %>" data-jenis="<%= jenis %>" data-daftar="<%= alamatDaftar %>" class="crud-card mt-8 p-5 sm:p-8">
+      <div class="space-y-6">
+        <%# Input judul media %>
+        <div>
+          <label class="crud-label" for="judul">Judul</label>
+          <input class="crud-input" id="judul" name="judul" type="text" maxlength="100" required autocomplete="off" value="<%= media ? media.judul : '' %>" placeholder="Contoh: Sudut Mangkubumi">
+        </div>
+
+        <%# Input urutan tampil media %>
+        <div>
+          <label class="crud-label" for="urutan">Urutan</label>
+          <input class="crud-input" id="urutan" name="urutan" type="number" step="1" value="<%= media ? media.urutan : 0 %>">
+        </div>
+
+        <%# Input berkas media, wajib pada mode tambah %>
+        <div>
+          <label class="crud-label" for="berkas">Berkas <%= labelJenis %></label>
+          <input class="crud-input" id="berkas" name="berkas" type="file" accept="<%= tipeBerkas %>"<%= mode === 'tambah' ? ' required' : '' %> />
+        </div>
+
+        <%# Pratinjau berkas saat ini dan berkas baru yang dipilih %>
+        <div>
+          <p class="crud-label">Pratinjau</p>
+          <% if (mode === 'ubah' && media) { %>
+            <% if (jenis === 'foto') { %>
+              <img class="crud-foto-preview mt-3" src="<%= media.berkas %>" alt="<%= media.judul %>" width="320" height="240" decoding="async" />
+            <% } else { %>
+              <%
+                // Tipe sumber video lama dipilih dari ekstensi berkas
+                const tipeVideoLama = media.berkas.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4';
+              %>
+              <video class="crud-foto-preview mt-3" controls muted playsinline preload="metadata" aria-label="<%= media.judul %>">
+                <source src="<%= media.berkas %>" type="<%= tipeVideoLama %>" />
+              </video>
+            <% } %>
+          <% } %>
+          <img id="pratinjau-media" class="crud-foto-preview mt-3" alt="Pratinjau media baru" width="320" height="240" hidden />
+          <video id="pratinjau-video" class="crud-foto-preview mt-3" controls muted playsinline preload="metadata" hidden></video>
+        </div>
+
+        <%# Bilah kemajuan unggah yang ditampilkan selama proses %>
+        <div id="bilah-kemajuan" class="hidden">
+          <div class="h-2 w-full overflow-hidden rounded-full" style="background: var(--paper-soft);">
+            <span id="isi-kemajuan" class="block h-full" style="width: 0%; background: var(--cobalt);"></span>
+          </div>
+          <p id="teks-kemajuan" class="crud-muted mt-2">0%</p>
+        </div>
+      </div>
+
+      <%# Tombol simpan dan batal %>
+      <div class="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-end" style="border-color: var(--line);">
+        <a class="btn btn--outline" href="<%= alamatDaftar %>">Batal</a>
+        <button id="tombol-simpan" class="btn btn--primary" type="submit">
+          <%= mode === 'ubah' ? 'Simpan perubahan' : 'Simpan ' + labelJenis %>
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# JavaScript sisi klien untuk unggah, pratinjau, dan kesalahan %>
+<%- include('../partials/scripts/media') %>
+<%# Skrip status dipasang terakhir untuk seluruh halaman %>
+<%- include('../partials/scripts/status') %>
+</body>
+</html>

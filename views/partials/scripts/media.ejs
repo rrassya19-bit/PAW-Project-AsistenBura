@@ -1,0 +1,359 @@
+<%# Skrip media admin: unggah dengan progres, pratinjau, pesan, dan hapus %>
+<script>// Skrip media admin tanpa library
+
+// Menjalankan pemasangan event setelah DOM siap
+document.addEventListener('DOMContentLoaded', function () {
+  tampilkanPesanMedia();
+  pasangFormMedia();
+  pasangPratinjauMedia();
+  pasangTombolHapusMedia();
+});
+
+// Membaca JSON dengan aman bila body bukan JSON
+async function bacaJsonMedia(respons) {
+  try {
+    return await respons.json();
+  } catch (galat) {
+    return {};
+  }
+}
+
+// Menampilkan pesan sukses dari query string atau sessionStorage
+function tampilkanPesanMedia() {
+  const kotak = document.getElementById('pesan-sukses');
+  if (!kotak) {
+    return;
+  }
+
+  const parameter = new URLSearchParams(window.location.search);
+  let pesan = parameter.get('pesan');
+  if (!pesan) {
+    pesan = sessionStorage.getItem('pesanMedia');
+  }
+  if (!pesan) {
+    return;
+  }
+
+  kotak.textContent = pesan;
+  kotak.classList.remove('hidden');
+  sessionStorage.removeItem('pesanMedia');
+
+  // Query string pesan dibersihkan agar tidak muncul lagi saat dimuat ulang
+  if (parameter.has('pesan')) {
+    parameter.delete('pesan');
+    const sisa = parameter.toString();
+    window.history.replaceState({}, '', window.location.pathname + (sisa ? '?' + sisa : ''));
+  }
+}
+
+// Memasang event submit pada form media
+function pasangFormMedia() {
+  const form = document.getElementById('form-media');
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    kirimFormMedia(form);
+  });
+}
+
+// URL pratinjau lama disimpan agar dapat dibebaskan saat berkas diganti
+let urlPratinjauMedia = null;
+
+// Memasang pratinjau berkas yang dipilih pengguna
+function pasangPratinjauMedia() {
+  const input = document.getElementById('berkas');
+  if (!input) {
+    return;
+  }
+
+  input.addEventListener('change', function () {
+    const gambar = document.getElementById('pratinjau-media');
+    const video = document.getElementById('pratinjau-video');
+    const form = document.getElementById('form-media');
+    const jenis = form ? form.dataset.jenis : 'foto';
+    const berkas = input.files && input.files[0];
+
+    // URL pratinjau lama dibebaskan agar memori tidak menumpuk
+    if (urlPratinjauMedia) {
+      URL.revokeObjectURL(urlPratinjauMedia);
+      urlPratinjauMedia = null;
+    }
+
+    // Tanpa berkas, kedua pratinjau disembunyikan
+    if (!berkas) {
+      if (gambar) {
+        gambar.hidden = true;
+        gambar.removeAttribute('src');
+      }
+      if (video) {
+        video.pause();
+        video.hidden = true;
+        video.removeAttribute('src');
+      }
+      return;
+    }
+
+    urlPratinjauMedia = URL.createObjectURL(berkas);
+
+    // Foto memakai elemen gambar, video memakai elemen video
+    if (jenis === 'foto') {
+      if (video) {
+        video.pause();
+        video.hidden = true;
+        video.removeAttribute('src');
+      }
+      if (gambar) {
+        gambar.src = urlPratinjauMedia;
+        gambar.hidden = false;
+      }
+    } else {
+      if (gambar) {
+        gambar.hidden = true;
+        gambar.removeAttribute('src');
+      }
+      if (video) {
+        video.src = urlPratinjauMedia;
+        video.hidden = false;
+      }
+    }
+  });
+}
+
+// Menyembunyikan dan mengosongkan kotak kesalahan media
+function sembunyikanKesalahanMedia(kotak, daftar) {
+  if (kotak) {
+    kotak.classList.add('hidden');
+  }
+  if (daftar) {
+    daftar.innerHTML = '';
+  }
+}
+
+// Menampilkan pesan kesalahan dari API pada form media
+function tampilkanKesalahanMedia(hasil, kotak, daftar) {
+  if (!kotak || !daftar) {
+    return;
+  }
+
+  const pesanUtama = kotak.querySelector('[data-pesan-utama]');
+  if (pesanUtama) {
+    pesanUtama.textContent = hasil && hasil.pesan ? hasil.pesan : 'Validasi gagal';
+  }
+
+  daftar.innerHTML = '';
+  const daftarKesalahan = hasil && Array.isArray(hasil.kesalahan) ? hasil.kesalahan : [];
+
+  daftarKesalahan.forEach(function (teks) {
+    const item = document.createElement('li');
+    item.textContent = teks;
+    daftar.appendChild(item);
+  });
+
+  if (daftarKesalahan.length === 0) {
+    daftar.classList.add('hidden');
+  } else {
+    daftar.classList.remove('hidden');
+  }
+
+  kotak.classList.remove('hidden');
+  kotak.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Mengirim form media memakai XMLHttpRequest agar progres unggah terlihat
+function kirimFormMedia(form) {
+  const kotak = document.getElementById('kesalahan-validasi');
+  const daftar = document.getElementById('daftar-kesalahan');
+  const tombol = document.getElementById('tombol-simpan');
+  const bilah = document.getElementById('bilah-kemajuan');
+  const isi = document.getElementById('isi-kemajuan');
+  const teks = document.getElementById('teks-kemajuan');
+  sembunyikanKesalahanMedia(kotak, daftar);
+
+  const mode = form.dataset.mode;
+  const id = form.dataset.id;
+  const jenis = form.dataset.jenis;
+  const alamatDaftar = form.dataset.daftar;
+  const inputJudul = document.getElementById('judul');
+  const inputUrutan = document.getElementById('urutan');
+  const inputBerkas = document.getElementById('berkas');
+  const berkas = inputBerkas && inputBerkas.files ? inputBerkas.files[0] : null;
+  const judul = inputJudul ? inputJudul.value.trim() : '';
+
+  // Validasi ringan di sisi klien sebelum permintaan dikirim
+  if (!judul) {
+    tampilkanKesalahanMedia(
+      { pesan: 'Validasi gagal', kesalahan: ['Judul wajib diisi'] },
+      kotak,
+      daftar
+    );
+    return;
+  }
+  if (mode === 'tambah' && !berkas) {
+    tampilkanKesalahanMedia(
+      { pesan: 'Validasi gagal', kesalahan: ['Berkas wajib dipilih'] },
+      kotak,
+      daftar
+    );
+    return;
+  }
+
+  // FormData disusun manual agar urutan field terbaca sebelum berkas
+  const data = new FormData();
+  data.append('jenis', jenis);
+  data.append('judul', judul);
+  data.append('urutan', inputUrutan && inputUrutan.value.trim() !== '' ? inputUrutan.value.trim() : '0');
+  if (berkas) {
+    data.append('berkas', berkas);
+  }
+
+  const alamat = mode === 'ubah' ? '/api/media/' + id : '/api/media';
+  const metode = mode === 'ubah' ? 'PUT' : 'POST';
+  const teksAsli = tombol ? tombol.textContent : '';
+
+  // Tombol dinonaktifkan selama proses agar tidak terkirim ganda
+  if (tombol) {
+    tombol.disabled = true;
+    tombol.textContent = 'Menyimpan...';
+  }
+
+  // Bilah kemajuan hanya ditampilkan bila ada berkas yang diunggah
+  if (bilah) {
+    bilah.classList.toggle('hidden', !berkas);
+  }
+  if (isi) {
+    isi.style.width = '0%';
+  }
+  if (teks) {
+    teks.textContent = '0%';
+  }
+
+  const xhr = new XMLHttpRequest();
+  xhr.open(metode, alamat, true);
+  xhr.withCredentials = true;
+
+  // Progres unggah diperbarui selama berkas dikirim
+  xhr.upload.addEventListener('progress', function (event) {
+    if (!event.lengthComputable) {
+      return;
+    }
+    const persen = Math.round((event.loaded / event.total) * 100);
+    if (isi) {
+      isi.style.width = persen + '%';
+    }
+    if (teks) {
+      teks.textContent = persen + '%';
+    }
+    if (bilah) {
+      bilah.classList.remove('hidden');
+    }
+  });
+
+  // Respons sukses mengarahkan kembali ke daftar media
+  xhr.addEventListener('load', function () {
+    let hasil = {};
+    try {
+      hasil = JSON.parse(xhr.responseText);
+    } catch (galat) {
+      hasil = {};
+    }
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      const pesan = mode === 'ubah' ? 'Media berhasil diperbarui' : 'Media berhasil ditambahkan';
+      sessionStorage.setItem('pesanMedia', pesan);
+      window.location.href = alamatDaftar;
+      return;
+    }
+
+    tampilkanKesalahanMedia(hasil, kotak, daftar);
+    if (tombol) {
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+    }
+    if (bilah) {
+      bilah.classList.add('hidden');
+    }
+  });
+
+  // Kesalahan jaringan ditampilkan dengan pesan yang jelas
+  xhr.addEventListener('error', function () {
+    tampilkanKesalahanMedia(
+      { pesan: 'Tidak dapat menghubungi server. Coba lagi.', kesalahan: [] },
+      kotak,
+      daftar
+    );
+    if (tombol) {
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+    }
+    if (bilah) {
+      bilah.classList.add('hidden');
+    }
+  });
+
+  xhr.send(data);
+}
+
+// Memasang event klik pada seluruh tombol hapus media
+function pasangTombolHapusMedia() {
+  const tombolHapus = document.querySelectorAll('[data-hapus-media]');
+  tombolHapus.forEach(function (tombol) {
+    tombol.addEventListener('click', function () {
+      hapusMedia(tombol);
+    });
+  });
+}
+
+// Menghapus media setelah pengguna menyetujui dialog konfirmasi
+async function hapusMedia(tombol) {
+  const id = tombol.dataset.id;
+  const judul = tombol.dataset.judul;
+  const jenis = tombol.dataset.jenis;
+
+  const setuju = window.confirm('Hapus "' + judul + '"? Tindakan ini tidak dapat dibatalkan.');
+  if (!setuju) {
+    return;
+  }
+
+  const teksAsli = tombol.textContent;
+  tombol.disabled = true;
+  tombol.textContent = 'Menghapus...';
+
+  try {
+    const respons = await fetch('/api/media/' + id, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
+    const hasil = await bacaJsonMedia(respons);
+
+    if (!respons.ok) {
+      tampilkanGalatMedia(hasil && hasil.pesan ? hasil.pesan : 'Media gagal dihapus.');
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+      return;
+    }
+
+    sessionStorage.setItem('pesanMedia', hasil.pesan || 'Media berhasil dihapus');
+    window.location.href = '/admin/' + jenis;
+  } catch (galat) {
+    tampilkanGalatMedia('Tidak dapat menghubungi server. Coba lagi.');
+    tombol.disabled = false;
+    tombol.textContent = teksAsli;
+  }
+}
+
+// Menampilkan pesan gagal pada halaman daftar media
+function tampilkanGalatMedia(pesan) {
+  const kotak = document.getElementById('pesan-galat');
+  if (!kotak) {
+    window.alert(pesan);
+    return;
+  }
+
+  kotak.textContent = pesan;
+  kotak.classList.remove('hidden');
+  kotak.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>

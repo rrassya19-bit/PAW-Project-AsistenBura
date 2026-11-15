@@ -1,0 +1,73 @@
+<%# Halaman daftar media admin: foto atau video yang tersimpan di database %>
+<%- include('../partials/head', { judul }) %>
+<%- include('../partials/navbar-admin', { namaKafe, appName, tabAktif }) %>
+<%
+  // Alamat dasar dan label menyesuaikan jenis media halaman
+  const alamatDaftar = '/admin/' + jenis;
+  const labelJenis = jenis === 'foto' ? 'Foto' : 'Video';
+%>
+<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
+<main id="konten" class="shell pt-32 pb-24">
+  <%# Kepala halaman tanpa label hiasan: hanya judul, jumlah data, dan aksi %>
+  <header class="max-w-3xl">
+    <h1 class="section-head__title">Kelola <%= jenis %> Bura Bura.</h1>
+    <%# Jumlah media dihitung langsung dari database %>
+    <p class="section-head__meta"><%= jumlah %> <%= jenis %> tersimpan di database</p>
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <a class="btn btn--primary" href="<%= alamatDaftar %>/tambah">Tambah <%= labelJenis %></a>
+      <a class="btn btn--outline" href="/">Lihat situs</a>
+    </div>
+  </header>
+
+  <%# Kotak pesan sukses dan gagal yang diisi oleh JavaScript %>
+  <div id="pesan-sukses" class="crud-alert crud-alert--sukses hidden" role="status" aria-live="polite"></div>
+  <div id="pesan-galat" class="crud-alert crud-alert--galat hidden" role="alert"></div>
+
+  <%# Keadaan kosong tetap rapi bila belum ada media %>
+  <% if (daftarMedia.length === 0) { %>
+    <div class="crud-empty mt-10">
+      <h2 style="font-family: var(--display); font-size: 1.5rem;">Belum ada <%= jenis %>.</h2>
+      <p class="crud-muted mt-2">Tambahkan <%= jenis %> pertama untuk mengisi halaman publik.</p>
+      <a class="btn btn--primary mt-6" href="<%= alamatDaftar %>/tambah">Tambah <%= labelJenis %></a>
+    </div>
+  <% } else { %>
+    <%# Kisi kartu media untuk semua ukuran layar %>
+    <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <% daftarMedia.forEach(function (item) { %>
+        <article class="crud-card">
+          <%# Thumbnail foto atau elemen video kecil tanpa autoplay %>
+          <div class="relative w-full overflow-hidden" style="aspect-ratio: 4 / 3; background: var(--paper-soft);">
+            <% if (jenis === 'foto') { %>
+              <img class="h-full w-full object-cover" src="<%= item.berkas %>" alt="<%= item.judul %>" width="600" height="450" loading="lazy" decoding="async" />
+            <% } else { %>
+              <%
+                // Tipe sumber video dipilih dari ekstensi berkas
+                const tipeVideo = item.berkas.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4';
+              %>
+              <video class="h-full w-full object-cover" muted playsinline preload="metadata" aria-label="<%= item.judul %>">
+                <source src="<%= item.berkas %>" type="<%= tipeVideo %>" />
+              </video>
+            <% } %>
+          </div>
+          <div class="p-5">
+            <%# Judul dan urutan media %>
+            <h2 class="crud-name"><%= item.judul %></h2>
+            <p class="crud-muted mt-1">Urutan <%= item.urutan %></p>
+            <%# Aksi ubah dan hapus per kartu %>
+            <div class="mt-4 flex gap-2">
+              <a class="crud-btn flex-1" href="<%= alamatDaftar %>/<%= item.id %>/ubah">Ubah</a>
+              <button class="crud-btn crud-btn--danger flex-1" type="button" data-hapus-media data-id="<%= item.id %>" data-judul="<%= item.judul %>" data-jenis="<%= jenis %>">Hapus</button>
+            </div>
+          </div>
+        </article>
+      <% }); %>
+    </div>
+  <% } %>
+</main>
+<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# JavaScript sisi klien untuk pesan dan tombol hapus media %>
+<%- include('../partials/scripts/media') %>
+<%# Skrip status dipasang terakhir untuk seluruh halaman %>
+<%- include('../partials/scripts/status') %>
+</body>
+</html>
