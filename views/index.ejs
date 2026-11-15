@@ -5,6 +5,8 @@
   const video = media.videos;
   const heroFoto = media.hero;
   const marqueeFoto = media.marquee;
+  // Jumlah foto sebelum digandakan menentukan durasi animasi strip
+  const jumlahFotoStrip = marqueeFoto.length;
   const fotoRuang = foto.filter(function (item) { return item.koleksi === 'Ruang'; });
   const sorotan = fotoRuang.slice(1, 4);
   const totalFoto = media.totalFoto;
@@ -44,7 +46,7 @@
     </section>
 
     <div class="strip" aria-hidden="true">
-      <div class="strip__track">
+      <div class="strip__track" style="--durasi: <%= jumlahFotoStrip * 4 %>s">
         <% marqueeFoto.concat(marqueeFoto).forEach(function (item, indeks) { %>
           <span class="strip__item">
             <img src="<%= item.src %>" alt="" width="400" height="500" loading="<%= indeks < 4 ? 'eager' : 'lazy' %>" decoding="async" />

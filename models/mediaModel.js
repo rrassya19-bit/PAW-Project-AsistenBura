@@ -4,6 +4,9 @@ const { query } = require('../config/database');
 // Daftar kolom dipakai konsisten agar hasil query mudah dipetakan
 const kolomMedia = 'id, jenis, judul, berkas, urutan, created_at, updated_at';
 
+// Batas jumlah foto yang ditampilkan pada strip berjalan beranda
+const MAKS_FOTO_STRIP = 24;
+
 // Urutan koleksi dibuat tetap supaya tampilan galeri konsisten
 const urutanKoleksi = ['Ruang', 'Signature', 'Dirty', 'Pastry', 'Pagi', 'Kru', 'Lokasi'];
 
@@ -163,6 +166,24 @@ function tentukanKoleksi(teks) {
   return 'Signature';
 }
 
+// Memilih foto strip berjalan secara merata tanpa duplikat
+function pilihFotoStrip(photos) {
+  // Semua foto dipakai bila jumlahnya tidak melebihi batas
+  if (photos.length <= MAKS_FOTO_STRIP) {
+    return photos.slice();
+  }
+
+  const langkah = photos.length / MAKS_FOTO_STRIP;
+  const hasil = [];
+
+  // Indeks dibulatkan agar foto tersebar dari awal sampai akhir daftar
+  for (let i = 0; i < MAKS_FOTO_STRIP; i += 1) {
+    hasil.push(photos[Math.round(i * langkah)]);
+  }
+
+  return hasil;
+}
+
 // Menyusun data tampilan publik dari baris media di database
 async function getAll() {
   // Foto dan video diambil terpisah agar poster video dapat memakai foto
@@ -231,19 +252,15 @@ async function getAll() {
     photos[0] ||
     null;
 
-  // Foto strip berjalan diambil menyebar agar semua koleksi terwakili
-  const marquee = photos
-    .filter(function (foto, indeks) {
-      return indeks % 5 === 0;
-    })
-    .slice(0, 14);
+  // Foto strip berjalan dipilih menyebar merata dari seluruh daftar
+  const marquee = pilihFotoStrip(photos);
 
   return {
     photos: photos,
     videos: videos,
     koleksi: koleksi,
     hero: hero,
-    marquee: marquee.length ? marquee : photos.slice(0, 14),
+    marquee: marquee,
     totalFoto: photos.length,
     totalVideo: videos.length,
   };
