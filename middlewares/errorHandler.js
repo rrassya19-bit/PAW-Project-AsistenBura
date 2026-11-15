@@ -21,8 +21,17 @@ function errorHandler(err, req, res, next) {
   let status = 500;
   let pesan = 'Terjadi kesalahan pada server';
 
-  // Kode error PostgreSQL tertentu dianggap kesalahan input pengguna
-  if (Object.prototype.hasOwnProperty.call(kesalahanPengguna, err.code)) {
+  // Kesalahan multer dipetakan ke status yang sesuai untuk unggahan
+  if (err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      status = 413;
+      pesan = 'Ukuran berkas melebihi batas unggah';
+    } else {
+      status = 400;
+      pesan = 'Berkas tidak dapat diproses';
+    }
+  } else if (Object.prototype.hasOwnProperty.call(kesalahanPengguna, err.code)) {
+    // Kode error PostgreSQL tertentu dianggap kesalahan input pengguna
     status = 400;
     pesan = kesalahanPengguna[err.code];
   }

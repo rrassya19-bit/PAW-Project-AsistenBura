@@ -1,6 +1,9 @@
 // Skrip uji API: menguji seluruh endpoint CRUD dan mencocokkannya dengan database
+const fs = require('fs');
 const config = require('../config');
 const { pool } = require('../config/database');
+const mediaModel = require('../models/mediaModel');
+const { resolusiBerkasMedia, hapusBerkasBilaAda, folderFoto } = require('../utils/mediaBerkas');
 
 // Alamat server lokal memakai PORT dari konfigurasi .env
 const alamatDasar = `http://127.0.0.1:${config.port}`;
@@ -22,6 +25,11 @@ let idUji = null;
 // Menyimpan id produk uji foto agar bisa dibersihkan bila perlu
 let idFotoUji = null;
 let idTanpaFotoUji = null;
+
+// Menyimpan id dan path berkas media uji agar bisa dibersihkan bila perlu
+let idMediaUji = null;
+let berkasMediaUji = null;
+let berkasMediaLama = null;
 
 // Mencetak status PASS/FAIL untuk setiap langkah
 function lapor(nama, lulus, keterangan) {
@@ -210,6 +218,228 @@ async function ujiFoto() {
       idTanpaFotoUji = null;
     }
   }
+}
+
+// Menyusun FormData untuk pengujian unggah media
+function formDataMedia(fields, isiBerkas, namaBerkas, tipeBerkas) {
+  const data = new FormData();
+
+  // Seluruh field teks ditambahkan lebih dulu agar terbaca sebelum berkas
+  Object.keys(fields).forEach(function (kunci) {
+    data.append(kunci, String(fields[kunci]));
+  });
+
+  // Berkas hanya ditambahkan bila disediakan
+  if (isiBerkas) {
+    data.append('berkas', new Blob([isiBerkas], { type: tipeBerkas }), namaBerkas);
+  }
+
+  return data;
+}
+
+// Menghitung berkas pada folder galeri untuk mendeteksi berkas yatim
+function jumlahBerkasGaleri() {
+  try {
+    return fs.readdirSync(folderFoto).length;
+  } catch (galat) {
+    return 0;
+  }
+}
+
+// Menguji CRUD media beserta unggah, penolakan, dan pembersihan berkas
+async function ujiMedia() {
+  // PNG 1x1 valid dipakai sebagai berkas uji yang lolos tanda tangan byte
+  const pngKecil = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  const judulAwal = `Uji Media ${Date.now()}`;
+  const sebelumMedia = (await mediaModel.ambilSemua()).length;
+  const sebelumBerkas = jumlahBerkasGaleri();
+
+  // Langkah media 1: POST foto PNG valid
+  const post = await minta('/api/media', {
+    method: 'POST',
+    headers: headerAdmin(),
+    body: formDataMedia(
+      { jenis: 'foto', judul: judulAwal, urutan: '7' },
+      pngKecil,
+      'uji-media.png',
+      'image/png'
+    ),
+  });
+  if (post.data && Number.isInteger(post.data.id)) {
+    idMediaUji = post.data.id;
+    berkasMediaUji = post.data.berkas;
+  }
+  const barisMedia = idMediaUji === null ? null : await mediaModel.ambilBerdasarkanId(idMediaUji);
+  const lokasiMedia = berkasMediaUji ? resolusiBerkasMedia(berkasMediaUji) : null;
+  const sesudahMedia = (await mediaModel.ambilSemua()).length;
+  lapor(
+    'POST /api/media menyimpan foto valid',
+    post.respons.status === 201 &&
+      post.data &&
+      post.data.jenis === 'foto' &&
+      barisMedia &&
+      lokasiMedia &&
+      fs.existsSync(lokasiMedia) &&
+      sesudahMedia === sebelumMedia + 1,
+    `status ${post.respons.status}, id ${idMediaUji}`
+  );
+
+  // Langkah media 2: berkas teks yang diganti nama menjadi .jpg harus ditolak
+  const sebelumPalsu = jumlahBerkasGaleri();
+  const palsu = await minta('/api/media', {
+    method: 'POST',
+    headers: headerAdmin(),
+    body: formDataMedia(
+      { jenis: 'foto', judul: `Uji Palsu ${Date.now()}`, urutan: '1' },
+      Buffer.from('ini bukan berkas gambar'),
+      'palsu.jpg',
+      'image/jpeg'
+    ),
+  });
+  const sesudahPalsu = jumlahBerkasGaleri();
+  lapor(
+    'POST /api/media menolak berkas dengan isi palsu',
+    palsu.respons.status === 400 &&
+      sesudahPalsu === sebelumPalsu &&
+      (await mediaModel.ambilSemua()).length === sesudahMedia,
+    `status ${palsu.respons.status}, tidak ada berkas tersisa`
+  );
+
+  // Langkah media 3: POST tanpa kredensial harus ditolak sebelum unggah
+  const sebelum401 = jumlahBerkasGaleri();
+  const post401 = await minta('/api/media', {
+    method: 'POST',
+    body: formDataMedia(
+      { jenis: 'foto', judul: `Uji Tanpa Kredensial ${Date.now()}`, urutan: '1' },
+      pngKecil,
+      'uji-401.png',
+      'image/png'
+    ),
+  });
+  const sesudah401 = jumlahBerkasGaleri();
+  lapor(
+    'POST /api/media menolak permintaan tanpa kredensial',
+    post401.respons.status === 401 &&
+      sesudah401 === sebelum401 &&
+      (await mediaModel.ambilSemua()).length === sesudahMedia,
+    `status ${post401.respons.status}`
+  );
+
+  // Langkah media 4: GET publik dan filter jenis
+  const getFoto = await minta('/api/media?jenis=foto');
+  const getDetail = await minta(`/api/media/${idMediaUji}`);
+  const adaDiDaftar =
+    Array.isArray(getFoto.data) &&
+    getFoto.data.some(function (item) {
+      return item.id === idMediaUji;
+    });
+  lapor(
+    'GET /api/media dan GET /api/media/:id dapat diakses publik',
+    getFoto.respons.status === 200 &&
+      adaDiDaftar &&
+      getDetail.respons.status === 200 &&
+      getDetail.data &&
+      getDetail.data.id === idMediaUji,
+    `status ${getFoto.respons.status} dan ${getDetail.respons.status}`
+  );
+
+  // Langkah media 5: PUT mengubah judul dan urutan tanpa berkas baru
+  const judulBaru = `Uji Media Diubah ${Date.now()}`;
+  const put = await minta(`/api/media/${idMediaUji}`, {
+    method: 'PUT',
+    headers: headerAdmin(),
+    body: formDataMedia({ judul: judulBaru, urutan: '2' }, null),
+  });
+  const barisPut = idMediaUji === null ? null : await mediaModel.ambilBerdasarkanId(idMediaUji);
+  lapor(
+    'PUT /api/media/:id mengubah judul dan urutan',
+    put.respons.status === 200 &&
+      put.data &&
+      put.data.judul === judulBaru &&
+      put.data.urutan === 2 &&
+      put.data.berkas === berkasMediaUji &&
+      barisPut &&
+      barisPut.judul === judulBaru,
+    `status ${put.respons.status}`
+  );
+
+  // Langkah media 6: PUT mengganti berkas dan menghapus berkas lama
+  const sebelumGanti = jumlahBerkasGaleri();
+  const putGanti = await minta(`/api/media/${idMediaUji}`, {
+    method: 'PUT',
+    headers: headerAdmin(),
+    body: formDataMedia(
+      { jenis: 'foto', judul: judulBaru, urutan: '3' },
+      pngKecil,
+      'uji-media-baru.png',
+      'image/png'
+    ),
+  });
+  const berkasBaru = putGanti.data ? putGanti.data.berkas : null;
+  const lokasiLama = berkasMediaUji ? resolusiBerkasMedia(berkasMediaUji) : null;
+  const lokasiBaru = berkasBaru ? resolusiBerkasMedia(berkasBaru) : null;
+  const sesudahGanti = jumlahBerkasGaleri();
+  const lulusGanti =
+    putGanti.respons.status === 200 &&
+    berkasBaru &&
+    berkasBaru !== berkasMediaUji &&
+    lokasiBaru &&
+    fs.existsSync(lokasiBaru) &&
+    (!lokasiLama || !fs.existsSync(lokasiLama)) &&
+    sesudahGanti === sebelumGanti;
+  lapor(
+    'PUT /api/media/:id mengganti berkas dan menghapus berkas lama',
+    lulusGanti,
+    `status ${putGanti.respons.status}, jumlah berkas ${sesudahGanti}`
+  );
+
+  // Path berkas baru disimpan untuk langkah hapus dan pembersihan
+  if (berkasBaru) {
+    berkasMediaLama = berkasMediaUji;
+    berkasMediaUji = berkasBaru;
+  }
+
+  // Langkah media 7: DELETE menghapus baris dan berkas
+  const hapus = await minta(`/api/media/${idMediaUji}`, {
+    method: 'DELETE',
+    headers: headerAdmin(),
+  });
+  const barisHapus = idMediaUji === null ? null : await mediaModel.ambilBerdasarkanId(idMediaUji);
+  const lokasiHapus = berkasMediaUji ? resolusiBerkasMedia(berkasMediaUji) : null;
+  const lulusHapus =
+    hapus.respons.status === 200 &&
+    hapus.data &&
+    hapus.data.data &&
+    hapus.data.data.id === idMediaUji &&
+    barisHapus === null &&
+    lokasiHapus &&
+    !fs.existsSync(lokasiHapus);
+  lapor(
+    'DELETE /api/media/:id menghapus baris dan berkas',
+    lulusHapus,
+    `status ${hapus.respons.status}`
+  );
+
+  // Data uji dianggap bersih setelah penghapusan berhasil
+  if (lulusHapus) {
+    idMediaUji = null;
+    berkasMediaUji = null;
+    berkasMediaLama = null;
+  }
+
+  // Langkah media 8: DELETE id yang tidak ada mengembalikan 404
+  const hapus404 = await minta('/api/media/99999999', {
+    method: 'DELETE',
+    headers: headerAdmin(),
+  });
+  lapor(
+    'DELETE /api/media/:id mengembalikan 404 untuk id tidak ada',
+    hapus404.respons.status === 404,
+    `status ${hapus404.respons.status}`
+  );
 }
 
 // Menjalankan seluruh skenario pengujian
@@ -452,6 +682,9 @@ async function jalankan() {
     lulusGetHapus,
     `status ${getHapus.respons.status}`
   );
+
+  // Pengujian media dijalankan setelah seluruh pengujian produk selesai
+  await ujiMedia();
 }
 
 // Membersihkan produk uji yang mungkin tertinggal bila terjadi kegagalan
@@ -468,6 +701,28 @@ async function bersihkan() {
     await pool.query('DELETE FROM produk WHERE id = $1', [idTanpaFotoUji]);
     console.log(`Pembersihan: produk uji tanpa foto id ${idTanpaFotoUji} dihapus`);
   }
+
+  // Membersihkan baris media uji yang mungkin tertinggal
+  if (idMediaUji !== null) {
+    const baris = await mediaModel.ambilBerdasarkanId(idMediaUji);
+    if (baris) {
+      await mediaModel.hapus(idMediaUji);
+      const lokasi = resolusiBerkasMedia(baris.berkas);
+      if (lokasi) {
+        hapusBerkasBilaAda(lokasi);
+      }
+      console.log(`Pembersihan: media uji id ${idMediaUji} dihapus`);
+    }
+    idMediaUji = null;
+  }
+
+  // Berkas media uji yang mungkin tertinggal tetap dibersihkan
+  [berkasMediaUji, berkasMediaLama].forEach(function (berkas) {
+    const lokasi = berkas ? resolusiBerkasMedia(berkas) : null;
+    if (lokasi) {
+      hapusBerkasBilaAda(lokasi);
+    }
+  });
 }
 
 // Menjalankan pengujian lalu menutup pool dan menentukan kode keluar

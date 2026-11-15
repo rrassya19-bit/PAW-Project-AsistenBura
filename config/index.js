@@ -25,6 +25,11 @@ const config = {
     user: process.env.ADMIN_USER || '',
     password: process.env.ADMIN_PASSWORD || '',
   },
+  // Batas ukuran unggahan media dalam megabyte dengan nilai default aman
+  unggah: {
+    maksFotoMb: Number(process.env.UPLOAD_MAKS_FOTO_MB) || 5,
+    maksVideoMb: Number(process.env.UPLOAD_MAKS_VIDEO_MB) || 80,
+  },
   kontak: {
     alamat: 'Mangkubumi & Kotabaru, Yogyakarta',
     jam: 'Setiap hari · 07.00 – 22.00',
