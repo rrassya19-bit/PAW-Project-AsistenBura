@@ -3,25 +3,14 @@
 <%- include('../partials/navbar-admin', { namaKafe, appName }) %>
 <%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
 <main id="konten" class="shell pt-32 pb-24">
-  <%# Kepala halaman memakai pola section-head desain lama %>
-  <header class="section-head">
-    <%# Kolom kiri berisi penanda bagian %>
-    <div class="section-head__aside">
-      <p class="kicker">Pengelolaan</p>
-      <span class="section-head__index">02 â€” Daftar produk</span>
-    </div>
-    <%# Kolom kanan berisi judul, keterangan, dan tombol aksi %>
-    <div>
-      <h1 class="section-head__title">Kelola menu Bura Bura.</h1>
-      <p class="section-head__sub">
-        Seluruh produk di halaman ini dibaca dari PostgreSQL melalui model. Tambah, ubah, atau hapus data tanpa meninggalkan gaya beranda.
-      </p>
-      <%# Jumlah data dan tombol menuju form tambah %>
-      <p class="section-head__meta"><%= jumlahProduk %> produk tersimpan di database</p>
-      <div class="mt-6 flex flex-wrap items-center gap-3">
-        <a class="btn btn--primary" href="/admin/tambah">Tambah Menu</a>
-        <a class="btn btn--outline" href="/">Kembali ke beranda</a>
-      </div>
+  <%# Kepala halaman tanpa label hiasan: hanya judul, jumlah data, dan aksi %>
+  <header class="max-w-3xl">
+    <h1 class="section-head__title">Kelola menu Bura Bura.</h1>
+    <%# Jumlah data dan tombol menuju form tambah %>
+    <p class="section-head__meta"><%= jumlahProduk %> produk tersimpan di database</p>
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <a class="btn btn--primary" href="/admin/tambah">Tambah Menu</a>
+      <a class="btn btn--outline" href="/">Kembali ke beranda</a>
     </div>
   </header>
 

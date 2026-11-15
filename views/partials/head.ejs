@@ -3,13 +3,14 @@
 <%# Bahasa halaman adalah Indonesia %>
 <html lang="id">
 <head>
-  <%# Pengaturan karakter dan tampilan responsif %>
-  <meta charset="UTF-8" />
+  <%# Pengaturan karakter harus menjadi elemen pertama di dalam head %>
+  <meta charset="utf-8" />
+  <%# Pengaturan tampilan responsif %>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <%# Judul mengikuti nama halaman yang dikirim controller %>
   <title><%= judul %> - <%= namaKafe %> · <%= typeof appName !== 'undefined' ? appName : 'Asisten Bura' %></title>
   <%# Deskripsi memakai nilai dari controller, dengan cadangan untuk halaman lain %>
-  <meta name="description" content="<%= typeof deskripsi !== 'undefined' ? deskripsi : 'Menu dan pengelolaan produk Bura Bura Coffee.' %>" />
+  <meta name="description" content="<%= typeof deskripsi !== 'undefined' ? deskripsi : 'Menu dan admin produk Bura Bura Coffee.' %>" />
   <%# Warna bilah peramban mengikuti warna cobalt desain lama %>
   <meta name="theme-color" content="#002FA7" />
   <%# Ikon situs berupa cangkir kopi sederhana %>

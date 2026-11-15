@@ -9,15 +9,11 @@
       <span aria-hidden="true">&larr;</span> Kembali ke daftar
     </a>
 
-    <%# Judul menyesuaikan mode tambah atau ubah %>
+    <%# Judul menyesuaikan mode tambah atau ubah, tanpa label hiasan %>
     <header class="mt-5">
-      <p class="kicker"><%= mode === 'ubah' ? 'Perbarui data' : 'Data baru' %></p>
-      <h1 class="mt-3" style="font-family: var(--display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; line-height: 1; letter-spacing: -0.04em;">
+      <h1 style="font-family: var(--display); font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; line-height: 1; letter-spacing: -0.04em;">
         <%= mode === 'ubah' ? 'Ubah Produk' : 'Tambah Produk' %>
       </h1>
-      <p class="crud-muted mt-3 max-w-xl">
-        <%= mode === 'ubah' ? 'Ubah data produk lalu simpan. Perubahan langsung tersimpan di database.' : 'Isi data produk baru. Data akan disimpan ke database melalui API.' %>
-      </p>
     </header>
 
     <%# Kotak kesalahan validasi dari API, awalnya tersembunyi %>
