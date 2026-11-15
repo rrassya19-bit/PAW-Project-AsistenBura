@@ -1,4 +1,4 @@
-<%# Halaman galeri foto lengkap dari folder assets %>
+<%# Halaman galeri foto lengkap dari tabel media %>
 <%- include('partials/head', { judul }) %>
 <%- include('partials/navbar', { halaman, namaKafe, appName }) %>
 <a class="skip-link" href="#konten">Lewati ke konten</a>
@@ -22,10 +22,10 @@
     </header>
 
     <% if (totalFoto === 0) { %>
-      <%# Keadaan kosong tetap rapi saat folder aset belum berisi foto %>
+      <%# Keadaan kosong tetap rapi saat tabel media belum berisi foto %>
       <div class="page-empty">
         <h2 class="page-empty__title">Belum ada foto.</h2>
-        <p class="page-empty__text">Tambahkan berkas foto ke folder <code>assets/</code> lalu muat ulang halaman ini. Menu tetap dapat dilihat di beranda.</p>
+        <p class="page-empty__text">Foto yang ditambahkan admin akan tampil di halaman ini. Menu tetap dapat dilihat di beranda.</p>
         <a class="btn btn--primary" href="/">Kembali ke beranda</a>
       </div>
     <% } else { %>

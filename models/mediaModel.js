@@ -1,16 +1,14 @@
-const fs = require('fs');
-const path = require('path');
+// Model media: seluruh operasi dan query database untuk tabel media
+const { query } = require('../config/database');
 
-const mediaDir = path.join(__dirname, '..', 'assets');
+// Daftar kolom dipakai konsisten agar hasil query mudah dipetakan
+const kolomMedia = 'id, jenis, judul, berkas, urutan, created_at, updated_at';
 
-const ekstensiFoto = ['.jpg', '.jpeg', '.png', '.webp', '.avif'];
-const ekstensiVideo = ['.mp4', '.webm', '.ogg'];
-
-// Urutan koleksi dibuat tetap supaya tampilan galeri konsisten.
+// Urutan koleksi dibuat tetap supaya tampilan galeri konsisten
 const urutanKoleksi = ['Ruang', 'Signature', 'Dirty', 'Pastry', 'Pagi', 'Kru', 'Lokasi'];
 
-// Aturan pengelompokan berdasarkan judul/caption asli file.
-// Aturan yang lebih spesifik diletakkan lebih dulu.
+// Aturan pengelompokan berdasarkan judul atau nama berkas
+// Aturan yang lebih spesifik diletakkan lebih dulu
 const aturanKoleksi = [
   ['five years', 'Kru'],
   ['pastry', 'Pastry'],
@@ -40,26 +38,124 @@ const aturanKoleksi = [
   ['dirty', 'Dirty'],
 ];
 
-function bacaBerkas() {
+// Mengubah kolom snake_case dari database menjadi camelCase untuk JSON
+function petakanBaris(baris) {
+  if (!baris) {
+    return null;
+  }
+
+  return {
+    id: baris.id,
+    jenis: baris.jenis,
+    judul: baris.judul,
+    berkas: baris.berkas,
+    urutan: baris.urutan,
+    dibuatPada: baris.created_at,
+    diubahPada: baris.updated_at,
+  };
+}
+
+// Mengambil semua media; jenis opsional berisi foto atau video
+async function ambilSemua(jenis) {
+  // Query berparameter dipakai bila filter jenis dikirim
+  if (jenis) {
+    const hasil = await query(
+      `SELECT ${kolomMedia} FROM media WHERE jenis = $1 ORDER BY urutan ASC, id ASC`,
+      [jenis]
+    );
+    return hasil.rows.map(petakanBaris);
+  }
+
+  // Tanpa filter, seluruh media diurutkan sesuai urutan lalu id
+  const hasil = await query(
+    `SELECT ${kolomMedia} FROM media ORDER BY urutan ASC, id ASC`
+  );
+  return hasil.rows.map(petakanBaris);
+}
+
+// Mengambil satu media berdasarkan id; null bila tidak ditemukan
+async function ambilBerdasarkanId(id) {
+  const hasil = await query(
+    `SELECT ${kolomMedia} FROM media WHERE id = $1`,
+    [id]
+  );
+  return petakanBaris(hasil.rows[0]);
+}
+
+// Menambah media baru dan mengembalikan baris yang dibuat
+async function tambah(data) {
+  const hasil = await query(
+    `INSERT INTO media (jenis, judul, berkas, urutan)
+     VALUES ($1, $2, $3, $4)
+     RETURNING ${kolomMedia}`,
+    [data.jenis, data.judul, data.berkas, data.urutan]
+  );
+  return petakanBaris(hasil.rows[0]);
+}
+
+// Mengubah media berdasarkan id dan memperbarui waktu perubahan
+async function ubah(id, data) {
+  const hasil = await query(
+    `UPDATE media
+     SET judul = $1,
+         berkas = $2,
+         urutan = $3,
+         updated_at = NOW()
+     WHERE id = $4
+     RETURNING ${kolomMedia}`,
+    [data.judul, data.berkas, data.urutan, id]
+  );
+  return petakanBaris(hasil.rows[0]);
+}
+
+// Menghapus media berdasarkan id; mengembalikan baris yang dihapus atau null
+async function hapus(id) {
+  const hasil = await query(
+    `DELETE FROM media WHERE id = $1 RETURNING ${kolomMedia}`,
+    [id]
+  );
+  return petakanBaris(hasil.rows[0]);
+}
+
+// Memeriksa apakah path berkas sudah terdaftar pada tabel media
+async function cekAdaBerkas(berkas) {
+  const hasil = await query(
+    'SELECT id FROM media WHERE berkas = $1 LIMIT 1',
+    [berkas]
+  );
+  return hasil.rows.length > 0;
+}
+
+// Memeriksa apakah berkas masih dirujuk media lain atau kolom foto produk
+async function berkasDirujuk(berkas) {
+  const hasil = await query(
+    `SELECT
+       (SELECT COUNT(*)::int FROM media WHERE berkas = $1) AS media,
+       (SELECT COUNT(*)::int FROM produk WHERE foto = $1) AS produk`,
+    [berkas]
+  );
+  const jumlah = hasil.rows[0];
+  return jumlah.media > 0 || jumlah.produk > 0;
+}
+
+// Mengambil nama berkas dari path URL untuk keperluan pengelompokan
+function ekstrakNama(berkas) {
+  const bagian = String(berkas).split('/').pop();
+
+  // Path yang mengandung persen didekode agar nama asli terbaca
   try {
-    return fs
-      .readdirSync(mediaDir, { withFileTypes: true })
-      .filter((berkas) => berkas.isFile())
-      .map((berkas) => berkas.name);
+    return decodeURIComponent(bagian);
   } catch (galat) {
-    return [];
+    return bagian;
   }
 }
 
-function buatUrl(nama) {
-  return '/media/' + encodeURIComponent(nama);
-}
-
-function tentukanKoleksi(nama) {
-  const teks = nama.toLowerCase();
+// Menentukan koleksi media dari judul dan nama berkas
+function tentukanKoleksi(teks) {
+  const teksKecil = String(teks).toLowerCase();
 
   for (let i = 0; i < aturanKoleksi.length; i += 1) {
-    if (teks.includes(aturanKoleksi[i][0])) {
+    if (teksKecil.includes(aturanKoleksi[i][0])) {
       return aturanKoleksi[i][1];
     }
   }
@@ -67,63 +163,79 @@ function tentukanKoleksi(nama) {
   return 'Signature';
 }
 
-function ambilEkstensi(nama) {
-  return path.extname(nama).toLowerCase();
-}
+// Menyusun data tampilan publik dari baris media di database
+async function getAll() {
+  // Foto dan video diambil terpisah agar poster video dapat memakai foto
+  const daftarFoto = await ambilSemua('foto');
+  const daftarVideo = await ambilSemua('video');
 
-function urutkanAlami(a, b) {
-  return a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
-}
+  // Setiap foto dipetakan ke bentuk yang dipakai template lama
+  const photos = daftarFoto.map(function (item, indeks) {
+    const nama = ekstrakNama(item.berkas);
+    const koleksi = tentukanKoleksi(item.judul + ' ' + nama + ' ' + item.berkas);
 
-function getAll() {
-  const berkas = bacaBerkas().sort(urutkanAlami);
+    return {
+      id: item.id,
+      nama: nama,
+      judul: item.judul,
+      src: item.berkas,
+      alt: koleksi + ' Bura Bura Coffee',
+      koleksi: koleksi,
+      urutan: item.urutan,
+      indeks: indeks,
+    };
+  });
 
-  const photos = berkas
-    .filter((nama) => ekstensiFoto.includes(ambilEkstensi(nama)))
-    .map((nama, indeks) => {
-      const koleksi = tentukanKoleksi(nama);
+  // Setiap video memakai poster dari foto koleksi yang sama bila tersedia
+  const videos = daftarVideo.map(function (item, indeks) {
+    const nama = ekstrakNama(item.berkas);
+    const koleksi = tentukanKoleksi(item.judul + ' ' + nama + ' ' + item.berkas);
+    const poster =
+      photos.find(function (foto) {
+        return foto.koleksi === koleksi;
+      }) || photos[indeks % Math.max(photos.length, 1)];
 
-      return {
-        nama: nama,
-        src: buatUrl(nama),
-        alt: koleksi + ' Bura Bura Coffee',
-        koleksi: koleksi,
-        indeks: indeks,
-      };
-    });
+    return {
+      id: item.id,
+      nama: nama,
+      judul: item.judul,
+      src: item.berkas,
+      poster: poster ? poster.src : '',
+      koleksi: koleksi,
+      urutan: item.urutan,
+      indeks: indeks,
+    };
+  });
 
-  const videos = berkas
-    .filter((nama) => ekstensiVideo.includes(ambilEkstensi(nama)))
-    .map((nama, indeks) => {
-      const koleksi = tentukanKoleksi(nama);
-      const poster = photos.find((foto) => foto.koleksi === koleksi) || photos[indeks % Math.max(photos.length, 1)];
-
-      return {
-        nama: nama,
-        src: buatUrl(nama),
-        poster: poster ? poster.src : '',
-        koleksi: koleksi,
-        indeks: indeks,
-      };
-    });
-
+  // Jumlah foto per koleksi dipakai oleh filter galeri
   const koleksi = urutanKoleksi
-    .map((nama) => {
-      const jumlah = photos.filter((foto) => foto.koleksi === nama).length;
+    .map(function (nama) {
+      const jumlah = photos.filter(function (foto) {
+        return foto.koleksi === nama;
+      }).length;
       return { nama: nama, jumlah: jumlah };
     })
-    .filter((item) => item.jumlah > 0);
+    .filter(function (item) {
+      return item.jumlah > 0;
+    });
 
-  // Foto utama hero: sudut Headquarters, dengan fallback ke koleksi Ruang.
+  // Foto utama hero: sudut Headquarters, dengan cadangan koleksi Ruang
   const hero =
-    photos.find((foto) => /headquarters/.test(foto.nama.toLowerCase()) && /3y/.test(foto.nama.toLowerCase())) ||
-    photos.find((foto) => foto.koleksi === 'Ruang') ||
+    photos.find(function (foto) {
+      const teks = (foto.nama + ' ' + foto.judul).toLowerCase();
+      return /headquarters/.test(teks) && /3y/.test(teks);
+    }) ||
+    photos.find(function (foto) {
+      return foto.koleksi === 'Ruang';
+    }) ||
     photos[0] ||
     null;
 
-  // Foto untuk strip berjalan: diambil menyebar agar semua koleksi terwakili.
+  // Foto strip berjalan diambil menyebar agar semua koleksi terwakili
   const marquee = photos
-    .filter((foto, indeks) => indeks % 5 === 0)
+    .filter(function (foto, indeks) {
+      return indeks % 5 === 0;
+    })
     .slice(0, 14);
 
   return {
@@ -137,4 +249,13 @@ function getAll() {
   };
 }
 
-module.exports = { getAll };
+module.exports = {
+  ambilSemua,
+  ambilBerdasarkanId,
+  tambah,
+  ubah,
+  hapus,
+  cekAdaBerkas,
+  berkasDirujuk,
+  getAll,
+};

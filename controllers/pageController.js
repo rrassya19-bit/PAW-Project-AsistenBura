@@ -17,7 +17,7 @@ function konteksHalaman() {
   };
 }
 
-// GET / -> beranda dengan menu dari database dan media dari folder assets
+// GET / -> beranda dengan menu dari database dan media dari tabel media
 async function home(req, res, next) {
   try {
     // Seluruh data menu diambil dari database melalui model
@@ -26,8 +26,8 @@ async function home(req, res, next) {
     // Menu dikelompokkan per kategori lewat util
     const kategoriMenu = kelompokkanProduk(daftarProduk);
 
-    // Galeri beranda tetap memakai mediaModel seperti pada Week 7
-    const media = mediaModel.getAll();
+    // Media beranda dibaca dari tabel media melalui model
+    const media = await mediaModel.getAll();
 
     res.render('index', {
       judul: 'Beranda',
@@ -51,8 +51,8 @@ async function home(req, res, next) {
 // GET /galeri -> halaman galeri foto lengkap
 async function galeri(req, res, next) {
   try {
-    // Media dibaca dari folder assets melalui model
-    const media = mediaModel.getAll();
+    // Media dibaca dari tabel media melalui model
+    const media = await mediaModel.getAll();
 
     res.render('galeri', {
       judul: 'Galeri',
@@ -69,8 +69,8 @@ async function galeri(req, res, next) {
 // GET /video -> halaman seluruh video dengan kontrol pemutar
 async function video(req, res, next) {
   try {
-    // Media dibaca dari folder assets melalui model
-    const media = mediaModel.getAll();
+    // Media dibaca dari tabel media melalui model
+    const media = await mediaModel.getAll();
 
     res.render('video', {
       judul: 'Video',
