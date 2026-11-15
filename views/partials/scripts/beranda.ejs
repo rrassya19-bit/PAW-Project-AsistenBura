@@ -3,6 +3,11 @@
 (function () {
       'use strict';
 
+      // Waktu tampil setiap foto latar hero sebelum berganti
+      var JEDA_GANTI_MS = 7000;
+      // Durasi crossfade latar hero; harus sama dengan transisi opacity CSS
+      var DURASI_FADE_MS = 1500;
+
       var doc = document;
       var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
       var header = doc.querySelector('[data-header]');
@@ -66,6 +71,223 @@
       window.addEventListener('scroll', requestScroll, { passive: true });
       window.addEventListener('resize', requestScroll);
       updateScroll();
+
+      /* ---------- Rotasi latar hero ---------- */
+
+      function siapkanRotasiHero() {
+        if (!heroMedia) return;
+
+        var teksSlide = heroMedia.getAttribute('data-slides');
+        var daftarSlide = [];
+
+        try {
+          daftarSlide = JSON.parse(teksSlide || '[]');
+        } catch (galat) {
+          daftarSlide = [];
+        }
+
+        if (!Array.isArray(daftarSlide)) return;
+
+        daftarSlide = daftarSlide.filter(function (src) {
+          return typeof src === 'string' && src.length > 0;
+        });
+
+        // Kurang dari dua foto berarti tidak ada rotasi
+        if (daftarSlide.length < 2) return;
+
+        // Hormati penghematan data dan preferensi gerak minimal
+        var koneksi = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        var hematData = koneksi && (
+          koneksi.saveData === true ||
+          koneksi.effectiveType === 'slow-2g' ||
+          koneksi.effectiveType === '2g'
+        );
+
+        if (reduceMotion.matches || hematData) return;
+
+        var lapisan = Array.prototype.slice.call(heroMedia.querySelectorAll('img'));
+
+        // Rotasi hanya memakai dua lapisan gambar hero
+        if (lapisan.length !== 2) return;
+
+        var lapisanAktif = 0;
+        var indeksSlide = 0;
+        var timer = null;
+        var berjalan = true;
+        var sedangMemuat = false;
+        var heroTerlihat = true;
+
+        // Mengacak daftar dengan algoritme Fisher-Yates
+        function acakDaftar(daftar) {
+          for (var i = daftar.length - 1; i > 0; i -= 1) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var sementara = daftar[i];
+            daftar[i] = daftar[j];
+            daftar[j] = sementara;
+          }
+
+          return daftar;
+        }
+
+        // Foto pertama tetap, sisanya diacak sekali per halaman
+        var urutan = [daftarSlide[0]].concat(acakDaftar(daftarSlide.slice(1)));
+
+        function bersihkanTimer() {
+          if (timer !== null) {
+            window.clearTimeout(timer);
+            timer = null;
+          }
+        }
+
+        function bisaJalan() {
+          return berjalan && !doc.hidden && heroTerlihat && !reduceMotion.matches;
+        }
+
+        function jadwalkan(jeda) {
+          bersihkanTimer();
+
+          if (!bisaJalan()) return;
+
+          timer = window.setTimeout(function () {
+            timer = null;
+            gantiSlide((indeksSlide + 1) % urutan.length, urutan.length - 1);
+          }, jeda);
+        }
+
+        // Memuat satu foto berikutnya sebelum crossfade dimulai
+        function muatFoto(url, selesai) {
+          var gambar = new Image();
+          var sudahSelesai = false;
+
+          function beres(berhasil) {
+            if (sudahSelesai) return;
+            sudahSelesai = true;
+            selesai(berhasil);
+          }
+
+          gambar.onload = function () {
+            beres(true);
+          };
+
+          gambar.onerror = function () {
+            beres(false);
+          };
+
+          gambar.src = url;
+
+          if (typeof gambar.decode === 'function') {
+            gambar.decode().then(function () {
+              beres(true);
+            }).catch(function () {
+              // Kegagalan decode ditangani onerror bila gambar tidak valid
+            });
+          }
+        }
+
+        function gantiSlide(kandidat, sisaPercobaan) {
+          if (!bisaJalan() || sedangMemuat) return;
+
+          if (sisaPercobaan < 0) {
+            jadwalkan(JEDA_GANTI_MS);
+            return;
+          }
+
+          sedangMemuat = true;
+
+          muatFoto(urutan[kandidat], function (berhasil) {
+            sedangMemuat = false;
+
+            if (!bisaJalan()) return;
+
+            if (!berhasil) {
+              // Lewati foto rusak tanpa menunggu lama
+              gantiSlide((kandidat + 1) % urutan.length, sisaPercobaan - 1);
+              return;
+            }
+
+            var lama = lapisan[lapisanAktif];
+            var baru = lapisan[1 - lapisanAktif];
+
+            baru.src = urutan[kandidat];
+            baru.alt = '';
+            baru.classList.remove('hero__foto--awal');
+            baru.classList.add('hero__foto--aktif');
+            lama.classList.remove('hero__foto--awal');
+            lama.classList.remove('hero__foto--aktif');
+
+            lapisanAktif = 1 - lapisanAktif;
+            indeksSlide = kandidat;
+
+            jadwalkan(JEDA_GANTI_MS);
+          });
+        }
+
+        function jedaRotasi() {
+          bersihkanTimer();
+        }
+
+        function lanjutkanRotasi() {
+          if (!bisaJalan()) {
+            bersihkanTimer();
+            return;
+          }
+
+          if (timer === null && !sedangMemuat) {
+            jadwalkan(JEDA_GANTI_MS);
+          }
+        }
+
+        // Aktifkan mode rotasi dan pastikan lapisan pertama mulai dari 1.02
+        heroMedia.classList.add('hero__media--rotasi');
+        heroMedia.style.setProperty('--durasi-fade-hero', (DURASI_FADE_MS / 1000) + 's');
+        heroMedia.style.setProperty('--durasi-zoom-hero', ((JEDA_GANTI_MS + DURASI_FADE_MS) / 1000) + 's');
+        lapisan[0].style.transition = 'none';
+        void lapisan[0].offsetWidth;
+        lapisan[0].style.transition = '';
+
+        // Lapisan pertama diaktifkan setelah frame awal agar zoom terlihat
+        window.requestAnimationFrame(function () {
+          lapisan[0].classList.remove('hero__foto--awal');
+          lapisan[0].classList.add('hero__foto--aktif');
+          jadwalkan(JEDA_GANTI_MS);
+        });
+
+        // Jeda saat tab tidak aktif
+        doc.addEventListener('visibilitychange', function () {
+          if (doc.hidden) {
+            jedaRotasi();
+          } else {
+            lanjutkanRotasi();
+          }
+        });
+
+        // Jeda saat hero keluar dari layar
+        if (hero && 'IntersectionObserver' in window) {
+          var pengamatHero = new IntersectionObserver(function (entries) {
+            heroTerlihat = entries[0] ? entries[0].isIntersecting : true;
+
+            if (heroTerlihat) {
+              lanjutkanRotasi();
+            } else {
+              jedaRotasi();
+            }
+          }, { threshold: 0.01 });
+
+          pengamatHero.observe(hero);
+        }
+
+        // Hentikan rotasi bila preferensi gerak minimal diaktifkan
+        if (reduceMotion.addEventListener) {
+          reduceMotion.addEventListener('change', function () {
+            if (reduceMotion.matches) {
+              berjalan = false;
+              bersihkanTimer();
+            }
+          });
+        }
+      }
+
+      siapkanRotasiHero();
 
       if ('IntersectionObserver' in window && navLinks.length) {
         // Hanya tautan jangkar pada halaman yang sama yang dijadikan target

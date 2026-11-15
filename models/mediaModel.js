@@ -7,6 +7,9 @@ const kolomMedia = 'id, jenis, judul, berkas, urutan, created_at, updated_at';
 // Batas jumlah foto yang ditampilkan pada strip berjalan beranda
 const MAKS_FOTO_STRIP = 24;
 
+// Potongan nama berkas yang tidak dipakai pada rotasi latar hero
+const HERO_KECUALI = [];
+
 // Urutan koleksi dibuat tetap supaya tampilan galeri konsisten
 const urutanKoleksi = ['Ruang', 'Signature', 'Dirty', 'Pastry', 'Pagi', 'Kru', 'Lokasi'];
 
@@ -255,11 +258,39 @@ async function getAll() {
   // Foto strip berjalan dipilih menyebar merata dari seluruh daftar
   const marquee = pilihFotoStrip(photos);
 
+  // Daftar latar hero: semua foto galeri, foto hero tetap di urutan pertama
+  const potonganKecuali = HERO_KECUALI.map(function (potongan) {
+    return String(potongan).toLowerCase();
+  });
+
+  const fotoSlide = photos.filter(function (foto) {
+    const nama = String(foto.nama).toLowerCase();
+
+    return !potonganKecuali.some(function (potongan) {
+      return potongan && nama.indexOf(potongan) !== -1;
+    });
+  });
+
+  const slideHero = [];
+
+  // Foto hero dimasukkan lebih dulu bila tidak dikecualikan
+  if (hero && fotoSlide.some(function (foto) { return foto.src === hero.src; })) {
+    slideHero.push(hero.src);
+  }
+
+  // Sisa foto ditambahkan tanpa duplikat
+  fotoSlide.forEach(function (foto) {
+    if (slideHero.indexOf(foto.src) === -1) {
+      slideHero.push(foto.src);
+    }
+  });
+
   return {
     photos: photos,
     videos: videos,
     koleksi: koleksi,
     hero: hero,
+    slideHero: slideHero,
     marquee: marquee,
     totalFoto: photos.length,
     totalVideo: videos.length,

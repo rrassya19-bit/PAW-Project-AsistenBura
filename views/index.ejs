@@ -4,6 +4,7 @@
   const foto = media.photos;
   const video = media.videos;
   const heroFoto = media.hero;
+  const slideHero = media.slideHero || [];
   const marqueeFoto = media.marquee;
   // Jumlah foto sebelum digandakan menentukan durasi animasi strip
   const jumlahFotoStrip = marqueeFoto.length;
@@ -22,9 +23,10 @@
 
   <main id="konten">
     <section id="atas" class="hero" data-hero aria-labelledby="judul-hero">
-      <div class="hero__media" data-hero-media aria-hidden="true">
+      <div class="hero__media" data-hero-media data-slides="<%= JSON.stringify(slideHero) %>" aria-hidden="true">
         <% if (heroFoto) { %>
-          <img src="<%= heroFoto.src %>" alt="" width="1600" height="2000" fetchpriority="high" decoding="async" />
+          <img class="hero__foto hero__foto--awal" src="<%= heroFoto.src %>" alt="" width="1600" height="2000" fetchpriority="high" decoding="async" />
+          <img class="hero__foto" alt="" aria-hidden="true" width="1600" height="2000" decoding="async" />
         <% } %>
       </div>
       <div class="hero__veil" aria-hidden="true"></div>

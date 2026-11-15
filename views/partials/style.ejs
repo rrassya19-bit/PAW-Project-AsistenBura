@@ -379,12 +379,33 @@
     }
 
     .hero__media img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       object-position: center 54%;
       filter: saturate(1.04) contrast(1.02);
+      opacity: 0;
       transform: scale(1.04);
+      will-change: opacity, transform;
+    }
+
+    /* Mode rotasi memakai skala awal lebih kecil dan transisi halus */
+    .hero__media--rotasi img {
+      transform: scale(1.02);
+      transition: opacity var(--durasi-fade-hero, 1.5s) ease, transform var(--durasi-zoom-hero, 8.5s) linear;
+    }
+
+    /* Lapisan pertama tetap terlihat sebelum rotasi dimulai */
+    .hero__foto--awal {
+      opacity: 1;
+    }
+
+    /* Lapisan aktif memudar masuk sambil memperbesar gambar */
+    .hero__media--rotasi .hero__foto--aktif {
+      opacity: 1;
+      transform: scale(1.10);
     }
 
     .hero__veil {
@@ -2071,6 +2092,12 @@
     @media (prefers-reduced-motion: reduce) {
       html {
         scroll-behavior: auto;
+      }
+
+      /* Latar hero diam tanpa zoom atau crossfade */
+      .hero__media img {
+        transition: none !important;
+        transform: scale(1.04) !important;
       }
 
       .strip__track,
