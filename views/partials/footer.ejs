@@ -13,7 +13,7 @@
   const diBerandaFooter = typeof halaman !== 'undefined' && halaman === 'beranda';
   const awalanFooter = diBerandaFooter ? '' : '/';
 %>
-<%# Footer lama: identitas kedai, direktori tautan, dan status server %>
+<%# Footer: identitas kedai dan direktori tautan %>
 <footer class="footer">
   <div class="shell footer__main">
     <div>
@@ -60,11 +60,6 @@
 
   <div class="shell footer__bottom">
     <span>&copy; <%= tahunFooter %> <%= namaKafe %> · dibuat oleh <%= aplikasiFooter %></span>
-    <%# Indikator status diperbarui oleh partial scripts/status.ejs %>
-    <p class="footer__status" data-status aria-live="polite">
-      <span class="status-dot" aria-hidden="true"></span>
-      <span data-status-text>Memeriksa...</span>
-    </p>
   </div>
 </footer>
-<%# Skrip halaman dan status dimuat oleh masing-masing template setelah footer %>
+<%# Skrip halaman dimuat oleh masing-masing template setelah footer %>
