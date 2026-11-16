@@ -322,7 +322,10 @@
   </main>
 
 <%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# Chatbot publik hanya dimuat di halaman beranda, galeri, dan video %>
+<%- include('partials/chatbot') %>
 <%# Skrip beranda dimuat inline di akhir body agar waktunya sama seperti defer %>
 <%- include('partials/scripts/beranda') %>
+<%- include('partials/scripts/chatbot') %>
 </body>
 </html>

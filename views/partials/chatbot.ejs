@@ -1,0 +1,41 @@
+<%# Partial chatbot publik: tombol melayang dan panel percakapan %>
+<section class="chat" data-chat aria-label="Asisten Bura">
+  <div class="chat__panel" id="chat-panel" data-chat-panel hidden>
+    <header class="chat__head">
+      <div>
+        <p class="chat__title">Asisten Bura</p>
+        <p class="chat__status"><span aria-hidden="true"></span>Tanya menu dan info kedai</p>
+      </div>
+      <button class="chat__close" type="button" data-chat-close aria-label="Tutup asisten">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+      </button>
+    </header>
+
+    <%# Log percakapan diumumkan pembaca layar saat ada balasan baru %>
+    <div class="chat__log" data-chat-log role="log" aria-live="polite" aria-relevant="additions">
+      <p class="chat__msg chat__msg--bot">Halo! Saya bisa membantu soal menu, harga, jam buka, dan galeri Bura Bura Coffee. Mau tanya apa?</p>
+    </div>
+
+    <form class="chat__form" data-chat-form>
+      <label class="visually-hidden" for="chat-input">Tulis pertanyaan untuk asisten</label>
+      <textarea
+        class="chat__input"
+        id="chat-input"
+        data-chat-input
+        rows="1"
+        maxlength="500"
+        placeholder="Tanya menu atau jam buka..."
+        required
+      ></textarea>
+      <button class="chat__send" type="submit" data-chat-send aria-label="Kirim pertanyaan">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 12 16-8-6 16-2.6-6.4L4 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+      </button>
+    </form>
+    <p class="chat__hint">Jawaban dibuat AI dan bisa keliru. Data menu diambil dari website.</p>
+  </div>
+
+  <button class="chat__toggle" type="button" data-chat-toggle aria-expanded="false" aria-controls="chat-panel">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 1 1 18-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    <span class="chat__toggle-label">Asisten Bura</span>
+  </button>
+</section>

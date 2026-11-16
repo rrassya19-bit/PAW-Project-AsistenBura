@@ -87,7 +87,10 @@
 </main>
 
 <%- include('partials/footer', { namaKafe, appName, tagline, kontak }) %>
+<%# Chatbot publik hanya dimuat di halaman beranda, galeri, dan video %>
+<%- include('partials/chatbot') %>
 <%# Skrip beranda menyediakan reveal, filter, dan lightbox %>
 <%- include('partials/scripts/beranda') %>
+<%- include('partials/scripts/chatbot') %>
 </body>
 </html>

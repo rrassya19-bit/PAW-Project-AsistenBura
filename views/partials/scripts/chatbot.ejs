@@ -1,0 +1,179 @@
+<%# Skrip chatbot publik: kirim pertanyaan ke /api/chat dan tampilkan jawaban %>
+<script>
+  (function () {
+    // Elemen utama diambil sekali agar tidak query berulang
+    const akar = document.querySelector('[data-chat]');
+    // Berhenti bila partial tidak ada di halaman
+    if (!akar) return;
+
+    const panel = akar.querySelector('[data-chat-panel]');
+    const tombolBuka = akar.querySelector('[data-chat-toggle]');
+    const tombolTutup = akar.querySelector('[data-chat-close]');
+    const form = akar.querySelector('[data-chat-form]');
+    const input = akar.querySelector('[data-chat-input]');
+    const tombolKirim = akar.querySelector('[data-chat-send]');
+    const log = akar.querySelector('[data-chat-log]');
+
+    // Penanda agar satu pertanyaan tidak terkirim dua kali
+    let sedangKirim = false;
+    // Penanda panel terbuka atau tertutup
+    let terbuka = false;
+
+    // Menggulir log ke pesan terbaru tanpa mengganggu halaman
+    function gulirBawah() {
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Menambahkan satu pesan teks ke log dengan kelas sesuai pengirim
+    function tambahPesan(teks, jenis) {
+      const pesan = document.createElement('p');
+      pesan.className = 'chat__msg chat__msg--' + (jenis || 'bot');
+      pesan.textContent = teks;
+      log.appendChild(pesan);
+      gulirBawah();
+      return pesan;
+    }
+
+    // Menambahkan indikator mengetik yang dapat dihapus setelah balasan datang
+    function tambahMengetik() {
+      const bungkus = document.createElement('p');
+      bungkus.className = 'chat__msg chat__msg--bot chat__msg--typing';
+      bungkus.setAttribute('aria-label', 'Asisten sedang menulis');
+      bungkus.innerHTML = '<span></span><span></span><span></span>';
+      log.appendChild(bungkus);
+      gulirBawah();
+      return bungkus;
+    }
+
+    // Membuka panel dan memindahkan fokus ke kolom pesan
+    function bukaPanel() {
+      terbuka = true;
+      panel.hidden = false;
+      tombolBuka.setAttribute('aria-expanded', 'true');
+      tombolBuka.classList.add('chat__toggle--aktif');
+      input.focus();
+      gulirBawah();
+    }
+
+    // Menutup panel dan mengembalikan fokus ke tombol pembuka
+    function tutupPanel() {
+      terbuka = false;
+      panel.hidden = true;
+      tombolBuka.setAttribute('aria-expanded', 'false');
+      tombolBuka.classList.remove('chat__toggle--aktif');
+      tombolBuka.focus();
+    }
+
+    // Menyesuaikan tinggi kolom pesan dengan isinya
+    function sesuaikanTinggi() {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 110) + 'px';
+    }
+
+    // Membaca pesan galat dari respons API dengan aman
+    async function bacaPesanGalat(respons) {
+      try {
+        const data = await respons.json();
+        if (data && typeof data.pesan === 'string' && data.pesan) {
+          return data.pesan;
+        }
+      } catch (galat) {
+        // Respons bukan JSON, pakai pesan umum di bawah
+      }
+      return 'Maaf, asisten sedang tidak dapat menjawab. Silakan coba lagi.';
+    }
+
+    // Mengirim pertanyaan ke server dan menampilkan hasilnya
+    async function kirimPertanyaan(teks) {
+      // Pertanyaan kosong tidak dikirim
+      if (!teks) return;
+      // Pengiriman ganda dicegah selama permintaan berjalan
+      if (sedangKirim) return;
+
+      sedangKirim = true;
+      tombolKirim.disabled = true;
+      tambahPesan(teks, 'user');
+      input.value = '';
+      sesuaikanTinggi();
+      const indikator = tambahMengetik();
+
+      // Batas waktu klien sedikit lebih panjang daripada batas server
+      const pengendali = new AbortController();
+      const timer = setTimeout(function () {
+        pengendali.abort();
+      }, 30000);
+
+      try {
+        const respons = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pesan: teks }),
+          signal: pengendali.signal,
+        });
+
+        // Indikator selalu dihapus sebelum balasan ditampilkan
+        indikator.remove();
+
+        if (!respons.ok) {
+          const pesanGalat = await bacaPesanGalat(respons);
+          tambahPesan(pesanGalat, 'galat');
+          return;
+        }
+
+        const data = await respons.json();
+        const jawaban = data && typeof data.jawaban === 'string' ? data.jawaban : '';
+        tambahPesan(jawaban || 'Maaf, saya belum bisa menjawab itu.', 'bot');
+      } catch (galat) {
+        // Indikator dihapus bila permintaan gagal
+        indikator.remove();
+        const pesan =
+          galat && galat.name === 'AbortError'
+            ? 'Permintaan terlalu lama. Silakan coba lagi.'
+            : 'Koneksi bermasalah. Periksa jaringan lalu coba lagi.';
+        tambahPesan(pesan, 'galat');
+      } finally {
+        // Timer dan status kirim selalu direset
+        clearTimeout(timer);
+        sedangKirim = false;
+        tombolKirim.disabled = false;
+        input.focus();
+      }
+    }
+
+    // Tombol melayang membuka atau menutup panel
+    tombolBuka.addEventListener('click', function () {
+      if (terbuka) {
+        tutupPanel();
+      } else {
+        bukaPanel();
+      }
+    });
+
+    // Tombol silang menutup panel
+    tombolTutup.addEventListener('click', tutupPanel);
+
+    // Tombol Escape menutup panel dari mana pun fokus berada
+    document.addEventListener('keydown', function (peristiwa) {
+      if (peristiwa.key === 'Escape' && terbuka) {
+        tutupPanel();
+      }
+    });
+
+    // Form dikirim tanpa memuat ulang halaman
+    form.addEventListener('submit', function (peristiwa) {
+      peristiwa.preventDefault();
+      kirimPertanyaan(input.value.trim());
+    });
+
+    // Enter mengirim, Shift+Enter membuat baris baru
+    input.addEventListener('keydown', function (peristiwa) {
+      if (peristiwa.key === 'Enter' && !peristiwa.shiftKey) {
+        peristiwa.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    // Tinggi kolom pesan mengikuti isi
+    input.addEventListener('input', sesuaikanTinggi);
+  })();
+</script>
