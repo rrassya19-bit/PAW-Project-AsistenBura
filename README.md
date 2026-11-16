@@ -75,13 +75,13 @@ app.js         Titik masuk aplikasi
    npm run seed -- --reset
    ```
 
-5. Untuk database lama yang sudah berisi produk, tambahkan kolom foto dan tabel media tanpa menghapus data:
+5. Untuk database lama yang sudah berisi produk, tambahkan kolom foto, tabel media, dan kolom hero tanpa menghapus data:
 
    ```powershell
    npm run migrasi
    ```
 
-   Migrasi bersifat idempotent dan aman dijalankan berulang kali. Instalasi baru yang memakai `schema.sql` terbaru sudah memiliki kolom `foto` dan tabel `media`, sehingga langkah ini hanya memastikan skema tetap mutakhir.
+   Migrasi bersifat idempotent dan aman dijalankan berulang kali. Instalasi baru yang memakai `schema.sql` terbaru sudah memiliki kolom `foto`, tabel `media`, dan kolom `hero`, sehingga langkah ini hanya memastikan skema tetap mutakhir.
 
 6. Daftarkan foto dan video lama yang sudah ada di folder `assets` ke tabel `media`:
 
@@ -91,7 +91,15 @@ app.js         Titik masuk aplikasi
 
    Skrip memindai `assets`, `assets/galeri`, dan `assets/video`, lalu melewati `assets/menu` karena folder tersebut berisi foto produk. Impor bersifat idempotent: berkas yang sudah terdaftar tidak ditambahkan lagi. Ringkasan jumlah media yang ditambahkan dan dilewati akan dicetak di terminal.
 
-7. Jalankan server:
+7. Opsional, tandai foto galeri yang bebas tulisan sebagai kandidat latar hero:
+
+   ```powershell
+   npm run hero:saring
+   ```
+
+   Proses ini memakai OCR dan dapat memakan waktu pada pemakaian pertama karena mengunduh data bahasa. Ringkasan foto bersih dan bertulisan dicetak di terminal. Detail dan opsi pengulangan dijelaskan pada bagian [Foto Hero Beranda](#foto-hero-beranda).
+
+8. Jalankan server:
 
    ```powershell
    npm run dev
@@ -159,10 +167,11 @@ Foto galeri dan video disimpan pada tabel `media`. Halaman publik `/`, `/galeri`
 | `judul` | Judul media, maksimal 100 karakter |
 | `berkas` | Path URL berkas, misalnya `/media/galeri/nama-berkas.jpg`, unik per baris |
 | `urutan` | Urutan tampil; nilai kecil tampil lebih dulu, lalu diurutkan berdasarkan `id` |
+| `hero` | Penanda foto layak dipakai pada rotasi latar beranda; hanya berlaku untuk `jenis = 'foto'` |
 | `created_at` | Waktu data dibuat |
 | `updated_at` | Waktu data terakhir diubah |
 
-Tabel dibuat oleh `npm run migrasi` melalui `database/migrasi/002-buat-tabel-media.sql` dan juga tersedia di `database/schema.sql`. Keduanya aman dijalankan berulang kali.
+Tabel dibuat oleh `npm run migrasi` melalui `database/migrasi/002-buat-tabel-media.sql`, lalu kolom `hero` ditambahkan oleh `database/migrasi/003-tambah-kolom-hero.sql`. Skema yang sama juga tersedia di `database/schema.sql`. Semuanya aman dijalankan berulang kali.
 
 Impor media lama:
 
@@ -171,6 +180,28 @@ npm run media:impor
 ```
 
 Skrip memindai `assets`, `assets/galeri`, dan `assets/video`, lalu mendaftarkan berkas yang belum ada di tabel berdasarkan kolom `berkas`. Folder `assets/menu` tidak diimpor karena berisi foto produk. Judul awal diambil dari nama berkas yang dirapikan, sedangkan urutan mengikuti urutan nama berkas. Skrip mencetak jumlah media yang ditambahkan dan dilewati sehingga aman dijalankan berulang kali.
+
+### Foto Hero Beranda
+
+Rotasi latar beranda hanya memakai baris `media` dengan `jenis = 'foto'` dan `hero = TRUE`. Model mengurutkan foto hero, lalu memilih satu foto unggulan secara acak dari nama yang cocok dengan `HERO_UNGGULAN = ['headquarters']`; bila tidak ada yang cocok, dipakai foto hero pertama. Daftar `HERO_KECUALI` dapat diisi potongan nama berkas yang ingin dilewati. Bila belum ada foto bertanda hero, beranda memakai foto cadangan lama agar tetap tampil.
+
+Checkbox **Tampilkan sebagai latar hero (pilih hanya foto tanpa tulisan dan beresolusi tinggi)** muncul pada form tambah dan ubah foto. Video tidak boleh ditandai hero; API membalas `400` dengan pesan `hero hanya untuk foto`. Daftar admin menampilkan badge `Hero` pada foto yang ditandai.
+
+Tandai foto bebas tulisan dengan OCR:
+
+```powershell
+npm run hero:saring
+```
+
+Periksa ulang seluruh foto dan turunkan penanda hero pada foto bertulisan:
+
+```powershell
+npm run hero:saring -- --ulang
+```
+
+Skrip memakai Tesseract dengan bahasa `eng+ind`, ambang keyakinan `70`, minimal `3` huruf, dan tanpa batas jumlah kata. Foto bersih dinaikkan menjadi `hero = TRUE`. Tanpa `--ulang`, skrip tidak menurunkan data lama; dengan `--ulang`, foto bertulisan diubah menjadi `hero = FALSE`. Berkas tidak pernah dihapus oleh skrip. Cache OCR disimpan di `.cache-ocr/` dan diabaikan Git.
+
+Rotasi beranda memakai dua lapisan gambar. Foto lama memudar ke warna dasar biru gelap, lalu foto baru memudar masuk setelah lapisan lama benar-benar hilang. Nilai waktunya `JEDA_TAMPIL_MS = 8500`, `DURASI_KELUAR_MS = 600`, dan `DURASI_MASUK_MS = 900`. Semua foto hero yang lolos OCR dipakai tanpa saringan ketajaman tambahan; foto yang gagal dimuat dilewati. Rotasi berhenti saat tab tidak aktif, hero keluar dari layar, pengguna memilih `prefers-reduced-motion`, atau koneksi memakai `saveData`/2G.
 
 ### Pengelolaan di Admin
 
@@ -239,7 +270,7 @@ Aturan akses:
 | GET | `/api/media` | Seluruh media, filter `?jenis=foto\|video` (publik) |
 | GET | `/api/media/:id` | Satu media berdasarkan id (publik) |
 | POST | `/api/media` | Menambah media dengan unggah multipart (wajib admin) |
-| PUT | `/api/media/:id` | Mengubah judul, urutan, dan berkas opsional (wajib admin) |
+| PUT | `/api/media/:id` | Mengubah judul, urutan, status hero, dan berkas opsional (wajib admin) |
 | DELETE | `/api/media/:id` | Menghapus media dan berkasnya (wajib admin) |
 
 Endpoint tulis memakai header `Authorization: Basic ...`. Contoh di bawah memakai `-u` dari `curl.exe`; ganti `admin:ganti_dengan_password_kuat` dengan kredensial pada `.env` Anda.
@@ -382,6 +413,7 @@ curl.exe "http://localhost:3000/api/media?jenis=foto"
     "judul": "Sudut Mangkubumi",
     "berkas": "/media/galeri/sudut-mangkubumi-1699999999999-a1b2c3d4.jpg",
     "urutan": 1,
+    "hero": true,
     "dibuatPada": "2026-11-12T01:00:00.000Z",
     "diubahPada": "2026-11-12T01:00:00.000Z"
   }
@@ -390,18 +422,18 @@ curl.exe "http://localhost:3000/api/media?jenis=foto"
 
 `GET /api/media/1` mengembalikan satu objek media. Bila id tidak ada, response `404`.
 
-`POST /api/media` memakai `multipart/form-data` dengan field `jenis`, `judul`, `urutan`, dan `berkas`:
+`POST /api/media` memakai `multipart/form-data` dengan field `jenis`, `judul`, `urutan`, `hero`, dan `berkas`:
 
 ```powershell
-curl.exe -X POST http://localhost:3000/api/media -u admin:ganti_dengan_password_kuat -F "jenis=foto" -F "judul=Sudut Mangkubumi" -F "urutan=1" -F "berkas=@C:\foto\sudut.jpg;type=image/jpeg"
+curl.exe -X POST http://localhost:3000/api/media -u admin:ganti_dengan_password_kuat -F "jenis=foto" -F "judul=Sudut Mangkubumi" -F "urutan=1" -F "hero=true" -F "berkas=@C:\foto\sudut.jpg;type=image/jpeg"
 ```
 
-Response `201` berisi objek media yang baru dibuat. Berkas disimpan server dengan nama aman di `assets/galeri` atau `assets/video`.
+Response `201` berisi objek media yang baru dibuat. Berkas disimpan server dengan nama aman di `assets/galeri` atau `assets/video`. Field `hero` menerima `true`, `on`, `1`, atau `false`, `0`, kosong; nilai lain dibalas `400`. Menandai video dengan `hero=true` juga dibalas `400` dengan pesan `hero hanya untuk foto`.
 
-`PUT /api/media/1` mengubah judul dan urutan; field `berkas` opsional untuk mengganti berkas lama:
+`PUT /api/media/1` mengubah judul, urutan, dan status hero; field `berkas` opsional untuk mengganti berkas lama:
 
 ```powershell
-curl.exe -X PUT http://localhost:3000/api/media/1 -u admin:ganti_dengan_password_kuat -F "judul=Sudut Mangkubumi Baru" -F "urutan=2"
+curl.exe -X PUT http://localhost:3000/api/media/1 -u admin:ganti_dengan_password_kuat -F "judul=Sudut Mangkubumi Baru" -F "urutan=2" -F "hero=false"
 ```
 
 Bila berkas baru dikirim, berkas lama dihapus hanya setelah pembaruan database berhasil dan berkas lama tidak dirujuk data lain.
@@ -421,6 +453,7 @@ curl.exe -X DELETE http://localhost:3000/api/media/1 -u admin:ganti_dengan_passw
     "judul": "Sudut Mangkubumi Baru",
     "berkas": "/media/galeri/sudut-mangkubumi-1699999999999-a1b2c3d4.jpg",
     "urutan": 2,
+    "hero": true,
     "dibuatPada": "2026-11-12T01:00:00.000Z",
     "diubahPada": "2026-11-12T01:05:00.000Z"
   }
