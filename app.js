@@ -4,6 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
 
 const express = require('express');
 const config = require('./config');
+const gemini = require('./config/gemini');
 const { pool, cekKoneksi } = require('./config/database');
 const routes = require('./routes');
 const requestLogger = require('./middlewares/requestLogger');
@@ -45,29 +46,50 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Menjalankan server lalu memeriksa koneksi database tanpa menghentikan server bila gagal
-app.listen(config.port, async () => {
-  console.log(`Server berjalan di http://localhost:${config.port}`);
+function jalankanServer() {
+  // Server mendengarkan port dari konfigurasi
+  app.listen(config.port, async () => {
+    // Alamat server dicetak tanpa nilai rahasia apa pun
+    console.log(`Server berjalan di http://localhost:${config.port}`);
 
-  // Menampilkan status konfigurasi admin tanpa pernah mencetak kredensialnya
-  const adminSiap = Boolean(config.admin.user && config.admin.password);
-  console.log(adminSiap ? 'Akses admin: aktif' : 'Akses admin: BELUM dikonfigurasi');
+    // Menampilkan status konfigurasi admin tanpa pernah mencetak kredensialnya
+    const adminSiap = Boolean(config.admin.user && config.admin.password);
+    console.log(adminSiap ? 'Akses admin: aktif' : 'Akses admin: BELUM dikonfigurasi');
 
-  // Mengingatkan bila kata sandi admin terlalu pendek, tanpa menampilkan nilainya
-  if (config.admin.password && config.admin.password.length < 8) {
-    console.log('Peringatan: ADMIN_PASSWORD kurang dari 8 karakter');
-  }
+    // Mengingatkan bila kata sandi admin terlalu pendek, tanpa menampilkan nilainya
+    if (config.admin.password && config.admin.password.length < 8) {
+      console.log('Peringatan: ADMIN_PASSWORD kurang dari 8 karakter');
+    }
 
-  const terhubung = await cekKoneksi();
-  if (terhubung) {
-    console.log('Database terhubung');
-  } else {
-    console.log('Database gagal terhubung, periksa konfigurasi koneksi');
-  }
-});
+    // Status Gemini hanya menyebut siap atau belum, tanpa mencetak kunci
+    console.log(
+      gemini.siap()
+        ? 'Gemini: siap'
+        : 'Gemini: BELUM dikonfigurasi (isi GEMINI_API_KEY dan GEMINI_MODEL di .env)'
+    );
 
-// Menutup pool database saat server dihentikan dengan Ctrl+C
-process.on('SIGINT', async () => {
-  await pool.end();
-  console.log('Server dihentikan');
-  process.exit(0);
-});
+    // Koneksi database diperiksa setelah server hidup
+    const terhubung = await cekKoneksi();
+    if (terhubung) {
+      console.log('Database terhubung');
+    } else {
+      console.log('Database gagal terhubung, periksa konfigurasi koneksi');
+    }
+  });
+}
+
+// Server hanya dijalankan bila berkas ini dieksekusi langsung, bukan saat di-require pengujian
+if (require.main === module) {
+  // Menjalankan server seperti npm start dan npm run dev
+  jalankanServer();
+
+  // Menutup pool database saat server dihentikan dengan Ctrl+C
+  process.on('SIGINT', async () => {
+    await pool.end();
+    console.log('Server dihentikan');
+    process.exit(0);
+  });
+}
+
+// Ekspor app agar skrip pengujian dapat menjalankannya di dalam proses
+module.exports = app;
