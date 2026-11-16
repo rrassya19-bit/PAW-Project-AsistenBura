@@ -10,6 +10,7 @@
     "migrasi": "node database/migrasi.js",
     "foto:isi": "node scripts/isi-foto.js",
     "media:impor": "node scripts/impor-media.js",
+    "hero:saring": "node scripts/saring-hero.js",
     "uji": "node scripts/uji-api.js"
   },
   "repository": {
@@ -30,5 +31,8 @@
     "express": "^5.3.0",
     "multer": "^2.5.0",
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "tesseract.js": "^7.0.0"
   }
 }

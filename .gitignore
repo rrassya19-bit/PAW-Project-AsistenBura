@@ -1,5 +1,7 @@
 node_modules/
 .env
+.cache-ocr/
+*.traineddata
 # Abaikan seluruh aset kecuali foto menu yang perlu ikut repositori
 assets/*
 !assets/menu/
