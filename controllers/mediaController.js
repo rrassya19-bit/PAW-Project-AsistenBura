@@ -44,6 +44,7 @@ async function buat(req, res, next) {
       judul: data.judul,
       berkas: req.berkasMedia.berkas,
       urutan: data.urutan,
+      hero: data.hero,
     });
     return res.status(201).json(hasil);
   } catch (galat) {
@@ -73,12 +74,21 @@ async function ubah(req, res, next) {
       return res.status(400).json({ pesan: 'Jenis media tidak cocok dengan berkas' });
     }
 
+    // Hero hanya boleh untuk baris foto, termasuk saat jenis tidak dikirim
+    if (req.mediaTervalidasi.hero && lama.jenis !== 'foto') {
+      if (req.berkasMedia) {
+        hapusBerkasBilaAda(req.berkasMedia.path);
+      }
+      return res.status(400).json({ pesan: 'hero hanya untuk foto' });
+    }
+
     const data = req.mediaTervalidasi;
     const berkasBaru = req.berkasMedia ? req.berkasMedia.berkas : lama.berkas;
     const hasil = await mediaModel.ubah(req.idMedia, {
       judul: data.judul,
       berkas: berkasBaru,
       urutan: data.urutan,
+      hero: data.hero,
     });
 
     if (!hasil) {

@@ -50,8 +50,13 @@
             <% } %>
           </div>
           <div class="p-5">
-            <%# Judul dan urutan media %>
-            <h2 class="crud-name"><%= item.judul %></h2>
+            <%# Judul dan urutan media, dengan lencana hero untuk foto bertanda %>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="crud-name"><%= item.judul %></h2>
+              <% if (jenis === 'foto' && item.hero) { %>
+                <span class="crud-badge crud-badge--online">Hero</span>
+              <% } %>
+            </div>
             <p class="crud-muted mt-1">Urutan <%= item.urutan %></p>
             <%# Aksi ubah dan hapus per kartu %>
             <div class="mt-4 flex gap-2">

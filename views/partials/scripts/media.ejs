@@ -205,6 +205,13 @@ function kirimFormMedia(form) {
   data.append('jenis', jenis);
   data.append('judul', judul);
   data.append('urutan', inputUrutan && inputUrutan.value.trim() !== '' ? inputUrutan.value.trim() : '0');
+
+  // Kotak centang hero hanya ada pada form foto
+  const inputHero = document.getElementById('hero');
+  if (inputHero) {
+    data.append('hero', inputHero.checked ? 'true' : 'false');
+  }
+
   if (berkas) {
     data.append('berkas', berkas);
   }

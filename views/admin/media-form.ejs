@@ -43,6 +43,16 @@
           <input class="crud-input" id="urutan" name="urutan" type="number" step="1" value="<%= media ? media.urutan : 0 %>">
         </div>
 
+        <%# Penanda foto layak dipakai sebagai latar hero %>
+        <% if (jenis === 'foto') { %>
+          <div>
+            <label class="crud-check" for="hero">
+              <input id="hero" name="hero" type="checkbox" value="true"<%= media && media.hero ? ' checked' : '' %> />
+              <span>Tampilkan sebagai latar hero (pilih hanya foto tanpa tulisan dan beresolusi tinggi)</span>
+            </label>
+          </div>
+        <% } %>
+
         <%# Input berkas media, wajib pada mode tambah %>
         <div>
           <label class="crud-label" for="berkas">Berkas <%= labelJenis %></label>

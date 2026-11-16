@@ -2,13 +2,16 @@
 const { query } = require('../config/database');
 
 // Daftar kolom dipakai konsisten agar hasil query mudah dipetakan
-const kolomMedia = 'id, jenis, judul, berkas, urutan, created_at, updated_at';
+const kolomMedia = 'id, jenis, judul, berkas, urutan, hero, created_at, updated_at';
 
 // Batas jumlah foto yang ditampilkan pada strip berjalan beranda
 const MAKS_FOTO_STRIP = 24;
 
 // Potongan nama berkas yang tidak dipakai pada rotasi latar hero
 const HERO_KECUALI = [];
+
+// Potongan nama berkas foto unggulan yang dipilih acak sebagai hero pertama
+const HERO_UNGGULAN = ['headquarters'];
 
 // Urutan koleksi dibuat tetap supaya tampilan galeri konsisten
 const urutanKoleksi = ['Ruang', 'Signature', 'Dirty', 'Pastry', 'Pagi', 'Kru', 'Lokasi'];
@@ -56,6 +59,7 @@ function petakanBaris(baris) {
     judul: baris.judul,
     berkas: baris.berkas,
     urutan: baris.urutan,
+    hero: baris.hero === true,
     dibuatPada: baris.created_at,
     diubahPada: baris.updated_at,
   };
@@ -88,13 +92,35 @@ async function ambilBerdasarkanId(id) {
   return petakanBaris(hasil.rows[0]);
 }
 
+// Mengambil foto yang ditandai layak hero setelah menerapkan pengecualian
+async function ambilFotoHero() {
+  const hasil = await query(
+    `SELECT ${kolomMedia}
+     FROM media
+     WHERE jenis = 'foto' AND hero = TRUE
+     ORDER BY id ASC`
+  );
+
+  const potonganKecuali = HERO_KECUALI.map(function (potongan) {
+    return String(potongan).toLowerCase();
+  });
+
+  return hasil.rows.map(petakanBaris).filter(function (item) {
+    const nama = ekstrakNama(item.berkas).toLowerCase();
+
+    return !potonganKecuali.some(function (potongan) {
+      return potongan && nama.indexOf(potongan) !== -1;
+    });
+  });
+}
+
 // Menambah media baru dan mengembalikan baris yang dibuat
 async function tambah(data) {
   const hasil = await query(
-    `INSERT INTO media (jenis, judul, berkas, urutan)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO media (jenis, judul, berkas, urutan, hero)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING ${kolomMedia}`,
-    [data.jenis, data.judul, data.berkas, data.urutan]
+    [data.jenis, data.judul, data.berkas, data.urutan, data.hero === true]
   );
   return petakanBaris(hasil.rows[0]);
 }
@@ -106,10 +132,11 @@ async function ubah(id, data) {
      SET judul = $1,
          berkas = $2,
          urutan = $3,
+         hero = $4,
          updated_at = NOW()
-     WHERE id = $4
+     WHERE id = $5
      RETURNING ${kolomMedia}`,
-    [data.judul, data.berkas, data.urutan, id]
+    [data.judul, data.berkas, data.urutan, data.hero === true, id]
   );
   return petakanBaris(hasil.rows[0]);
 }
@@ -192,6 +219,7 @@ async function getAll() {
   // Foto dan video diambil terpisah agar poster video dapat memakai foto
   const daftarFoto = await ambilSemua('foto');
   const daftarVideo = await ambilSemua('video');
+  const daftarHero = await ambilFotoHero();
 
   // Setiap foto dipetakan ke bentuk yang dipakai template lama
   const photos = daftarFoto.map(function (item, indeks) {
@@ -243,8 +271,8 @@ async function getAll() {
       return item.jumlah > 0;
     });
 
-  // Foto utama hero: sudut Headquarters, dengan cadangan koleksi Ruang
-  const hero =
+  // Foto hero lama dipakai sebagai cadangan bila belum ada foto bertanda hero
+  const heroLama =
     photos.find(function (foto) {
       const teks = (foto.nama + ' ' + foto.judul).toLowerCase();
       return /headquarters/.test(teks) && /3y/.test(teks);
@@ -258,28 +286,49 @@ async function getAll() {
   // Foto strip berjalan dipilih menyebar merata dari seluruh daftar
   const marquee = pilihFotoStrip(photos);
 
-  // Daftar latar hero: semua foto galeri, foto hero tetap di urutan pertama
-  const potonganKecuali = HERO_KECUALI.map(function (potongan) {
-    return String(potongan).toLowerCase();
+  // Hanya foto bertanda hero yang boleh masuk rotasi latar
+  const fotoHero = daftarHero.map(function (item) {
+    return {
+      src: item.berkas,
+      nama: ekstrakNama(item.berkas),
+      judul: item.judul,
+    };
   });
 
-  const fotoSlide = photos.filter(function (foto) {
+  // Pola unggulan dicocokkan dengan nama berkas foto hero
+  const potonganUnggulan = HERO_UNGGULAN.map(function (potongan) {
+    return String(potongan).toLowerCase();
+  }).filter(Boolean);
+
+  const kandidatUnggulan = fotoHero.filter(function (foto) {
     const nama = String(foto.nama).toLowerCase();
 
-    return !potonganKecuali.some(function (potongan) {
-      return potongan && nama.indexOf(potongan) !== -1;
+    return potonganUnggulan.length > 0 && potonganUnggulan.every(function (potongan) {
+      return nama.indexOf(potongan) !== -1;
     });
   });
 
+  // Foto pertama dipilih acak dari kandidat unggulan; cadangan perilaku lama
+  let hero = null;
+
+  if (kandidatUnggulan.length > 0) {
+    hero = kandidatUnggulan[Math.floor(Math.random() * kandidatUnggulan.length)];
+  } else if (heroLama && fotoHero.some(function (foto) { return foto.src === heroLama.src; })) {
+    hero = fotoHero.find(function (foto) { return foto.src === heroLama.src; });
+  } else if (fotoHero.length > 0) {
+    hero = fotoHero[0];
+  } else {
+    hero = heroLama;
+  }
+
+  // Slide hero memakai foto bertanda hero dengan hero terpilih di urutan pertama
   const slideHero = [];
 
-  // Foto hero dimasukkan lebih dulu bila tidak dikecualikan
-  if (hero && fotoSlide.some(function (foto) { return foto.src === hero.src; })) {
+  if (hero && fotoHero.some(function (foto) { return foto.src === hero.src; })) {
     slideHero.push(hero.src);
   }
 
-  // Sisa foto ditambahkan tanpa duplikat
-  fotoSlide.forEach(function (foto) {
+  fotoHero.forEach(function (foto) {
     if (slideHero.indexOf(foto.src) === -1) {
       slideHero.push(foto.src);
     }
@@ -300,6 +349,7 @@ async function getAll() {
 module.exports = {
   ambilSemua,
   ambilBerdasarkanId,
+  ambilFotoHero,
   tambah,
   ubah,
   hapus,

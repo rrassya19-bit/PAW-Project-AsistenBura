@@ -60,6 +60,20 @@ function validasiMedia(req, res, next) {
     }
   }
 
+  // Penanda hero bersifat opsional; nilai kosong dianggap false
+  const heroMentah = body.hero;
+  let hero = false;
+
+  if (heroMentah !== undefined && heroMentah !== null) {
+    const heroTeks = String(heroMentah).trim().toLowerCase();
+
+    if (heroTeks === 'true' || heroTeks === 'on' || heroTeks === '1') {
+      hero = true;
+    } else if (heroTeks !== '' && heroTeks !== 'false' && heroTeks !== '0') {
+      kesalahan.push('Nilai hero harus true atau false');
+    }
+  }
+
   // Berkas baru yang sudah lolos pemeriksaan middleware unggah
   const berkasBaru = req.berkasMedia || null;
 
@@ -78,6 +92,14 @@ function validasiMedia(req, res, next) {
     jenis = berkasBaru.jenis;
   }
 
+  // Hero hanya boleh dipakai foto, bukan video
+  if (hero && jenis === 'video') {
+    if (berkasBaru) {
+      hapusBerkasBilaAda(berkasBaru.path);
+    }
+    return res.status(400).json({ pesan: 'hero hanya untuk foto' });
+  }
+
   // Validasi gagal: berkas baru dibersihkan agar tidak menjadi berkas yatim
   if (kesalahan.length > 0) {
     if (berkasBaru) {
@@ -87,7 +109,7 @@ function validasiMedia(req, res, next) {
   }
 
   // Meneruskan data yang sudah dibersihkan ke controller
-  req.mediaTervalidasi = { judul, jenis, urutan };
+  req.mediaTervalidasi = { judul, jenis, urutan, hero };
   return next();
 }
 

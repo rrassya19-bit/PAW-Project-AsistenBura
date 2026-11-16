@@ -31,6 +31,10 @@ let idMediaUji = null;
 let berkasMediaUji = null;
 let berkasMediaLama = null;
 
+// Menyimpan id media uji penanda hero agar bisa dibersihkan bila perlu
+let idHeroUji = null;
+let idTanpaHeroUji = null;
+
 // Mencetak status PASS/FAIL untuk setiap langkah
 function lapor(nama, lulus, keterangan) {
   const label = lulus ? 'PASS' : 'FAIL';
@@ -442,6 +446,150 @@ async function ujiMedia() {
   );
 }
 
+// Menguji kolom hero pada API media: foto boleh, video ditolak
+async function ujiHeroMedia() {
+  // Berkas uji minimal yang lolos pemeriksaan tanda tangan byte
+  const pngKecil = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+  );
+  const mp4Kecil = Buffer.concat([
+    Buffer.from([0x00, 0x00, 0x00, 0x18]),
+    Buffer.from('ftypisom', 'ascii'),
+    Buffer.from([0x00, 0x00, 0x02, 0x00]),
+    Buffer.from('isomiso2', 'ascii'),
+  ]);
+
+  const sebelumFoto = (await mediaModel.ambilSemua('foto')).length;
+
+  // Langkah hero 1: POST foto dengan hero=true harus tersimpan true
+  const postHero = await minta('/api/media', {
+    method: 'POST',
+    headers: headerAdmin(),
+    body: formDataMedia(
+      { jenis: 'foto', judul: `Uji Hero ${Date.now()}`, urutan: '1', hero: 'true' },
+      pngKecil,
+      'uji-hero.png',
+      'image/png'
+    ),
+  });
+  if (postHero.data && Number.isInteger(postHero.data.id)) {
+    idHeroUji = postHero.data.id;
+  }
+  const barisHero = idHeroUji === null ? null : await mediaModel.ambilBerdasarkanId(idHeroUji);
+  const sesudahHero = (await mediaModel.ambilSemua('foto')).length;
+  lapor(
+    'POST /api/media menyimpan foto dengan hero=true',
+    postHero.respons.status === 201 &&
+      postHero.data &&
+      postHero.data.hero === true &&
+      barisHero &&
+      barisHero.hero === true &&
+      sesudahHero === sebelumFoto + 1,
+    `status ${postHero.respons.status}, id ${idHeroUji}`
+  );
+
+  // Langkah hero 2: POST foto tanpa field hero harus bernilai false
+  const postTanpaHero = await minta('/api/media', {
+    method: 'POST',
+    headers: headerAdmin(),
+    body: formDataMedia(
+      { jenis: 'foto', judul: `Uji Tanpa Hero ${Date.now()}`, urutan: '1' },
+      pngKecil,
+      'uji-tanpa-hero.png',
+      'image/png'
+    ),
+  });
+  if (postTanpaHero.data && Number.isInteger(postTanpaHero.data.id)) {
+    idTanpaHeroUji = postTanpaHero.data.id;
+  }
+  const barisTanpaHero =
+    idTanpaHeroUji === null ? null : await mediaModel.ambilBerdasarkanId(idTanpaHeroUji);
+  const sesudahTanpaHero = (await mediaModel.ambilSemua('foto')).length;
+  lapor(
+    'POST /api/media tanpa hero menyimpan nilai false',
+    postTanpaHero.respons.status === 201 &&
+      postTanpaHero.data &&
+      postTanpaHero.data.hero === false &&
+      barisTanpaHero &&
+      barisTanpaHero.hero === false &&
+      sesudahTanpaHero === sesudahHero + 1,
+    `status ${postTanpaHero.respons.status}, id ${idTanpaHeroUji}`
+  );
+
+  // Langkah hero 3: PUT dapat mengubah nilai hero
+  let lulusUbahHero = false;
+
+  if (idTanpaHeroUji !== null) {
+    const putHero = await minta(`/api/media/${idTanpaHeroUji}`, {
+      method: 'PUT',
+      headers: headerAdmin(),
+      body: formDataMedia(
+        { judul: `Uji Tanpa Hero Diubah ${Date.now()}`, urutan: '2', hero: 'true' },
+        null
+      ),
+    });
+    const barisPutHero = await mediaModel.ambilBerdasarkanId(idTanpaHeroUji);
+    lulusUbahHero =
+      putHero.respons.status === 200 &&
+      putHero.data &&
+      putHero.data.hero === true &&
+      barisPutHero &&
+      barisPutHero.hero === true;
+    lapor(
+      'PUT /api/media/:id mengubah nilai hero',
+      lulusUbahHero,
+      `status ${putHero.respons.status}, hero ${barisPutHero ? barisPutHero.hero : 'tidak ada'}`
+    );
+  } else {
+    lapor('PUT /api/media/:id mengubah nilai hero', false, 'id uji tidak tersedia');
+  }
+
+  // Langkah hero 4: video dengan hero=true harus ditolak 400
+  const sebelumVideo = (await mediaModel.ambilSemua('video')).length;
+  const postVideo = await minta('/api/media', {
+    method: 'POST',
+    headers: headerAdmin(),
+    body: formDataMedia(
+      { jenis: 'video', judul: `Uji Hero Video ${Date.now()}`, urutan: '1', hero: 'true' },
+      mp4Kecil,
+      'uji-hero.mp4',
+      'video/mp4'
+    ),
+  });
+  const sesudahVideo = (await mediaModel.ambilSemua('video')).length;
+  lapor(
+    'POST /api/media menolak hero untuk video',
+    postVideo.respons.status === 400 &&
+      postVideo.data &&
+      postVideo.data.pesan === 'hero hanya untuk foto' &&
+      sesudahVideo === sebelumVideo,
+    `status ${postVideo.respons.status}, DB video tetap ${sesudahVideo}`
+  );
+
+  // Membersihkan baris foto uji hero
+  if (idHeroUji !== null) {
+    const hapusHero = await minta(`/api/media/${idHeroUji}`, opsiAdmin('DELETE'));
+    if (hapusHero.respons.ok) {
+      idHeroUji = null;
+    }
+  }
+  if (idTanpaHeroUji !== null) {
+    const hapusTanpaHero = await minta(`/api/media/${idTanpaHeroUji}`, opsiAdmin('DELETE'));
+    if (hapusTanpaHero.respons.ok) {
+      idTanpaHeroUji = null;
+    }
+  }
+
+  // Jumlah foto harus kembali seperti sebelum pengujian hero
+  const akhirFoto = (await mediaModel.ambilSemua('foto')).length;
+  lapor(
+    'Data uji hero dibersihkan',
+    akhirFoto === sebelumFoto && idHeroUji === null && idTanpaHeroUji === null,
+    `foto ${akhirFoto} baris`
+  );
+}
+
 // Menjalankan seluruh skenario pengujian
 async function jalankan() {
   // Langkah 1: membaca seluruh produk
@@ -685,6 +833,9 @@ async function jalankan() {
 
   // Pengujian media dijalankan setelah seluruh pengujian produk selesai
   await ujiMedia();
+
+  // Pengujian kolom hero dijalankan setelah media dasar
+  await ujiHeroMedia();
 }
 
 // Membersihkan produk uji yang mungkin tertinggal bila terjadi kegagalan
@@ -715,6 +866,23 @@ async function bersihkan() {
     }
     idMediaUji = null;
   }
+
+  // Membersihkan baris media uji hero yang mungkin tertinggal
+  for (const idTersisa of [idHeroUji, idTanpaHeroUji]) {
+    if (idTersisa !== null) {
+      const barisTersisa = await mediaModel.ambilBerdasarkanId(idTersisa);
+      if (barisTersisa) {
+        await mediaModel.hapus(idTersisa);
+        const lokasiTersisa = resolusiBerkasMedia(barisTersisa.berkas);
+        if (lokasiTersisa) {
+          hapusBerkasBilaAda(lokasiTersisa);
+        }
+        console.log(`Pembersihan: media uji hero id ${idTersisa} dihapus`);
+      }
+    }
+  }
+  idHeroUji = null;
+  idTanpaHeroUji = null;
 
   // Berkas media uji yang mungkin tertinggal tetap dibersihkan
   [berkasMediaUji, berkasMediaLama].forEach(function (berkas) {

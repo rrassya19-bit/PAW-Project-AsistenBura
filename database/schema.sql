@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS media (
   berkas VARCHAR(255) NOT NULL UNIQUE,
   -- Urutan tampil media, angka kecil tampil lebih dulu
   urutan INTEGER NOT NULL DEFAULT 0,
+  -- Penanda foto tanpa tulisan dan beresolusi tinggi untuk latar hero
+  hero BOOLEAN NOT NULL DEFAULT FALSE,
   -- Waktu data dibuat
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   -- Waktu data terakhir diubah
