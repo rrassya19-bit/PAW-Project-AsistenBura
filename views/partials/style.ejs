@@ -374,8 +374,8 @@
       inset: -4%;
       z-index: -2;
       overflow: hidden;
+      background: var(--navy);
       transform: translate3d(0, calc(var(--hero-shift, 0px) * -1), 0);
-      will-change: transform;
     }
 
     .hero__media img {
@@ -385,16 +385,13 @@
       height: 100%;
       object-fit: cover;
       object-position: center 54%;
-      filter: saturate(1.04) contrast(1.02);
+      filter: saturate(0.85) contrast(1.05) brightness(0.94);
       opacity: 0;
-      transform: scale(1.04);
-      will-change: opacity, transform;
     }
 
-    /* Mode rotasi memakai skala awal lebih kecil dan transisi halus */
+    /* Transisi memudar ke warna dasar sebelum foto berikutnya masuk */
     .hero__media--rotasi img {
-      transform: scale(1.02);
-      transition: opacity var(--durasi-fade-hero, 1.5s) ease, transform var(--durasi-zoom-hero, 8.5s) linear;
+      transition: opacity var(--durasi-keluar) cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     /* Lapisan pertama tetap terlihat sebelum rotasi dimulai */
@@ -402,10 +399,17 @@
       opacity: 1;
     }
 
-    /* Lapisan aktif memudar masuk sambil memperbesar gambar */
     .hero__media--rotasi .hero__foto--aktif {
       opacity: 1;
-      transform: scale(1.10);
+    }
+
+    .hero__media--rotasi .hero__foto--keluar {
+      opacity: 0;
+    }
+
+    .hero__media--rotasi .hero__foto--masuk {
+      transition-duration: var(--durasi-masuk);
+      opacity: 1;
     }
 
     .hero__veil {
@@ -2097,7 +2101,6 @@
       /* Latar hero diam tanpa zoom atau crossfade */
       .hero__media img {
         transition: none !important;
-        transform: scale(1.04) !important;
       }
 
       .strip__track,

@@ -3,10 +3,12 @@
 (function () {
       'use strict';
 
-      // Waktu tampil setiap foto latar hero sebelum berganti
-      var JEDA_GANTI_MS = 7000;
-      // Durasi crossfade latar hero; harus sama dengan transisi opacity CSS
-      var DURASI_FADE_MS = 1500;
+      // Waktu tampil setiap foto latar hero sebelum mulai memudar keluar
+      var JEDA_TAMPIL_MS = 8500;
+      // Durasi lapisan lama memudar ke warna dasar biru gelap
+      var DURASI_KELUAR_MS = 600;
+      // Durasi lapisan baru memudar masuk setelah lapisan lama hilang
+      var DURASI_MASUK_MS = 900;
 
       var doc = document;
       var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -115,6 +117,7 @@
         var timer = null;
         var berjalan = true;
         var sedangMemuat = false;
+        var transisiAktif = false;
         var heroTerlihat = true;
 
         // Mengacak daftar dengan algoritme Fisher-Yates
@@ -154,7 +157,30 @@
           }, jeda);
         }
 
-        // Memuat satu foto berikutnya sebelum crossfade dimulai
+        // Menunggu akhir transisi opacity dengan batas waktu cadangan
+        function setelahTransisi(elemen, durasi, selesai) {
+          var sudahSelesai = false;
+          var batas = null;
+
+          function beres(event) {
+            if (event && event.target !== elemen) return;
+            if (event && event.propertyName && event.propertyName !== 'opacity') return;
+            if (sudahSelesai) return;
+
+            sudahSelesai = true;
+            elemen.removeEventListener('transitionend', beres);
+
+            if (batas !== null) window.clearTimeout(batas);
+            selesai();
+          }
+
+          elemen.addEventListener('transitionend', beres);
+          batas = window.setTimeout(function () {
+            beres();
+          }, durasi + 100);
+        }
+
+        // Memuat satu foto berikutnya sebelum transisi keluar-masuk dimulai
         function muatFoto(url, selesai) {
           var gambar = new Image();
           var sudahSelesai = false;
@@ -185,22 +211,24 @@
         }
 
         function gantiSlide(kandidat, sisaPercobaan) {
-          if (!bisaJalan() || sedangMemuat) return;
+          if (!bisaJalan() || sedangMemuat || transisiAktif) return;
 
-          if (sisaPercobaan < 0) {
-            jadwalkan(JEDA_GANTI_MS);
+          if (sisaPercobaan <= 0) {
+            jadwalkan(JEDA_TAMPIL_MS);
             return;
           }
 
           sedangMemuat = true;
 
           muatFoto(urutan[kandidat], function (berhasil) {
-            sedangMemuat = false;
-
-            if (!bisaJalan()) return;
+            if (!bisaJalan()) {
+              sedangMemuat = false;
+              return;
+            }
 
             if (!berhasil) {
               // Lewati foto rusak tanpa menunggu lama
+              sedangMemuat = false;
               gantiSlide((kandidat + 1) % urutan.length, sisaPercobaan - 1);
               return;
             }
@@ -211,14 +239,32 @@
             baru.src = urutan[kandidat];
             baru.alt = '';
             baru.classList.remove('hero__foto--awal');
-            baru.classList.add('hero__foto--aktif');
+            baru.classList.remove('hero__foto--aktif');
+            baru.classList.remove('hero__foto--masuk');
+            baru.classList.remove('hero__foto--keluar');
+
+            transisiAktif = true;
+
             lama.classList.remove('hero__foto--awal');
             lama.classList.remove('hero__foto--aktif');
+            lama.classList.remove('hero__foto--masuk');
+            lama.classList.add('hero__foto--keluar');
 
-            lapisanAktif = 1 - lapisanAktif;
-            indeksSlide = kandidat;
+            // Lapisan lama memudar ke warna dasar, baru masuk setelah benar-benar hilang
+            setelahTransisi(lama, DURASI_KELUAR_MS, function () {
+              lama.classList.remove('hero__foto--keluar');
+              baru.classList.add('hero__foto--masuk');
 
-            jadwalkan(JEDA_GANTI_MS);
+              setelahTransisi(baru, DURASI_MASUK_MS, function () {
+                baru.classList.remove('hero__foto--masuk');
+                baru.classList.add('hero__foto--aktif');
+                lapisanAktif = 1 - lapisanAktif;
+                indeksSlide = kandidat;
+                sedangMemuat = false;
+                transisiAktif = false;
+                jadwalkan(JEDA_TAMPIL_MS);
+              });
+            });
           });
         }
 
@@ -232,24 +278,20 @@
             return;
           }
 
-          if (timer === null && !sedangMemuat) {
-            jadwalkan(JEDA_GANTI_MS);
+          if (timer === null && !sedangMemuat && !transisiAktif) {
+            jadwalkan(JEDA_TAMPIL_MS);
           }
         }
 
-        // Aktifkan mode rotasi dan pastikan lapisan pertama mulai dari 1.02
+        // Aktifkan mode rotasi dan pakai durasi transisi dari satu sumber nilai
         heroMedia.classList.add('hero__media--rotasi');
-        heroMedia.style.setProperty('--durasi-fade-hero', (DURASI_FADE_MS / 1000) + 's');
-        heroMedia.style.setProperty('--durasi-zoom-hero', ((JEDA_GANTI_MS + DURASI_FADE_MS) / 1000) + 's');
-        lapisan[0].style.transition = 'none';
-        void lapisan[0].offsetWidth;
-        lapisan[0].style.transition = '';
+        heroMedia.style.setProperty('--durasi-keluar', DURASI_KELUAR_MS + 'ms');
+        heroMedia.style.setProperty('--durasi-masuk', DURASI_MASUK_MS + 'ms');
 
-        // Lapisan pertama diaktifkan setelah frame awal agar zoom terlihat
         window.requestAnimationFrame(function () {
           lapisan[0].classList.remove('hero__foto--awal');
           lapisan[0].classList.add('hero__foto--aktif');
-          jadwalkan(JEDA_GANTI_MS);
+          jadwalkan(JEDA_TAMPIL_MS);
         });
 
         // Jeda saat tab tidak aktif
