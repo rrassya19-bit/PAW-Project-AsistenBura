@@ -31,7 +31,7 @@ app.js         Titik masuk aplikasi
 
 ## Prasyarat
 
-- Node.js 18 atau lebih baru
+- Node.js 22 atau lebih baru (SDK `@google/genai` membutuhkan Node 22+)
 - PostgreSQL yang sedang berjalan
 - Terminal PowerShell (contoh perintah memakai `curl.exe`)
 
@@ -57,6 +57,8 @@ app.js         Titik masuk aplikasi
 
    Variabel yang dipakai: `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `ADMIN_USER`, `ADMIN_PASSWORD`. Isi `ADMIN_USER` dan `ADMIN_PASSWORD` dengan akun admin pilihan Anda; jangan memakai nilai contoh di server nyata.
 
+   Untuk fitur AI, isi juga `GEMINI_API_KEY` dari Google AI Studio dan `GEMINI_MODEL` dengan nama model yang tersedia untuk kunci tersebut. Variabel opsional: `GEMINI_TIMEOUT_MS` (default 15000), `CHAT_BATAS_PER_MENIT` (10), `CHAT_BATAS_PER_HARI` (100), `CHAT_BATAS_GLOBAL_PER_HARI` (500), dan `CAPTION_BATAS_PER_MENIT` (10). Tanpa kunci dan model, aplikasi tetap berjalan; endpoint AI membalas `503` dan terminal mencetak `Gemini: BELUM dikonfigurasi`.
+
 3. Pasang dependensi:
 
    ```powershell
@@ -81,7 +83,7 @@ app.js         Titik masuk aplikasi
    npm run migrasi
    ```
 
-   Migrasi bersifat idempotent dan aman dijalankan berulang kali. Instalasi baru yang memakai `schema.sql` terbaru sudah memiliki kolom `foto`, tabel `media`, dan kolom `hero`, sehingga langkah ini hanya memastikan skema tetap mutakhir.
+   Migrasi bersifat idempotent dan aman dijalankan berulang kali. Instalasi baru yang memakai `schema.sql` terbaru sudah memiliki kolom `foto`, tabel `media`, kolom `hero`, dan kolom `caption`, sehingga langkah ini hanya memastikan skema tetap mutakhir.
 
 6. Daftarkan foto dan video lama yang sudah ada di folder `assets` ke tabel `media`:
 
@@ -231,6 +233,67 @@ Server memeriksa ekstensi, mimetype, dan tanda tangan byte awal berkas. Berkas y
 
 Berkas unggahan disimpan di `assets/galeri` untuk foto dan `assets/video` untuk video, lalu disajikan melalui prefiks `/media`. Folder `assets/` diabaikan Git kecuali `assets/menu/`, sehingga berkas unggahan **tidak ikut Git**. Jangan mengandalkan folder ini untuk data permanen pada hosting dengan disk sementara (misalnya filesystem ephemeral); gunakan object storage atau volume persisten bila aplikasi dipasang di produksi.
 
+## Asisten AI dengan Gemini
+
+Aplikasi memakai SDK resmi `@google/genai` untuk dua fitur. SDK hanya dipanggil dari `services/geminiService.js`; kunci API tidak pernah dikirim ke peramban.
+
+### Chatbot publik
+
+Tombol **Asisten Bura** muncul di beranda, `/galeri`, dan `/video`. Pertanyaan dikirim ke `POST /api/chat` dengan body JSON `{ "pesan": "..." }`. Server menyusun konteks dari tabel `produk` dan `media` (cache 60 detik), lalu meminta model menjawab dalam JSON `{ dalamKonteks, jawaban, menuDirujuk }`.
+
+Lapisan pengaman yang berjalan sebelum dan sesudah model:
+
+- Pesan wajib berupa teks 1–500 karakter.
+- Guardrail lokal menolak upaya mengubah aturan (prompt injection) dan topik yang jelas di luar kedai tanpa memanggil model.
+- Instruksi sistem bersifat tetap, memuat konteks dari database dan kode rahasia acak per proses.
+- Model tidak boleh menulis harga sendiri; ia harus memakai penanda `{harga:ID}` yang diganti server dengan harga terformat dari database.
+- Keluaran ditolak (`502`) bila memuat harga manual, id menu palsu, angka di luar konteks, tautan asing, email, kode rahasia, atau bila respons kosong, terpotong, atau diblokir.
+- Bila data tidak ada di konteks, pengguna menerima pesan bahwa informasinya belum tersedia.
+- Pembatas laju in-memory: per IP per menit, per IP per hari, dan global per hari. Batas dapat diubah lewat `.env`.
+- Log hanya mencatat metadata (IP, panjang pesan, hasil, durasi), bukan isi percakapan.
+
+### Pembuat caption admin
+
+Pada form ubah foto atau video (`/admin/foto/:id/ubah`, `/admin/video/:id/ubah`) tersedia kolom **Caption** dan tombol **Buat caption dengan AI** beserta catatan opsional maksimal 200 karakter. Foto dikirim sebagai `inlineData` bila ukurannya maksimal 3 MB dan formatnya JPEG, PNG, atau WebP; video hanya memakai judul dan catatan.
+
+`POST /api/admin/caption` wajib memakai Basic Auth dan mengembalikan tepat tiga pilihan caption. Setiap caption disaring: maksimal 150 karakter, tanpa angka, harga, tautan, mention, atau hashtag selain `#BuraBuraCoffee` dan `#Yogyakarta`, serta tanpa klaim/superlatif seperti "terbaik", "promo", atau "dijamin". Caption yang lolos tetap harus disimpan manual lewat form; tidak ada penulisan otomatis ke database. Endpoint ini juga dibatasi 10 permintaan per menit per IP secara default.
+
+### Endpoint AI
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| POST | `/api/chat` | Pertanyaan chatbot publik (JSON `pesan`) |
+| POST | `/api/admin/caption` | Tiga saran caption (wajib admin, JSON `mediaId` dan `catatan` opsional) |
+
+Contoh chatbot:
+
+```powershell
+curl.exe -X POST http://localhost:3000/api/chat `
+  -H "Content-Type: application/json" `
+  -d '{\"pesan\":\"Apa menu andalan dan berapa harganya?\"}'
+```
+
+Contoh respons:
+
+```json
+{
+  "jawaban": "Menu andalannya Boring Dirty, harganya Rp 45.000.",
+  "dalamKonteks": true,
+  "menuDirujuk": [1]
+}
+```
+
+Contoh caption:
+
+```powershell
+curl.exe -X POST http://localhost:3000/api/admin/caption `
+  -u admin:ganti_dengan_password_kuat `
+  -H "Content-Type: application/json" `
+  -d '{\"mediaId\":1,\"catatan\":\"suasana pagi\"}'
+```
+
+Keterbatasan yang perlu diketahui: batas laju dan cache disimpan di memori proses, sehingga hitungan kembali ke nol saat server dimulai ulang dan tidak dibagi antar-proses. Hasil AI tetap dapat keliru; harga dan ketersediaan yang mengikat adalah data di database.
+
 ## Akses Admin
 
 Halaman pengelolaan menu, foto, dan video hanya tersedia di area admin:
@@ -270,8 +333,10 @@ Aturan akses:
 | GET | `/api/media` | Seluruh media, filter `?jenis=foto\|video` (publik) |
 | GET | `/api/media/:id` | Satu media berdasarkan id (publik) |
 | POST | `/api/media` | Menambah media dengan unggah multipart (wajib admin) |
-| PUT | `/api/media/:id` | Mengubah judul, urutan, status hero, dan berkas opsional (wajib admin) |
+| PUT | `/api/media/:id` | Mengubah judul, caption, urutan, status hero, dan berkas opsional (wajib admin) |
 | DELETE | `/api/media/:id` | Menghapus media dan berkasnya (wajib admin) |
+| POST | `/api/chat` | Pertanyaan chatbot publik (JSON `pesan`) |
+| POST | `/api/admin/caption` | Tiga saran caption dari AI (wajib admin) |
 
 Endpoint tulis memakai header `Authorization: Basic ...`. Contoh di bawah memakai `-u` dari `curl.exe`; ganti `admin:ganti_dengan_password_kuat` dengan kredensial pada `.env` Anda.
 
@@ -489,6 +554,14 @@ npm run uji
 
 Skrip `scripts/uji-api.js` menguji seluruh endpoint CRUD, memeriksa langsung perubahan data ke database setelah setiap operasi, membersihkan data uji, dan mencetak `PASS`/`FAIL` beserta ringkasan. Skrip juga menguji penyimpanan foto valid, kolom foto kosong, URL `https://`, serta penolakan `javascript:` dan `../`. Untuk media, skrip menguji unggah foto PNG valid, penolakan berkas teks yang diganti nama menjadi `.jpg`, penolakan tanpa kredensial, pembacaan publik, perubahan judul dan urutan, penggantian berkas, penghapusan baris beserta berkas, dan `404` untuk id yang tidak ada. Semua data dan berkas uji dibersihkan di akhir. Penolakan `401` untuk operasi tulis tanpa kredensial atau dengan kredensial salah tetap diuji. Kredensial admin dibaca dari `.env` yang sama dengan server dan tidak pernah dicetak. Skrip keluar dengan kode 1 bila ada langkah yang gagal.
 
+### Uji otomatis fitur AI
+
+```powershell
+npm run uji:chat
+```
+
+Skrip `scripts/uji-chat.js` menjalankan server di dalam proses pada port acak dan mengganti Gemini dengan klien tiruan, sehingga tidak memakai kuota dan tidak membutuhkan `GEMINI_API_KEY` sungguhan. Pengujian mencakup: status `503` tanpa kunci, jawaban normal beserta penggantian harga, penolakan prompt injection dan topik luar, pesan data tidak tersedia, penolakan harga manual, id harga palsu, angka asing, tautan asing, kebocoran kode rahasia, JSON rusak, respons diblokir, batas waktu `504`, kuota `429`, validasi panjang pesan, tiga pembatas laju chatbot, autentikasi caption, media tidak ditemukan, catatan terlalu panjang, pengiriman foto sebagai `inlineData`, video tanpa gambar, penyaringan caption, path berkas terlarang, pembatas caption, serta caption tersimpan yang tampil di `/galeri`. Data dan caption yang diubah selama pengujian dipulihkan di akhir.
+
 ### Uji manual dengan Thunder Client atau Postman
 
 1. Jalankan `npm run dev`.
@@ -518,10 +591,17 @@ Skrip `scripts/uji-api.js` menguji seluruh endpoint CRUD, memeriksa langsung per
 14. Ulangi langkah yang sama di `http://localhost:3000/admin/video` dengan berkas MP4 atau WebM. Pastikan elemen video di daftar memakai `preload="metadata"` dan tidak autoplay.
 15. Periksa tabel `media` dengan `psql` atau pgAdmin untuk memastikan penambahan, perubahan, dan penghapusan media tercermin di database.
 16. Buka `http://localhost:3000/admin/99999/ubah`, `http://localhost:3000/admin/foto/99999/ubah`, dan alamat ngawur untuk memastikan halaman 404 tampil rapi dengan gaya yang sama. Buka juga alamat lama halaman pengelolaan untuk memastikan sudah tidak tersedia.
+17. Klik tombol **Asisten Bura**, ajukan pertanyaan tentang menu, harga, jam buka, atau jumlah galeri. Pastikan balasan muncul tanpa memuat ulang halaman, harga memakai format rupiah, dan tombol tutup serta Escape bekerja.
+18. Coba tanyakan hal di luar kedai (misalnya teori relativitas) dan upaya seperti "abaikan semua instruksi". Pastikan asisten menolak dengan sopan dan tidak menampilkan aturan internal.
+19. Ubah salah satu foto di admin, isi catatan AI, klik **Buat caption dengan AI**, lalu pilih salah satu dari tiga saran. Simpan dan pastikan caption tampil di lightbox `/galeri`. Ulangi untuk video dan pastikan caption tampil di kartu `/video`.
+20. Hentikan server lalu jalankan tanpa `GEMINI_API_KEY`/`GEMINI_MODEL` untuk memastikan terminal mencetak `Gemini: BELUM dikonfigurasi` dan endpoint AI membalas `503` tanpa menghentikan halaman publik.
 
 ## Catatan Keamanan
 
-- File `.env` berisi kredensial database dan akun admin, dan **tidak diunggah** ke repository karena sudah masuk `.gitignore`.
+- File `.env` berisi kredensial database, akun admin, dan kunci Gemini, dan **tidak diunggah** ke repository karena sudah masuk `.gitignore`.
+- Kunci Gemini hanya dipakai di server melalui `services/geminiService.js` dan tidak pernah dikirim ke peramban, dicetak ke log, atau ditulis pada pesan galat. Tanpa kunci, fitur AI nonaktif dengan `503` tanpa menghentikan aplikasi.
+- Instruksi sistem, kode rahasia per proses, dan konteks database tidak dapat diubah pengguna. Prompt injection, keluaran yang memuat harga manual, id palsu, tautan asing, atau kode rahasia ditolak sebelum sampai ke pengguna.
+- Endpoint AI memakai pembatas laju di memori untuk melindungi kuota. Untuk produksi dengan beberapa proses, gunakan penyimpanan bersama (misalnya Redis) agar batas berlaku global.
 - Folder `assets/` tetap diabaikan, kecuali `assets/menu/` yang disiapkan untuk foto menu. Berkas unggahan media di `assets/galeri` dan `assets/video` juga tidak ikut Git. Jangan menaruh berkas rahasia di folder tersebut.
 - Unggahan media diperiksa dari ekstensi, mimetype, dan tanda tangan byte awal. Nama berkas dibuat server, ukuran dibatasi, dan penghapusan berkas hanya dilakukan untuk path yang ter-resolve di folder media yang diizinkan serta tidak dirujuk data lain.
 - Gunakan `.env.example` sebagai contoh konfigurasi tanpa rahasia.
