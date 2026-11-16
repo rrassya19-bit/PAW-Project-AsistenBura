@@ -2679,4 +2679,54 @@
     opacity: 1;
   }
 }
+
+/* Saran caption AI pada form media admin */
+.caption-saran__wadah {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.caption-saran__info {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.caption-saran__info--galat {
+  color: #8A2C1D;
+}
+
+.caption-saran__pilihan {
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.caption-saran__pilihan:hover {
+  border-color: var(--cobalt-bright);
+  background: var(--paper-soft);
+}
+
+.caption-saran__pilihan--aktif {
+  border-color: var(--cobalt);
+  background: #EEF3FF;
+}
+
+/* Caption media pada kartu video */
+.video-card__ket {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
 </style>

@@ -2,7 +2,7 @@
 const { query } = require('../config/database');
 
 // Daftar kolom dipakai konsisten agar hasil query mudah dipetakan
-const kolomMedia = 'id, jenis, judul, berkas, urutan, hero, created_at, updated_at';
+const kolomMedia = 'id, jenis, judul, berkas, caption, urutan, hero, created_at, updated_at';
 
 // Batas jumlah foto yang ditampilkan pada strip berjalan beranda
 const MAKS_FOTO_STRIP = 24;
@@ -58,6 +58,7 @@ function petakanBaris(baris) {
     jenis: baris.jenis,
     judul: baris.judul,
     berkas: baris.berkas,
+    caption: baris.caption || '',
     urutan: baris.urutan,
     hero: baris.hero === true,
     dibuatPada: baris.created_at,
@@ -117,10 +118,10 @@ async function ambilFotoHero() {
 // Menambah media baru dan mengembalikan baris yang dibuat
 async function tambah(data) {
   const hasil = await query(
-    `INSERT INTO media (jenis, judul, berkas, urutan, hero)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO media (jenis, judul, berkas, caption, urutan, hero)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING ${kolomMedia}`,
-    [data.jenis, data.judul, data.berkas, data.urutan, data.hero === true]
+    [data.jenis, data.judul, data.berkas, data.caption || null, data.urutan, data.hero === true]
   );
   return petakanBaris(hasil.rows[0]);
 }
@@ -131,12 +132,13 @@ async function ubah(id, data) {
     `UPDATE media
      SET judul = $1,
          berkas = $2,
-         urutan = $3,
-         hero = $4,
+         caption = $3,
+         urutan = $4,
+         hero = $5,
          updated_at = NOW()
-     WHERE id = $5
+     WHERE id = $6
      RETURNING ${kolomMedia}`,
-    [data.judul, data.berkas, data.urutan, data.hero === true, id]
+    [data.judul, data.berkas, data.caption || null, data.urutan, data.hero === true, id]
   );
   return petakanBaris(hasil.rows[0]);
 }
@@ -233,6 +235,7 @@ async function getAll() {
       src: item.berkas,
       alt: koleksi + ' Bura Bura Coffee',
       koleksi: koleksi,
+      caption: item.caption || '',
       urutan: item.urutan,
       indeks: indeks,
     };
@@ -254,6 +257,7 @@ async function getAll() {
       src: item.berkas,
       poster: poster ? poster.src : '',
       koleksi: koleksi,
+      caption: item.caption || '',
       urutan: item.urutan,
       indeks: indeks,
     };

@@ -43,6 +43,34 @@
           <input class="crud-input" id="urutan" name="urutan" type="number" step="1" value="<%= media ? media.urutan : 0 %>">
         </div>
 
+        <%# Caption opsional yang tampil di galeri dan video %>
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <label class="crud-label" for="caption">Caption (opsional)</label>
+            <% if (mode === 'ubah' && media) { %>
+              <%# Tombol AI hanya tersedia saat mengubah media yang sudah tersimpan %>
+              <button
+                id="tombol-caption-ai"
+                class="btn btn--ghost"
+                type="button"
+                data-id="<%= media.id %>"
+                data-jenis="<%= jenis %>"
+              >
+                Buat caption dengan AI
+              </button>
+            <% } %>
+          </div>
+          <textarea class="crud-input" id="caption" name="caption" rows="3" maxlength="300" placeholder="Tulis caption singkat untuk media ini"><%= media ? media.caption : '' %></textarea>
+          <p class="crud-muted mt-2">Maksimal 300 karakter. Caption tampil di galeri dan halaman video.</p>
+
+          <% if (mode === 'ubah' && media) { %>
+            <%# Catatan dan hasil saran AI hanya muncul pada mode ubah %>
+            <label class="crud-label mt-4" for="catatan-ai">Catatan untuk AI (opsional)</label>
+            <input class="crud-input" id="catatan-ai" type="text" maxlength="200" placeholder="Contoh: suasana pagi, tanpa menyebut harga">
+            <div id="wadah-saran-caption" class="caption-saran__wadah hidden" data-wadah-caption aria-live="polite"></div>
+          <% } %>
+        </div>
+
         <%# Penanda foto layak dipakai sebagai latar hero %>
         <% if (jenis === 'foto') { %>
           <div>

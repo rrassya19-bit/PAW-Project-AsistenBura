@@ -49,6 +49,9 @@
               <span class="video-card__koleksi"><%= item.koleksi %></span>
               <span class="video-card__num"><%= String(indeks + 1).padStart(2, '0') %> / <%= String(totalVideo).padStart(2, '0') %></span>
             </figcaption>
+            <% if (item.caption) { %>
+              <p class="video-card__ket"><%= item.caption %></p>
+            <% } %>
           </figure>
         <% }); %>
       </div>

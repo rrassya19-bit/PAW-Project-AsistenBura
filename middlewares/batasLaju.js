@@ -9,6 +9,8 @@ const hitunganMenit = new Map();
 const hitunganHari = new Map();
 // Hitungan global harian untuk seluruh pengunjung
 let hitunganGlobal = { jumlah: 0, selesai: 0 };
+// Hitungan pembuatan caption admin per menit: ip -> { jumlah, selesai }
+const hitunganCaption = new Map();
 
 // Menghitung waktu selesai jendela berikutnya
 function jendelaBerikutnya(jendelaMs) {
@@ -89,14 +91,41 @@ function batasChat(req, res, next) {
   return next();
 }
 
+// Middleware pembatas laju untuk pembuatan caption admin
+function batasCaption(req, res, next) {
+  // Waktu dan IP dipakai sebagai kunci hitungan
+  const sekarang = Date.now();
+  const ip = req.ip || req.socket.remoteAddress || 'tanpa-ip';
+
+  // Jendela per menit untuk IP ini diperbarui bila sudah lewat
+  let menit = hitunganCaption.get(ip);
+  if (!menit || sekarang >= menit.selesai) {
+    menit = { jumlah: 0, selesai: jendelaBerikutnya(60 * 1000) };
+    hitunganCaption.set(ip, menit);
+  }
+  // Entri kedaluwarsa dibersihkan agar memori terkendali
+  bersihkanPeta(hitunganCaption, sekarang);
+
+  // Batas diambil dari konfigurasi terpusat
+  if (menit.jumlah >= gemini.konfigurasi.captionPerMenit) {
+    const detik = Math.max(1, Math.ceil((menit.selesai - sekarang) / 1000));
+    return tolak(res, detik, 'Terlalu banyak permintaan caption. Coba lagi sebentar lagi.');
+  }
+
+  // Permintaan dihitung setelah lolos pemeriksaan
+  menit.jumlah += 1;
+  return next();
+}
+
 // Mengosongkan seluruh hitungan; hanya dipakai pengujian
 function setelUlangBatasLaju() {
-  // Peta per menit dan per hari dikosongkan
+  // Peta per menit, per hari, dan caption dikosongkan
   hitunganMenit.clear();
   hitunganHari.clear();
+  hitunganCaption.clear();
   // Hitungan global dikembalikan ke nol
   hitunganGlobal = { jumlah: 0, selesai: 0 };
 }
 
 // Ekspor middleware dan hook pengujian
-module.exports = { batasChat, setelUlangBatasLaju };
+module.exports = { batasChat, batasCaption, setelUlangBatasLaju };

@@ -43,6 +43,7 @@ async function buat(req, res, next) {
       jenis: data.jenis,
       judul: data.judul,
       berkas: req.berkasMedia.berkas,
+      caption: data.caption,
       urutan: data.urutan,
       hero: data.hero,
     });
@@ -87,6 +88,7 @@ async function ubah(req, res, next) {
     const hasil = await mediaModel.ubah(req.idMedia, {
       judul: data.judul,
       berkas: berkasBaru,
+      caption: data.caption,
       urutan: data.urutan,
       hero: data.hero,
     });

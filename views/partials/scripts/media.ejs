@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   pasangFormMedia();
   pasangPratinjauMedia();
   pasangTombolHapusMedia();
+  pasangCaptionAi();
 });
 
 // Membaca JSON dengan aman bila body bukan JSON
@@ -206,6 +207,10 @@ function kirimFormMedia(form) {
   data.append('judul', judul);
   data.append('urutan', inputUrutan && inputUrutan.value.trim() !== '' ? inputUrutan.value.trim() : '0');
 
+  // Caption selalu dikirim agar dapat diisi, diubah, atau dikosongkan
+  const inputCaption = document.getElementById('caption');
+  data.append('caption', inputCaption ? inputCaption.value.trim() : '');
+
   // Kotak centang hero hanya ada pada form foto
   const inputHero = document.getElementById('hero');
   if (inputHero) {
@@ -362,5 +367,93 @@ function tampilkanGalatMedia(pesan) {
   kotak.textContent = pesan;
   kotak.classList.remove('hidden');
   kotak.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Memasang tombol pembuat caption AI pada form ubah media
+function pasangCaptionAi() {
+  const tombol = document.getElementById('tombol-caption-ai');
+  const wadah = document.getElementById('wadah-saran-caption');
+  const area = document.getElementById('caption');
+  const catatan = document.getElementById('catatan-ai');
+
+  // Tombol hanya ada pada mode ubah
+  if (!tombol || !wadah || !area) {
+    return;
+  }
+
+  tombol.addEventListener('click', async function () {
+    // Hasil lama dibersihkan sebelum permintaan baru
+    wadah.innerHTML = '';
+    wadah.classList.remove('hidden');
+
+    const info = document.createElement('p');
+    info.className = 'caption-saran__info';
+    info.textContent = 'Membuat tiga pilihan caption...';
+    wadah.appendChild(info);
+
+    const teksAsli = tombol.textContent;
+    tombol.disabled = true;
+    tombol.textContent = 'Membuat...';
+
+    try {
+      const respons = await fetch('/api/admin/caption', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mediaId: Number(tombol.dataset.id),
+          catatan: catatan ? catatan.value.trim() : '',
+        }),
+      });
+      const hasil = await bacaJsonMedia(respons);
+      wadah.innerHTML = '';
+
+      // Galat dari server ditampilkan apa adanya tanpa mengubah caption lama
+      if (!respons.ok) {
+        info.textContent = hasil && hasil.pesan ? hasil.pesan : 'Gagal membuat caption.';
+        info.classList.add('caption-saran__info--galat');
+        wadah.appendChild(info);
+        return;
+      }
+
+      const daftar = Array.isArray(hasil.caption) ? hasil.caption : [];
+      if (daftar.length === 0) {
+        info.textContent = 'Tidak ada caption yang dapat dipakai.';
+        info.classList.add('caption-saran__info--galat');
+        wadah.appendChild(info);
+        return;
+      }
+
+      const judul = document.createElement('p');
+      judul.className = 'caption-saran__info';
+      judul.textContent = 'Pilih salah satu caption, lalu edit bila perlu:';
+      wadah.appendChild(judul);
+
+      // Setiap saran menjadi tombol yang mengisi kolom caption
+      daftar.forEach(function (teks) {
+        const pilihan = document.createElement('button');
+        pilihan.type = 'button';
+        pilihan.className = 'caption-saran__pilihan';
+        pilihan.textContent = teks;
+        pilihan.addEventListener('click', function () {
+          area.value = teks;
+          area.focus();
+          wadah.querySelectorAll('.caption-saran__pilihan').forEach(function (lain) {
+            lain.classList.remove('caption-saran__pilihan--aktif');
+          });
+          pilihan.classList.add('caption-saran__pilihan--aktif');
+        });
+        wadah.appendChild(pilihan);
+      });
+    } catch (galat) {
+      wadah.innerHTML = '';
+      info.textContent = 'Tidak dapat menghubungi server. Coba lagi.';
+      info.classList.add('caption-saran__info--galat');
+      wadah.appendChild(info);
+    } finally {
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+    }
+  });
 }
 </script>

@@ -74,6 +74,12 @@ function validasiMedia(req, res, next) {
     }
   }
 
+  // Caption opsional, berupa teks maksimal 300 karakter
+  const captionMentah = typeof body.caption === 'string' ? body.caption.trim() : '';
+  if (captionMentah.length > 300) {
+    kesalahan.push('Caption maksimal 300 karakter');
+  }
+
   // Berkas baru yang sudah lolos pemeriksaan middleware unggah
   const berkasBaru = req.berkasMedia || null;
 
@@ -109,7 +115,7 @@ function validasiMedia(req, res, next) {
   }
 
   // Meneruskan data yang sudah dibersihkan ke controller
-  req.mediaTervalidasi = { judul, jenis, urutan, hero };
+  req.mediaTervalidasi = { judul, jenis, urutan, hero, caption: captionMentah };
   return next();
 }
 

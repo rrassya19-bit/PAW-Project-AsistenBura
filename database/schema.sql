@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS media (
   urutan INTEGER NOT NULL DEFAULT 0,
   -- Penanda foto tanpa tulisan dan beresolusi tinggi untuk latar hero
   hero BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Caption opsional yang tampil di galeri dan video
+  caption VARCHAR(300),
   -- Waktu data dibuat
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   -- Waktu data terakhir diubah

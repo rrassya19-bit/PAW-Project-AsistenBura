@@ -444,7 +444,11 @@
         galleryImage.alt = item.getAttribute('data-alt') || '';
 
         if (galleryCaption) {
-          galleryCaption.textContent = item.getAttribute('data-koleksi') + ' · foto ' + (galleryIndex + 1) + ' dari ' + visibleItems.length;
+          // Caption dari database dipakai bila ada, selain itu keterangan bawaan
+          var captionMedia = item.getAttribute('data-caption');
+          galleryCaption.textContent = captionMedia
+            ? captionMedia
+            : item.getAttribute('data-koleksi') + ' · foto ' + (galleryIndex + 1) + ' dari ' + visibleItems.length;
         }
       }
 
