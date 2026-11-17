@@ -21,7 +21,7 @@ function bacaKonfigurasi() {
     // Nama model dibaca dari lingkungan, tidak pernah ditulis mati di kode
     model: typeof process.env.GEMINI_MODEL === 'string' ? process.env.GEMINI_MODEL.trim() : '',
     // Batas waktu permintaan ke Gemini dalam milidetik
-    timeoutMs: angkaAman(process.env.GEMINI_TIMEOUT_MS, 15000, 1000),
+    timeoutMs: angkaAman(process.env.GEMINI_TIMEOUT_MS, 60000, 1000),
     // Batas laju chatbot per IP per menit
     chatPerMenit: angkaAman(process.env.CHAT_BATAS_PER_MENIT, 10, 1),
     // Batas laju chatbot per IP per hari

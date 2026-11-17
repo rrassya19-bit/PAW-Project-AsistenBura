@@ -57,7 +57,7 @@ app.js         Titik masuk aplikasi
 
    Variabel yang dipakai: `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `ADMIN_USER`, `ADMIN_PASSWORD`. Isi `ADMIN_USER` dan `ADMIN_PASSWORD` dengan akun admin pilihan Anda; jangan memakai nilai contoh di server nyata.
 
-   Untuk fitur AI, isi juga `GEMINI_API_KEY` dari Google AI Studio dan `GEMINI_MODEL` dengan nama model yang tersedia untuk kunci tersebut. Variabel opsional: `GEMINI_TIMEOUT_MS` (default 15000), `CHAT_BATAS_PER_MENIT` (10), `CHAT_BATAS_PER_HARI` (100), `CHAT_BATAS_GLOBAL_PER_HARI` (500), dan `CAPTION_BATAS_PER_MENIT` (10). Tanpa kunci dan model, aplikasi tetap berjalan; endpoint AI membalas `503` dan terminal mencetak `Gemini: BELUM dikonfigurasi`.
+   Untuk fitur AI, isi juga `GEMINI_API_KEY` dari Google AI Studio dan `GEMINI_MODEL` dengan nama model yang tersedia untuk kunci tersebut. Variabel opsional: `GEMINI_TIMEOUT_MS` (default 60000), `CHAT_BATAS_PER_MENIT` (10), `CHAT_BATAS_PER_HARI` (100), `CHAT_BATAS_GLOBAL_PER_HARI` (500), dan `CAPTION_BATAS_PER_MENIT` (10). Tanpa kunci dan model, aplikasi tetap berjalan; endpoint AI membalas `503` dan terminal mencetak `Gemini: BELUM dikonfigurasi`.
 
 3. Pasang dependensi:
 
