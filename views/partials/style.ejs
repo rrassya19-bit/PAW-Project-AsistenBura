@@ -2373,174 +2373,246 @@
   display: none;
 }
 
-/* Chatbot publik: wadah melayang, panel percakapan, dan indikator mengetik */
+/* Chatbot publik: launcher bulat, panel percakapan, dan composer */
 .chat {
   position: fixed;
-  right: clamp(16px, 3vw, 28px);
-  bottom: clamp(16px, 3vw, 28px);
-  z-index: 60;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 70;
   font-family: var(--body);
 }
 
+/* Tombol pembuka tanpa teks, ikon berganti saat panel terbuka */
 .chat__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 0 20px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 50%;
   background: var(--cobalt);
   color: var(--white);
-  font-size: 0.9rem;
-  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 18px 44px -20px rgba(0, 47, 167, 0.7);
-  transition: transform 0.3s var(--ease), background 0.3s var(--ease);
+  box-shadow: 0 8px 24px rgba(6, 14, 43, 0.28);
+  transition: transform 0.2s var(--ease), background 0.2s var(--ease);
 }
 
 .chat__toggle:hover {
-  background: var(--cobalt-bright);
-  transform: translateY(-2px);
+  transform: scale(1.05);
+}
+
+.chat__toggle:focus-visible {
+  outline: 3px solid var(--cobalt-bright);
+  outline-offset: 3px;
 }
 
 .chat__toggle svg {
-  width: 21px;
-  height: 21px;
-  flex: none;
+  display: block;
+  width: 24px;
+  height: 24px;
 }
 
-.chat__toggle--aktif {
-  background: var(--navy);
+.chat__toggle svg[hidden] {
+  display: none;
 }
 
+/* Panel desktop dengan animasi lembut dan tinggi terbatas viewport */
 .chat__panel {
   position: absolute;
   right: 0;
   bottom: calc(100% + 14px);
   display: flex;
   flex-direction: column;
-  width: min(380px, calc(100vw - 32px));
-  max-height: min(560px, calc(100vh - 140px));
+  width: 384px;
+  height: min(620px, calc(100dvh - 104px));
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(6, 14, 43, 0.08);
   border-radius: 20px;
-  background: var(--paper);
-  box-shadow: 0 36px 90px -34px rgba(6, 14, 43, 0.6);
-  animation: chat-masuk 0.32s var(--ease);
+  background: var(--white);
+  box-shadow: 0 24px 60px rgba(6, 14, 43, 0.28);
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
 }
 
-@keyframes chat-masuk {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.chat__panel--buka {
+  opacity: 1;
+  transform: none;
 }
 
+/* Header navy dengan avatar logo dan tombol tutup polos */
 .chat__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  min-height: 64px;
+  padding: 0 12px 0 16px;
   background: var(--navy);
   color: var(--white);
 }
 
-.chat__title {
-  font-family: var(--display);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.chat__status {
+.chat__identitas {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 2px;
-  font-size: 0.74rem;
-  color: rgba(255, 255, 255, 0.66);
+  gap: 10px;
+  min-width: 0;
 }
 
-.chat__status span {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #4ADE80;
+.chat__avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--cobalt);
+}
+
+.chat__avatar svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.chat__avatar--pesan {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+}
+
+.chat__title {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--white);
 }
 
 .chat__close {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--white);
   cursor: pointer;
-  transition: background 0.25s var(--ease);
+  transition: background 0.18s var(--ease);
 }
 
 .chat__close:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.chat__close svg {
-  width: 17px;
-  height: 17px;
+.chat__close:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
 }
 
+.chat__close svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Area pesan berlatar abu kebiruan dengan scrollbar tipis */
 .chat__log {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px;
+  background: #F4F6FB;
   scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  scrollbar-color: rgba(6, 14, 43, 0.18) transparent;
+  scroll-behavior: smooth;
+}
+
+.chat__log::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat__log::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(6, 14, 43, 0.18);
+}
+
+/* Baris pesan: avatar hanya tampil pada gelembung pertama satu kelompok */
+.chat__baris {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.chat__baris--user {
+  justify-content: flex-end;
+}
+
+.chat__baris--bot {
+  justify-content: flex-start;
+}
+
+.chat__baris--lanjut .chat__avatar {
+  visibility: hidden;
 }
 
 .chat__msg {
-  max-width: 86%;
+  max-width: 80%;
   padding: 10px 14px;
   border-radius: 16px;
-  font-size: 0.89rem;
+  font-size: 14.5px;
   line-height: 1.55;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
-  white-space: pre-line;
 }
 
 .chat__msg--bot {
-  align-self: flex-start;
-  border: 1px solid var(--line);
-  border-bottom-left-radius: 6px;
+  border: 1px solid rgba(6, 14, 43, 0.06);
+  border-bottom-left-radius: 4px;
   background: var(--white);
   color: var(--navy);
 }
 
 .chat__msg--user {
-  align-self: flex-end;
-  border-bottom-right-radius: 6px;
+  border-bottom-right-radius: 4px;
   background: var(--cobalt);
   color: var(--white);
 }
 
 .chat__msg--galat {
-  align-self: flex-start;
   border: 1px solid #E7C7C2;
-  border-bottom-left-radius: 6px;
+  border-bottom-left-radius: 4px;
   background: #FDF3F1;
   color: #8A2C1D;
 }
 
+.chat__galat-aksi {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.chat__galat-aksi:focus-visible {
+  outline: 2px solid var(--cobalt-bright);
+  outline-offset: 2px;
+}
+
+/* Indikator mengetik dengan tiga titik yang bergantian naik */
 .chat__msg--typing {
   display: inline-flex;
   align-items: center;
@@ -2578,105 +2650,189 @@
   }
 }
 
+/* Chips pertanyaan contoh di bawah sapaan pembuka */
+.chat__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 36px;
+}
+
+.chat__chip {
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 47, 167, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cobalt);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.2s var(--ease);
+}
+
+.chat__chip:hover {
+  background: rgba(0, 47, 167, 0.08);
+}
+
+.chat__chip:focus-visible {
+  outline: 2px solid var(--cobalt-bright);
+  outline-offset: 2px;
+}
+
+/* Composer menyatu tanpa border ganda dan tanpa catatan tambahan */
 .chat__form {
+  padding: 12px;
+  border-top: 1px solid rgba(6, 14, 43, 0.08);
+  background: var(--white);
+}
+
+.chat__composer {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid var(--line);
-  background: var(--white);
+  gap: 6px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 22px;
+  background: #F1F3F9;
+  transition: box-shadow 0.18s var(--ease);
+}
+
+.chat__composer:focus-within {
+  box-shadow: 0 0 0 2px rgba(0, 47, 167, 0.35);
 }
 
 .chat__input {
   flex: 1;
-  min-height: 44px;
-  max-height: 110px;
-  padding: 11px 12px;
-  overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
+  min-height: 24px;
+  max-height: 120px;
+  padding: 8px 0;
+  overflow-y: hidden;
+  border: 0;
+  outline: none;
+  background: transparent;
   color: var(--navy);
   font: inherit;
-  font-size: 0.89rem;
+  font-size: 15px;
   line-height: 1.5;
   resize: none;
-}
-
-.chat__input:focus {
-  border-color: var(--cobalt-bright);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(42, 99, 255, 0.16);
 }
 
 .chat__input::placeholder {
   color: var(--muted);
 }
 
+.chat__input:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
 .chat__send {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex: none;
+  padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 50%;
   background: var(--cobalt);
   color: var(--white);
   cursor: pointer;
-  transition: background 0.25s var(--ease), opacity 0.25s var(--ease);
+  transition: background 0.18s var(--ease), opacity 0.18s var(--ease);
 }
 
-.chat__send:hover {
+.chat__send:hover:not(:disabled) {
   background: var(--cobalt-bright);
 }
 
 .chat__send:disabled {
-  opacity: 0.55;
-  cursor: wait;
+  background: #C3C9D8;
+  color: var(--white);
+  cursor: default;
+}
+
+.chat__send:focus-visible {
+  outline: 2px solid var(--cobalt-bright);
+  outline-offset: 2px;
 }
 
 .chat__send svg {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
 }
 
-.chat__hint {
-  padding: 0 14px 12px;
-  background: var(--white);
-  color: var(--muted);
-  font-size: 0.68rem;
-  line-height: 1.45;
+/* Lightbox galeri memakai top layer dialog, widget disembunyikan saat terbuka */
+body.lightbox-open .chat {
+  visibility: hidden;
 }
 
-@media (max-width: 480px) {
-  .chat__toggle {
-    padding: 0 16px;
+/* Mobile: panel menjadi lembar penuh layar dengan safe area */
+@media (max-width: 520px) {
+  .chat {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
-  .chat__toggle-label {
+  .chat__toggle {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* Launcher disembunyikan saat lembar penuh layar terbuka */
+  .chat__toggle--aktif {
     display: none;
   }
 
   .chat__panel {
-    max-height: calc(100vh - 120px);
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .chat__head {
+    min-height: calc(64px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .chat__form {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .chat__input {
+    font-size: 16px;
+  }
+
+  html.chat-terbuka,
+  body.chat-terbuka {
+    overflow: hidden;
   }
 }
 
+/* Hormati preferensi pengguna yang mengurangi gerakan */
 @media (prefers-reduced-motion: reduce) {
   .chat__panel {
-    animation: none;
+    transition: none;
   }
 
   .chat__toggle,
   .chat__send,
-  .chat__close {
+  .chat__close,
+  .chat__chip {
     transition: none;
   }
 
   .chat__msg--typing span {
     animation: none;
-    opacity: 1;
+    opacity: 0.6;
+  }
+
+  .chat__log {
+    scroll-behavior: auto;
   }
 }
 

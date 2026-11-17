@@ -1,10 +1,20 @@
 <%# Partial chatbot publik: tombol melayang dan panel percakapan %>
 <section class="chat" data-chat aria-label="Asisten Bura">
-  <div class="chat__panel" id="chat-panel" data-chat-panel hidden>
+  <div class="chat__panel" id="chat-panel" data-chat-panel role="dialog" aria-label="Asisten Bura" hidden>
     <header class="chat__head">
-      <div>
+      <div class="chat__identitas">
+        <span class="chat__avatar" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="16" fill="#002FA7" />
+            <rect x="6" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+            <rect x="18" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+            <circle cx="10" cy="13" r="1.4" fill="#002FA7" />
+            <circle cx="10" cy="19" r="1.4" fill="#002FA7" />
+            <circle cx="22" cy="13" r="1.4" fill="#002FA7" />
+            <circle cx="22" cy="19" r="1.4" fill="#002FA7" />
+          </svg>
+        </span>
         <p class="chat__title">Asisten Bura</p>
-        <p class="chat__status"><span aria-hidden="true"></span>Tanya menu dan info kedai</p>
       </div>
       <button class="chat__close" type="button" data-chat-close aria-label="Tutup asisten">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
@@ -13,29 +23,48 @@
 
     <%# Log percakapan diumumkan pembaca layar saat ada balasan baru %>
     <div class="chat__log" data-chat-log role="log" aria-live="polite" aria-relevant="additions">
-      <p class="chat__msg chat__msg--bot">Halo! Saya bisa membantu soal menu, harga, jam buka, dan galeri Bura Bura Coffee. Mau tanya apa?</p>
+      <div class="chat__baris chat__baris--bot">
+        <span class="chat__avatar chat__avatar--pesan" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="16" fill="#002FA7" />
+            <rect x="6" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+            <rect x="18" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+            <circle cx="10" cy="13" r="1.4" fill="#002FA7" />
+            <circle cx="10" cy="19" r="1.4" fill="#002FA7" />
+            <circle cx="22" cy="13" r="1.4" fill="#002FA7" />
+            <circle cx="22" cy="19" r="1.4" fill="#002FA7" />
+          </svg>
+        </span>
+        <p class="chat__msg chat__msg--bot">Halo! Aku Asisten Bura. Tanya apa saja soal menu, harga, jam buka, atau galeri kami.</p>
+      </div>
+      <div class="chat__chips" data-chat-chips role="group" aria-label="Contoh pertanyaan">
+        <button class="chat__chip" type="button" data-chat-chip>Apa menu andalan?</button>
+        <button class="chat__chip" type="button" data-chat-chip>Berapa harga Dirty?</button>
+        <button class="chat__chip" type="button" data-chat-chip>Jam buka kapan?</button>
+        <button class="chat__chip" type="button" data-chat-chip>Di mana lokasinya?</button>
+      </div>
     </div>
 
     <form class="chat__form" data-chat-form>
-      <label class="visually-hidden" for="chat-input">Tulis pertanyaan untuk asisten</label>
-      <textarea
-        class="chat__input"
-        id="chat-input"
-        data-chat-input
-        rows="1"
-        maxlength="500"
-        placeholder="Tanya menu atau jam buka..."
-        required
-      ></textarea>
-      <button class="chat__send" type="submit" data-chat-send aria-label="Kirim pertanyaan">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 12 16-8-6 16-2.6-6.4L4 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
-      </button>
+      <div class="chat__composer">
+        <label class="visually-hidden" for="chat-input">Tulis pesan untuk asisten</label>
+        <textarea
+          class="chat__input"
+          id="chat-input"
+          data-chat-input
+          rows="1"
+          maxlength="300"
+          placeholder="Tulis pesan..."
+        ></textarea>
+        <button class="chat__send" type="submit" data-chat-send aria-label="Kirim pesan" disabled>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 12 16-8-6 16-2.6-6.4L4 12Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+        </button>
+      </div>
     </form>
-    <p class="chat__hint">Jawaban dibuat AI dan bisa keliru. Data menu diambil dari website.</p>
   </div>
 
-  <button class="chat__toggle" type="button" data-chat-toggle aria-expanded="false" aria-controls="chat-panel">
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 1 1 18-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
-    <span class="chat__toggle-label">Asisten Bura</span>
+  <button class="chat__toggle" type="button" data-chat-toggle aria-expanded="false" aria-label="Buka asisten" aria-controls="chat-panel">
+    <svg data-chat-icon-buka viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 1 1 18-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+    <svg data-chat-icon-tutup viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
   </button>
 </section>

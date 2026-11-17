@@ -13,101 +13,279 @@
     const input = akar.querySelector('[data-chat-input]');
     const tombolKirim = akar.querySelector('[data-chat-send]');
     const log = akar.querySelector('[data-chat-log]');
+    const chips = akar.querySelector('[data-chat-chips]');
+    const ikonBuka = akar.querySelector('[data-chat-icon-buka]');
+    const ikonTutup = akar.querySelector('[data-chat-icon-tutup]');
+    const avatarContoh = akar.querySelector('.chat__head .chat__avatar svg');
+
+    // Deteksi layar sentuh agar fokus tidak memunculkan papan ketik sendiri
+    const layarSentuh = window.matchMedia('(pointer: coarse)').matches;
+    // Deteksi preferensi gerak minimal
+    const kurangiGerak = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Media query mobile dipakai untuk mengunci gulir latar
+    const mediaMobile = window.matchMedia('(max-width: 520px)');
 
     // Penanda agar satu pertanyaan tidak terkirim dua kali
     let sedangKirim = false;
     // Penanda panel terbuka atau tertutup
     let terbuka = false;
+    // Timer penutupan agar animasi selesai sebelum panel disembunyikan
+    let timerTutup = null;
+    // Jenis pesan terakhir untuk pengelompokan avatar
+    let jenisTerakhir = 'bot';
+    // Pesan terakhir disimpan untuk tombol coba lagi
+    let pesanTerakhir = '';
+    // Baris galat aktif agar tidak menumpuk saat dicoba ulang
+    let barisGalat = null;
 
-    // Menggulir log ke pesan terbaru tanpa mengganggu halaman
-    function gulirBawah() {
-      log.scrollTop = log.scrollHeight;
+    // Menyalin avatar logo yang sudah ada untuk gelembung asisten
+    function buatAvatarPesan() {
+      const avatar = document.createElement('span');
+      avatar.className = 'chat__avatar chat__avatar--pesan';
+      avatar.setAttribute('aria-hidden', 'true');
+      // Logo hanya digandakan bila markup contoh tersedia
+      if (avatarContoh) {
+        avatar.appendChild(avatarContoh.cloneNode(true));
+      }
+      return avatar;
     }
 
-    // Menambahkan satu pesan teks ke log dengan kelas sesuai pengirim
-    function tambahPesan(teks, jenis) {
+    // Membuat baris pesan dengan avatar hanya pada awal kelompok asisten
+    function buatBaris(jenis) {
+      const baris = document.createElement('div');
+      baris.className = 'chat__baris chat__baris--' + jenis;
+      // Avatar bot disembunyikan bila pesan sebelumnya juga dari bot
+      if (jenis === 'bot') {
+        if (jenisTerakhir === 'bot') {
+          baris.classList.add('chat__baris--lanjut');
+        }
+        baris.appendChild(buatAvatarPesan());
+      }
+      return baris;
+    }
+
+    // Memeriksa apakah pengguna berada dekat dasar area pesan
+    function dekatDasar() {
+      return log.scrollHeight - log.scrollTop - log.clientHeight <= 80;
+    }
+
+    // Menggulir halus ke pesan terbaru
+    function gulirKeBawah() {
+      log.scrollTo({
+        top: log.scrollHeight,
+        behavior: kurangiGerak ? 'auto' : 'smooth',
+      });
+    }
+
+    // Menambahkan satu pesan teks tanpa pernah memakai HTML dari server
+    function tambahPesan(teks, jenis, opsi) {
+      // Posisi dasar diperiksa sebelum tinggi area pesan berubah
+      const ikuti = dekatDasar();
+      const baris = buatBaris(jenis);
       const pesan = document.createElement('p');
-      pesan.className = 'chat__msg chat__msg--' + (jenis || 'bot');
+      pesan.className = 'chat__msg chat__msg--' + jenis;
       pesan.textContent = teks;
-      log.appendChild(pesan);
-      gulirBawah();
-      return pesan;
+      baris.appendChild(pesan);
+      log.appendChild(baris);
+      jenisTerakhir = jenis;
+      // Gulir dipaksa saat pengguna baru mengirim pesan
+      if ((opsi && opsi.paksa) || ikuti) {
+        gulirKeBawah();
+      }
+      return baris;
     }
 
-    // Menambahkan indikator mengetik yang dapat dihapus setelah balasan datang
+    // Menambahkan indikator tiga titik tanpa mengubah kelompok avatar
     function tambahMengetik() {
+      const baris = buatBaris('bot');
       const bungkus = document.createElement('p');
       bungkus.className = 'chat__msg chat__msg--bot chat__msg--typing';
       bungkus.setAttribute('aria-label', 'Asisten sedang menulis');
-      bungkus.innerHTML = '<span></span><span></span><span></span>';
-      log.appendChild(bungkus);
-      gulirBawah();
-      return bungkus;
+      // Tiga titik dibuat sebagai elemen DOM agar tidak menyisipkan HTML
+      for (let i = 0; i < 3; i += 1) {
+        bungkus.appendChild(document.createElement('span'));
+      }
+      baris.appendChild(bungkus);
+      log.appendChild(baris);
+      gulirKeBawah();
+      return baris;
     }
 
-    // Membuka panel dan memindahkan fokus ke kolom pesan
-    function bukaPanel() {
-      terbuka = true;
-      panel.hidden = false;
-      tombolBuka.setAttribute('aria-expanded', 'true');
-      tombolBuka.classList.add('chat__toggle--aktif');
-      input.focus();
-      gulirBawah();
+    // Menampilkan galat halus dengan tombol coba lagi bila diperlukan
+    function tambahGalat(pesan, bisaUlang) {
+      // Baris galat lama dilepas agar tidak menumpuk
+      if (barisGalat) {
+        barisGalat.remove();
+        barisGalat = null;
+      }
+      const ikuti = dekatDasar();
+      const baris = buatBaris('bot');
+      const kotak = document.createElement('div');
+      kotak.className = 'chat__msg chat__msg--galat';
+      const teks = document.createElement('span');
+      teks.textContent = pesan;
+      kotak.appendChild(teks);
+
+      // Tombol coba lagi hanya untuk galat jaringan dan server
+      if (bisaUlang) {
+        const tombol = document.createElement('button');
+        tombol.type = 'button';
+        tombol.className = 'chat__galat-aksi';
+        tombol.textContent = 'Coba lagi';
+        tombol.addEventListener('click', function () {
+          kirimUlang();
+        });
+        kotak.appendChild(tombol);
+      }
+
+      baris.appendChild(kotak);
+      log.appendChild(baris);
+      jenisTerakhir = 'bot';
+      barisGalat = baris;
+      if (ikuti) {
+        gulirKeBawah();
+      }
     }
 
-    // Menutup panel dan mengembalikan fokus ke tombol pembuka
-    function tutupPanel() {
-      terbuka = false;
-      panel.hidden = true;
-      tombolBuka.setAttribute('aria-expanded', 'false');
-      tombolBuka.classList.remove('chat__toggle--aktif');
-      tombolBuka.focus();
+    // Membaca JSON respons dengan aman
+    async function bacaJson(respons) {
+      try {
+        return await respons.json();
+      } catch (galat) {
+        // Respons bukan JSON dianggap tanpa data
+        return null;
+      }
     }
 
-    // Menyesuaikan tinggi kolom pesan dengan isinya
+    // Menyesuaikan tinggi kolom pesan sampai batas maksimal 120 piksel
     function sesuaikanTinggi() {
       input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 110) + 'px';
+      const tinggi = Math.min(input.scrollHeight, 120);
+      input.style.height = tinggi + 'px';
+      // Scrollbar baru muncul setelah isi melewati batas maksimal
+      input.style.overflowY = input.scrollHeight > 120 ? 'auto' : 'hidden';
     }
 
-    // Membaca pesan galat dari respons API dengan aman
-    async function bacaPesanGalat(respons) {
-      try {
-        const data = await respons.json();
-        if (data && typeof data.pesan === 'string' && data.pesan) {
-          return data.pesan;
-        }
-      } catch (galat) {
-        // Respons bukan JSON, pakai pesan umum di bawah
+    // Menonaktifkan tombol kirim saat kosong atau sedang memuat
+    function perbaruiTombol() {
+      tombolKirim.disabled = sedangKirim || input.value.trim() === '';
+    }
+
+    // Menghapus chips contoh setelah pesan pertama terkirim
+    function hapusChips() {
+      if (chips && chips.parentNode) {
+        chips.remove();
       }
-      return 'Maaf, asisten sedang tidak dapat menjawab. Silakan coba lagi.';
+    }
+
+    // Mengunci gulir latar hanya saat panel mobile terbuka
+    function kunciGulir(aktif) {
+      const nilai = aktif && mediaMobile.matches;
+      document.documentElement.classList.toggle('chat-terbuka', nilai);
+      document.body.classList.toggle('chat-terbuka', nilai);
+    }
+
+    // Mengganti ikon launcher sesuai keadaan panel
+    function tukarIkon(terbukaSekarang) {
+      // Atribut dipakai karena elemen SVG tidak memiliki properti hidden
+      if (ikonBuka) ikonBuka.toggleAttribute('hidden', terbukaSekarang);
+      if (ikonTutup) ikonTutup.toggleAttribute('hidden', !terbukaSekarang);
+      tombolBuka.setAttribute('aria-expanded', terbukaSekarang ? 'true' : 'false');
+      tombolBuka.setAttribute('aria-label', terbukaSekarang ? 'Tutup asisten' : 'Buka asisten');
+      tombolBuka.classList.toggle('chat__toggle--aktif', terbukaSekarang);
+    }
+
+    // Membuka panel dan memfokuskan kolom pesan pada perangkat non-sentuh
+    function bukaPanel() {
+      if (terbuka) return;
+      terbuka = true;
+      // Timer tutup dibatalkan bila panel dibuka lagi
+      if (timerTutup) {
+        clearTimeout(timerTutup);
+        timerTutup = null;
+      }
+      panel.hidden = false;
+      // Reflow dipaksa agar transisi opacity dan transform berjalan
+      void panel.offsetWidth;
+      panel.classList.add('chat__panel--buka');
+      tukarIkon(true);
+      kunciGulir(true);
+      if (!layarSentuh) {
+        window.setTimeout(function () {
+          input.focus();
+        }, 0);
+      }
+      gulirKeBawah();
+    }
+
+    // Menutup panel dengan animasi singkat lalu menyembunyikannya
+    function tutupPanel() {
+      if (!terbuka) return;
+      terbuka = false;
+      panel.classList.remove('chat__panel--buka');
+      tukarIkon(false);
+      kunciGulir(false);
+      tombolBuka.focus();
+
+      const sembunyikan = function () {
+        // Panel hanya disembunyikan bila tidak dibuka kembali
+        if (!terbuka) {
+          panel.hidden = true;
+        }
+        timerTutup = null;
+      };
+
+      if (kurangiGerak) {
+        sembunyikan();
+      } else {
+        timerTutup = window.setTimeout(sembunyikan, 180);
+      }
+    }
+
+    // Mengirim ulang pesan terakhir tanpa menggandakan gelembung pengguna
+    function kirimUlang() {
+      if (!pesanTerakhir || sedangKirim) return;
+      // Galat lama dilepas agar balasan yang berhasil tidak menyisakan pesan gagal
+      if (barisGalat) {
+        barisGalat.remove();
+        barisGalat = null;
+        jenisTerakhir = 'user';
+      }
+      kirimPertanyaan(pesanTerakhir, true);
     }
 
     // Mengirim pertanyaan ke server dan menampilkan hasilnya
-    async function kirimPertanyaan(teks) {
+    async function kirimPertanyaan(teks, ulang) {
       // Pertanyaan kosong tidak dikirim
       if (!teks) return;
       // Pengiriman ganda dicegah selama permintaan berjalan
       if (sedangKirim) return;
 
       sedangKirim = true;
-      tombolKirim.disabled = true;
-      tambahPesan(teks, 'user');
+      pesanTerakhir = teks;
+      // Pesan pengguna hanya ditambahkan pada pengiriman pertama
+      if (!ulang) {
+        tambahPesan(teks, 'user', { paksa: true });
+        hapusChips();
+      }
       input.value = '';
       sesuaikanTinggi();
+      perbaruiTombol();
+      input.disabled = true;
       const indikator = tambahMengetik();
 
-      // Batas waktu klien sedikit lebih panjang daripada batas server
+      // Batas waktu klien 25 detik
       const pengendali = new AbortController();
-      const timer = setTimeout(function () {
+      const timer = window.setTimeout(function () {
         pengendali.abort();
-      }, 30000);
+      }, 25000);
 
       try {
         const respons = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pesan: teks }),
+          // Bidang message dipakai klien; pesan dipertahankan untuk API saat ini
+          body: JSON.stringify({ message: teks, pesan: teks }),
           signal: pengendali.signal,
         });
 
@@ -115,28 +293,47 @@
         indikator.remove();
 
         if (!respons.ok) {
-          const pesanGalat = await bacaPesanGalat(respons);
-          tambahPesan(pesanGalat, 'galat');
+          // Batas laju memakai pesan khusus tanpa tombol ulang
+          if (respons.status === 429) {
+            tambahGalat('Terlalu banyak pertanyaan. Coba lagi sebentar.', false);
+            return;
+          }
+          // Kesalahan validasi menampilkan pesan dari server
+          if (respons.status === 400) {
+            const galat = await bacaJson(respons);
+            const pesanServer =
+              galat && typeof galat.pesan === 'string' && galat.pesan
+                ? galat.pesan
+                : 'Pesan tidak dapat dikirim.';
+            tambahGalat(pesanServer, false);
+            return;
+          }
+          // Galat server lain dan 5xx dapat dicoba ulang
+          tambahGalat('Maaf, pesan belum terkirim.', true);
           return;
         }
 
-        const data = await respons.json();
+        const data = await bacaJson(respons);
         const jawaban = data && typeof data.jawaban === 'string' ? data.jawaban : '';
-        tambahPesan(jawaban || 'Maaf, saya belum bisa menjawab itu.', 'bot');
+        if (!jawaban) {
+          tambahGalat('Maaf, pesan belum terkirim.', true);
+          return;
+        }
+        tambahPesan(jawaban, 'bot');
       } catch (galat) {
-        // Indikator dihapus bila permintaan gagal
+        // Indikator dihapus bila permintaan gagal atau melewati batas waktu
         indikator.remove();
-        const pesan =
-          galat && galat.name === 'AbortError'
-            ? 'Permintaan terlalu lama. Silakan coba lagi.'
-            : 'Koneksi bermasalah. Periksa jaringan lalu coba lagi.';
-        tambahPesan(pesan, 'galat');
+        tambahGalat('Maaf, pesan belum terkirim.', true);
       } finally {
         // Timer dan status kirim selalu direset
         clearTimeout(timer);
         sedangKirim = false;
-        tombolKirim.disabled = false;
-        input.focus();
+        input.disabled = false;
+        perbaruiTombol();
+        // Fokus tidak dipaksa pada layar sentuh atau saat panel sudah ditutup
+        if (!layarSentuh && terbuka) {
+          input.focus();
+        }
       }
     }
 
@@ -162,18 +359,40 @@
     // Form dikirim tanpa memuat ulang halaman
     form.addEventListener('submit', function (peristiwa) {
       peristiwa.preventDefault();
-      kirimPertanyaan(input.value.trim());
+      kirimPertanyaan(input.value.trim(), false);
     });
 
     // Enter mengirim, Shift+Enter membuat baris baru
     input.addEventListener('keydown', function (peristiwa) {
-      if (peristiwa.key === 'Enter' && !peristiwa.shiftKey) {
+      if (peristiwa.key === 'Enter' && !peristiwa.shiftKey && !peristiwa.isComposing) {
         peristiwa.preventDefault();
-        form.requestSubmit();
+        // Kolom kosong tidak memicu validasi bawaan browser
+        if (input.value.trim()) {
+          form.requestSubmit();
+        }
       }
     });
 
-    // Tinggi kolom pesan mengikuti isi
-    input.addEventListener('input', sesuaikanTinggi);
+    // Tinggi kolom pesan dan status tombol mengikuti isi
+    input.addEventListener('input', function () {
+      sesuaikanTinggi();
+      perbaruiTombol();
+    });
+
+    // Chips langsung mengirim pertanyaan contoh
+    akar.querySelectorAll('[data-chat-chip]').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        kirimPertanyaan(chip.textContent.trim(), false);
+      });
+    });
+
+    // Gulir latar dikunci ulang bila ukuran layar berubah saat panel terbuka
+    mediaMobile.addEventListener('change', function () {
+      kunciGulir(terbuka);
+    });
+
+    // Keadaan awal: tinggi kolom dan tombol kirim
+    sesuaikanTinggi();
+    perbaruiTombol();
   })();
 </script>
