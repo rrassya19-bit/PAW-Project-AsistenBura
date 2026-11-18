@@ -2176,6 +2176,144 @@
   }
 }
 
+/* Halaman login admin: kartu di tengah dengan latar kertas situs */
+.auth-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: clamp(20px, 5vw, 48px) 20px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 47, 167, 0.08), transparent 55%),
+    var(--paper);
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+/* Merek pada kartu login */
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-weight: 600;
+}
+
+.auth-brand__mark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.auth-brand__mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.auth-brand__name {
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.auth-title {
+  margin-top: 24px;
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 5vw, 2.3rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.auth-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 26px;
+}
+
+/* Kolom sandi dengan tombol tampilkan di dalam bidang */
+.auth-password {
+  position: relative;
+}
+
+.auth-password .crud-input {
+  padding-right: 112px;
+}
+
+.auth-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cobalt);
+  font-family: var(--body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.auth-toggle:hover {
+  background: rgba(0, 47, 167, 0.06);
+}
+
+.auth-toggle:focus-visible {
+  outline: 2px solid var(--cobalt-bright);
+  outline-offset: 1px;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.auth-submit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* Kotak galat dan catatan keluar pada kartu login */
+.auth-alert {
+  margin-top: 20px;
+  padding: 12px 14px;
+  border: 1px solid rgba(163, 58, 42, 0.3);
+  border-radius: 10px;
+  background: rgba(163, 58, 42, 0.06);
+  color: #A33A2A;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.auth-note {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.auth-back {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-back:hover {
+  color: var(--cobalt);
+}
+
 /* Kartu pembungkus tabel dan form admin */
 .crud-card {
   overflow: hidden;

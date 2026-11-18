@@ -1,0 +1,120 @@
+<%# Halaman login admin tanpa sidebar, memakai bahasa visual situs %>
+<%
+  // Nilai dasar dipakai bila halaman dirender dari pengaman tanpa data lengkap
+  const pesanGalat = typeof galat !== 'undefined' ? galat : '';
+  const nilaiNext = typeof next !== 'undefined' ? next : '/admin';
+  const nilaiUsername = typeof username !== 'undefined' ? username : '';
+  const sudahKeluar = typeof keluar !== 'undefined' && keluar;
+  const belumSiap = typeof belumDikonfigurasi !== 'undefined' && belumDikonfigurasi;
+%>
+<%- include('../partials/head', { judul }) %>
+<main class="auth-page">
+  <section class="auth-card" aria-labelledby="judul-login">
+    <%# Logo situs dan nama kedai %>
+    <a class="auth-brand" href="/" aria-label="<%= namaKafe %>, kembali ke beranda">
+      <span class="auth-brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="9" fill="#002FA7" />
+          <rect x="6" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+          <rect x="18" y="9" width="8" height="14" rx="2" fill="#FFFFFF" />
+          <circle cx="10" cy="13" r="1.4" fill="#002FA7" />
+          <circle cx="10" cy="19" r="1.4" fill="#002FA7" />
+          <circle cx="22" cy="13" r="1.4" fill="#002FA7" />
+          <circle cx="22" cy="19" r="1.4" fill="#002FA7" />
+        </svg>
+      </span>
+      <span class="auth-brand__name"><%= namaKafe %></span>
+    </a>
+
+    <h1 class="auth-title" id="judul-login">Masuk Admin</h1>
+
+    <% if (belumSiap) { %>
+      <%# Server menolak login sampai akun dan rahasia sesi diatur %>
+      <div class="auth-alert" role="alert">Akses admin belum dikonfigurasi</div>
+    <% } else { %>
+      <% if (sudahKeluar) { %>
+        <p class="auth-note" role="status">Kamu sudah keluar.</p>
+      <% } %>
+
+      <% if (pesanGalat) { %>
+        <%# Pesan gagal login tidak membedakan username dan password %>
+        <div class="auth-alert" role="alert"><%= pesanGalat %></div>
+      <% } %>
+
+      <form class="auth-form" method="post" action="/admin/login">
+        <%# Tujuan kembali hanya diterima bila lolos pemeriksaan di controller %>
+        <input type="hidden" name="next" value="<%= nilaiNext %>" />
+
+        <div>
+          <label class="crud-label" for="username">Username</label>
+          <input
+            class="crud-input"
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="100"
+            required
+            autofocus
+            value="<%= nilaiUsername %>"
+          />
+        </div>
+
+        <div>
+          <label class="crud-label" for="password">Password</label>
+          <div class="auth-password">
+            <input
+              class="crud-input"
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              maxlength="200"
+              required
+            />
+            <%# Tombol kecil untuk menampilkan atau menyembunyikan kata sandi %>
+            <button
+              class="auth-toggle"
+              type="button"
+              data-toggle-sandi
+              aria-pressed="false"
+              aria-controls="password"
+            >Tampilkan</button>
+          </div>
+        </div>
+
+        <button class="btn btn--primary auth-submit" type="submit" data-submit>Masuk</button>
+      </form>
+    <% } %>
+
+    <a class="auth-back" href="/">Kembali ke beranda</a>
+  </section>
+</main>
+<script>// Skrip halaman login: tampilkan sandi dan cegah kiriman ganda
+
+  // Tombol tampilkan/sembunyikan kata sandi memakai aria-pressed
+  const tombolSandi = document.querySelector('[data-toggle-sandi]');
+  const kolomSandi = document.getElementById('password');
+  if (tombolSandi && kolomSandi) {
+    tombolSandi.addEventListener('click', function () {
+      const sedangTampil = kolomSandi.getAttribute('type') === 'text';
+      kolomSandi.setAttribute('type', sedangTampil ? 'password' : 'text');
+      tombolSandi.setAttribute('aria-pressed', sedangTampil ? 'false' : 'true');
+      tombolSandi.textContent = sedangTampil ? 'Tampilkan' : 'Sembunyikan';
+    });
+  }
+
+  // Tombol kirim dinonaktifkan dan berubah teks saat form dikirim
+  const formLogin = document.querySelector('.auth-form');
+  const tombolKirim = document.querySelector('[data-submit]');
+  if (formLogin && tombolKirim) {
+    formLogin.addEventListener('submit', function () {
+      tombolKirim.disabled = true;
+      tombolKirim.textContent = 'Memproses...';
+    });
+  }
+</script>
+</body>
+</html>
