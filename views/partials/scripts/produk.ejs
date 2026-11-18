@@ -139,7 +139,7 @@ async function kirimForm(form) {
   tombol.textContent = 'Menyimpan...';
 
   try {
-    // Mengirim data sebagai JSON ke backend dengan kredensial Basic yang sama
+    // Mengirim data sebagai JSON dengan cookie sesi admin yang sedang aktif
     const respons = await fetch(alamat, {
       method: metode,
       headers: { 'Content-Type': 'application/json' },
@@ -244,7 +244,7 @@ async function hapusProduk(tombol) {
   tombol.textContent = 'Menghapus...';
 
   try {
-    // Mengirim permintaan hapus ke API dengan kredensial Basic yang sama
+    // Mengirim permintaan hapus dengan cookie sesi admin yang sedang aktif
     const respons = await fetch('/api/produk/' + id, {
       method: 'DELETE',
       credentials: 'same-origin',

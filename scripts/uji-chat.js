@@ -4,6 +4,7 @@ process.env.GEMINI_API_KEY = 'kunci-uji';
 process.env.GEMINI_MODEL = 'model-uji';
 process.env.ADMIN_USER = 'uji';
 process.env.ADMIN_PASSWORD = 'sandi-uji-12345';
+process.env.SESSION_SECRET = require('crypto').randomBytes(48).toString('hex');
 process.env.CHAT_BATAS_PER_MENIT = '1000';
 process.env.CHAT_BATAS_PER_HARI = '1000';
 process.env.CHAT_BATAS_GLOBAL_PER_HARI = '1000';
@@ -18,11 +19,7 @@ const mediaModel = require('../models/mediaModel');
 const produkModel = require('../models/produkModel');
 const instruksi = require('../config/instruksi');
 const { setelUlangBatasLaju } = require('../middlewares/batasLaju');
-
-// Header Basic Auth untuk endpoint admin
-const headerAdmin = {
-  Authorization: 'Basic ' + Buffer.from('uji:sandi-uji-12345').toString('base64'),
-};
+const { buatPembantu } = require('./bantuUji');
 
 // Penghitung hasil pengujian
 let jumlahLulus = 0;
@@ -113,6 +110,10 @@ async function jalankan() {
   });
   const dasar = 'http://127.0.0.1:' + server.address().port;
 
+  // Pembantu login sesi untuk seluruh permintaan admin
+  const pembantu = buatPembantu(dasar);
+  await pembantu.login();
+
   // Pembantu permintaan chatbot
   async function kirimChat(pesan) {
     const respons = await fetch(dasar + '/api/chat', {
@@ -123,17 +124,17 @@ async function jalankan() {
     return { status: respons.status, data: await bacaJson(respons) };
   }
 
-  // Pembantu permintaan caption admin
+  // Pembantu permintaan caption admin; tamu memakai koneksi tanpa cookie
   async function kirimCaption(body, denganAuth) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (denganAuth !== false) {
-      headers.Authorization = headerAdmin.Authorization;
-    }
-    const respons = await fetch(dasar + '/api/admin/caption', {
+    const opsi = {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body || {}),
-    });
+    };
+    const respons =
+      denganAuth === false
+        ? await pembantu.mintaTanpaSesi('/api/admin/caption', opsi)
+        : await pembantu.minta('/api/admin/caption', opsi);
     return { status: respons.status, data: await bacaJson(respons) };
   }
 
@@ -437,9 +438,8 @@ async function jalankan() {
     dataForm.append('judul', foto.judul);
     dataForm.append('urutan', String(foto.urutan));
     dataForm.append('caption', captionUji);
-    const simpan = await fetch(dasar + '/api/media/' + foto.id, {
+    const simpan = await pembantu.minta('/api/media/' + foto.id, {
       method: 'PUT',
-      headers: { Authorization: headerAdmin.Authorization },
       body: dataForm,
     });
     lapor('caption dapat disimpan lewat PUT media', simpan.status === 200, 'status ' + simpan.status);
@@ -465,9 +465,10 @@ async function jalankan() {
       hero: video.hero,
     });
   } finally {
-    // Konfigurasi, koneksi, dan server selalu dipulihkan
+    // Konfigurasi, sesi uji, koneksi, dan server selalu dipulihkan
     Object.assign(gemini.konfigurasi, konfigurasiAwal);
     geminiService.setelUlang();
+    await pembantu.bersihkan();
     server.close();
   }
 }

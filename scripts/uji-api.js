@@ -4,17 +4,13 @@ const config = require('../config');
 const { pool } = require('../config/database');
 const mediaModel = require('../models/mediaModel');
 const { resolusiBerkasMedia, hapusBerkasBilaAda, folderFoto } = require('../utils/mediaBerkas');
+const { buatPembantu } = require('./bantuUji');
 
 // Alamat server lokal memakai PORT dari konfigurasi .env
 const alamatDasar = `http://127.0.0.1:${config.port}`;
 
-// Menyusun header Basic Auth dari konfigurasi admin tanpa mencetak kredensial
-function headerAdmin() {
-  const token = Buffer.from(
-    `${config.admin.user}:${config.admin.password}`
-  ).toString('base64');
-  return { Authorization: `Basic ${token}` };
-}
+// Pembantu login sesi dipakai seluruh permintaan yang membutuhkan admin
+const pembantu = buatPembantu(alamatDasar);
 
 // Menghitung jumlah langkah yang gagal
 let jumlahGagal = 0;
@@ -45,9 +41,9 @@ function lapor(nama, lulus, keterangan) {
   }
 }
 
-// Mengirim request dan membaca body JSON dengan aman
+// Mengirim request dengan cookie sesi dan membaca body JSON dengan aman
 async function minta(jalur, opsi) {
-  const respons = await fetch(alamatDasar + jalur, opsi || {});
+  const respons = await pembantu.minta(jalur, opsi);
   let data = null;
   try {
     data = await respons.json();
@@ -57,21 +53,30 @@ async function minta(jalur, opsi) {
   return { respons, data };
 }
 
-// Membuat opsi fetch untuk body JSON dengan kredensial admin
+// Mengirim request tanpa cookie untuk menguji akses tamu
+async function mintaTamu(jalur, opsi) {
+  const respons = await pembantu.mintaTanpaSesi(jalur, opsi);
+  let data = null;
+  try {
+    data = await respons.json();
+  } catch (galat) {
+    data = null;
+  }
+  return { respons, data };
+}
+
+// Membuat opsi fetch untuk body JSON; cookie ditambahkan oleh pembantu
 function opsiJson(method, body) {
   return {
     method,
-    headers: { 'Content-Type': 'application/json', ...headerAdmin() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   };
 }
 
 // Membuat opsi fetch untuk operasi tulis tanpa body
 function opsiAdmin(method) {
-  return {
-    method,
-    headers: headerAdmin(),
-  };
+  return { method };
 }
 
 // Menghitung jumlah baris produk langsung dari database
@@ -264,7 +269,6 @@ async function ujiMedia() {
   // Langkah media 1: POST foto PNG valid
   const post = await minta('/api/media', {
     method: 'POST',
-    headers: headerAdmin(),
     body: formDataMedia(
       { jenis: 'foto', judul: judulAwal, urutan: '7' },
       pngKecil,
@@ -295,7 +299,6 @@ async function ujiMedia() {
   const sebelumPalsu = jumlahBerkasGaleri();
   const palsu = await minta('/api/media', {
     method: 'POST',
-    headers: headerAdmin(),
     body: formDataMedia(
       { jenis: 'foto', judul: `Uji Palsu ${Date.now()}`, urutan: '1' },
       Buffer.from('ini bukan berkas gambar'),
@@ -312,9 +315,9 @@ async function ujiMedia() {
     `status ${palsu.respons.status}, tidak ada berkas tersisa`
   );
 
-  // Langkah media 3: POST tanpa kredensial harus ditolak sebelum unggah
+  // Langkah media 3: POST tanpa sesi harus ditolak sebelum unggah
   const sebelum401 = jumlahBerkasGaleri();
-  const post401 = await minta('/api/media', {
+  const post401 = await mintaTamu('/api/media', {
     method: 'POST',
     body: formDataMedia(
       { jenis: 'foto', judul: `Uji Tanpa Kredensial ${Date.now()}`, urutan: '1' },
@@ -325,8 +328,9 @@ async function ujiMedia() {
   });
   const sesudah401 = jumlahBerkasGaleri();
   lapor(
-    'POST /api/media menolak permintaan tanpa kredensial',
+    'POST /api/media menolak permintaan tanpa sesi',
     post401.respons.status === 401 &&
+      !post401.respons.headers.get('www-authenticate') &&
       sesudah401 === sebelum401 &&
       (await mediaModel.ambilSemua()).length === sesudahMedia,
     `status ${post401.respons.status}`
@@ -354,7 +358,6 @@ async function ujiMedia() {
   const judulBaru = `Uji Media Diubah ${Date.now()}`;
   const put = await minta(`/api/media/${idMediaUji}`, {
     method: 'PUT',
-    headers: headerAdmin(),
     body: formDataMedia({ judul: judulBaru, urutan: '2' }, null),
   });
   const barisPut = idMediaUji === null ? null : await mediaModel.ambilBerdasarkanId(idMediaUji);
@@ -374,7 +377,6 @@ async function ujiMedia() {
   const sebelumGanti = jumlahBerkasGaleri();
   const putGanti = await minta(`/api/media/${idMediaUji}`, {
     method: 'PUT',
-    headers: headerAdmin(),
     body: formDataMedia(
       { jenis: 'foto', judul: judulBaru, urutan: '3' },
       pngKecil,
@@ -409,7 +411,6 @@ async function ujiMedia() {
   // Langkah media 7: DELETE menghapus baris dan berkas
   const hapus = await minta(`/api/media/${idMediaUji}`, {
     method: 'DELETE',
-    headers: headerAdmin(),
   });
   const barisHapus = idMediaUji === null ? null : await mediaModel.ambilBerdasarkanId(idMediaUji);
   const lokasiHapus = berkasMediaUji ? resolusiBerkasMedia(berkasMediaUji) : null;
@@ -437,7 +438,6 @@ async function ujiMedia() {
   // Langkah media 8: DELETE id yang tidak ada mengembalikan 404
   const hapus404 = await minta('/api/media/99999999', {
     method: 'DELETE',
-    headers: headerAdmin(),
   });
   lapor(
     'DELETE /api/media/:id mengembalikan 404 untuk id tidak ada',
@@ -465,7 +465,6 @@ async function ujiHeroMedia() {
   // Langkah hero 1: POST foto dengan hero=true harus tersimpan true
   const postHero = await minta('/api/media', {
     method: 'POST',
-    headers: headerAdmin(),
     body: formDataMedia(
       { jenis: 'foto', judul: `Uji Hero ${Date.now()}`, urutan: '1', hero: 'true' },
       pngKecil,
@@ -492,7 +491,6 @@ async function ujiHeroMedia() {
   // Langkah hero 2: POST foto tanpa field hero harus bernilai false
   const postTanpaHero = await minta('/api/media', {
     method: 'POST',
-    headers: headerAdmin(),
     body: formDataMedia(
       { jenis: 'foto', judul: `Uji Tanpa Hero ${Date.now()}`, urutan: '1' },
       pngKecil,
@@ -523,7 +521,6 @@ async function ujiHeroMedia() {
   if (idTanpaHeroUji !== null) {
     const putHero = await minta(`/api/media/${idTanpaHeroUji}`, {
       method: 'PUT',
-      headers: headerAdmin(),
       body: formDataMedia(
         { judul: `Uji Tanpa Hero Diubah ${Date.now()}`, urutan: '2', hero: 'true' },
         null
@@ -549,7 +546,6 @@ async function ujiHeroMedia() {
   const sebelumVideo = (await mediaModel.ambilSemua('video')).length;
   const postVideo = await minta('/api/media', {
     method: 'POST',
-    headers: headerAdmin(),
     body: formDataMedia(
       { jenis: 'video', judul: `Uji Hero Video ${Date.now()}`, urutan: '1', hero: 'true' },
       mp4Kecil,
@@ -592,6 +588,9 @@ async function ujiHeroMedia() {
 
 // Menjalankan seluruh skenario pengujian
 async function jalankan() {
+  // Login sekali di awal agar seluruh operasi tulis memakai cookie sesi
+  await pembantu.login();
+
   // Langkah 1: membaca seluruh produk
   const semua = await minta('/api/produk');
   const jumlahDbAwal = await hitungBaris();
@@ -630,9 +629,9 @@ async function jalankan() {
     tersedia: true,
   };
 
-  // Langkah 1c: menolak POST tanpa header Authorization
+  // Langkah 1c: menolak POST tanpa sesi dan tanpa header WWW-Authenticate
   const sebelum401Post = await hitungBaris();
-  const post401 = await minta('/api/produk', {
+  const post401 = await mintaTamu('/api/produk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dataTolak),
@@ -641,42 +640,37 @@ async function jalankan() {
   const lulus401Post =
     post401.respons.status === 401 &&
     post401.data &&
-    post401.data.pesan === 'Autentikasi admin diperlukan' &&
-    (post401.respons.headers.get('www-authenticate') || '').includes(
-      'Basic realm="Admin Bura Bura Coffee"'
-    ) &&
+    post401.data.pesan === 'Login admin diperlukan' &&
+    !post401.respons.headers.get('www-authenticate') &&
     sesudah401Post === sebelum401Post;
   lapor(
-    'POST /api/produk menolak permintaan tanpa kredensial',
+    'POST /api/produk menolak permintaan tanpa sesi',
     lulus401Post,
     `status ${post401.respons.status}, DB tetap ${sesudah401Post} baris`
   );
 
-  // Langkah 1d: menolak POST dengan kredensial yang salah
-  const tokenSalah = Buffer.from('salah:salah').toString('base64');
+  // Langkah 1d: login dengan kredensial salah dibalas pesan yang sama
   const sebelum401Salah = await hitungBaris();
-  const postSalah = await minta('/api/produk', {
+  const postSalah = await mintaTamu('/api/admin/login', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Basic ${tokenSalah}`,
-    },
-    body: JSON.stringify(dataTolak),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'salah', password: 'salah' }),
   });
   const sesudah401Salah = await hitungBaris();
   const lulus401Salah =
     postSalah.respons.status === 401 &&
     postSalah.data &&
-    postSalah.data.pesan === 'Autentikasi admin diperlukan' &&
+    postSalah.data.pesan === 'Username atau password salah' &&
+    !postSalah.respons.headers.get('www-authenticate') &&
     sesudah401Salah === sebelum401Salah;
   lapor(
-    'POST /api/produk menolak kredensial salah',
+    'login admin menolak kredensial salah',
     lulus401Salah,
     `status ${postSalah.respons.status}, DB tetap ${sesudah401Salah} baris`
   );
 
-  // Langkah 1e: menolak PUT tanpa kredensial dan tidak mengubah data
-  const put401 = await minta(`/api/produk/${produkContoh.id}`, {
+  // Langkah 1e: menolak PUT tanpa sesi dan tidak mengubah data
+  const put401 = await mintaTamu(`/api/produk/${produkContoh.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dataTolak),
@@ -692,8 +686,8 @@ async function jalankan() {
     `status ${put401.respons.status}, data tidak berubah`
   );
 
-  // Langkah 1f: menolak DELETE tanpa kredensial dan tidak menghapus data
-  const hapus401 = await minta(`/api/produk/${produkContoh.id}`, {
+  // Langkah 1f: menolak DELETE tanpa sesi dan tidak menghapus data
+  const hapus401 = await mintaTamu(`/api/produk/${produkContoh.id}`, {
     method: 'DELETE',
   });
   const barisHapus401 = await bacaBaris(produkContoh.id);
@@ -901,6 +895,7 @@ jalankan()
   })
   .finally(async () => {
     await bersihkan();
+    await pembantu.bersihkan();
     await pool.end();
     console.log(`Ringkasan: ${jumlahGagal === 0 ? 'semua langkah PASS' : `${jumlahGagal} langkah FAIL`}`);
     process.exitCode = jumlahGagal === 0 ? 0 : 1;

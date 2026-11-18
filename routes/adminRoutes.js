@@ -1,11 +1,11 @@
 const express = require('express');
-const autentikasiAdmin = require('../middlewares/autentikasiAdmin');
+const wajibAdmin = require('../middlewares/wajibAdmin');
 const adminController = require('../controllers/adminController');
 
 const router = express.Router();
 
-// Seluruh halaman admin wajib melewati autentikasi Basic
-router.use(autentikasiAdmin);
+// Seluruh halaman admin wajib memiliki sesi login yang masih berlaku
+router.use(wajibAdmin);
 
 // Daftar menu dan form tambah produk
 router.get('/', adminController.daftar);

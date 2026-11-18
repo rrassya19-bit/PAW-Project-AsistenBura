@@ -12,7 +12,8 @@
     "media:impor": "node scripts/impor-media.js",
     "hero:saring": "node scripts/saring-hero.js",
     "uji": "node scripts/uji-api.js",
-    "uji:chat": "node scripts/uji-chat.js"
+    "uji:chat": "node scripts/uji-chat.js",
+    "uji:admin": "node scripts/uji-admin.js"
   },
   "repository": {
     "type": "git",

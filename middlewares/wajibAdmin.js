@@ -8,7 +8,7 @@ function alamatLogin(req) {
   return '/admin/login?next=' + encodeURIComponent(tujuan);
 }
 
-// Menolak permintaan yang belum terautentikasi tanpa header WWW-Authenticate
+// Menolak permintaan yang belum punya sesi admin yang sah
 function wajibAdmin(req, res, next) {
   const konfigurasi = periksaKonfigurasi();
 

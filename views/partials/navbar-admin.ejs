@@ -26,12 +26,16 @@
       </span>
     </a>
 
-    <%# Navigasi utama area admin menuju produk, foto, video, dan situs publik %>
+    <%# Navigasi utama area admin menuju menu, galeri, video, dan situs publik %>
     <nav class="primary-nav" aria-label="Navigasi admin">
-      <a class="nav-link" href="/admin"<%= tabSaatIni === 'produk' ? ' aria-current="true"' : '' %>>Produk</a>
-      <a class="nav-link" href="/admin/foto"<%= tabSaatIni === 'foto' ? ' aria-current="true"' : '' %>>Foto</a>
+      <a class="nav-link" href="/admin"<%= tabSaatIni === 'produk' ? ' aria-current="true"' : '' %>>Menu</a>
+      <a class="nav-link" href="/admin/foto"<%= tabSaatIni === 'foto' ? ' aria-current="true"' : '' %>>Galeri</a>
       <a class="nav-link" href="/admin/video"<%= tabSaatIni === 'video' ? ' aria-current="true"' : '' %>>Video</a>
       <a class="nav-link" href="/">Lihat Situs</a>
+      <%# Tombol keluar berupa form POST, bukan tautan GET %>
+      <form method="post" action="/admin/logout">
+        <button class="nav-link" type="submit" style="border:0; background:transparent; cursor:pointer;">Keluar</button>
+      </form>
     </nav>
 
     <%# Lencana dan navigasi seluler tetap terlihat pada layar kecil %>
@@ -40,10 +44,14 @@
       <details class="mobile-nav">
         <summary aria-label="Buka navigasi admin">Menu</summary>
         <nav aria-label="Navigasi admin seluler">
-          <a href="/admin"<%= tabSaatIni === 'produk' ? ' aria-current="true"' : '' %>>Produk</a>
-          <a href="/admin/foto"<%= tabSaatIni === 'foto' ? ' aria-current="true"' : '' %>>Foto</a>
+          <a href="/admin"<%= tabSaatIni === 'produk' ? ' aria-current="true"' : '' %>>Menu</a>
+          <a href="/admin/foto"<%= tabSaatIni === 'foto' ? ' aria-current="true"' : '' %>>Galeri</a>
           <a href="/admin/video"<%= tabSaatIni === 'video' ? ' aria-current="true"' : '' %>>Video</a>
           <a href="/">Lihat Situs</a>
+          <%# Tombol keluar juga tersedia pada navigasi seluler %>
+          <form method="post" action="/admin/logout">
+            <button type="submit" style="border:0; background:transparent; cursor:pointer; font:inherit; padding:11px 12px;">Keluar</button>
+          </form>
         </nav>
       </details>
     </div>

@@ -3,13 +3,14 @@ const express = require('express');
 const captionController = require('../controllers/captionController');
 const { validasiCaption } = require('../middlewares/validasiCaption');
 const { batasCaption } = require('../middlewares/batasLaju');
-const autentikasiAdmin = require('../middlewares/autentikasiAdmin');
+const wajibAdmin = require('../middlewares/wajibAdmin');
+const periksaAsal = require('../middlewares/periksaAsal');
 
 // Router khusus pembuatan caption
 const router = express.Router();
 
-// Wajib login admin, lalu dibatasi laju sebelum divalidasi dan diproses
-router.post('/caption', autentikasiAdmin, batasCaption, validasiCaption, captionController.buat);
+// Wajib sesi admin, asal permintaan diperiksa, lalu dibatasi laju sebelum diproses
+router.post('/caption', wajibAdmin, periksaAsal, batasCaption, validasiCaption, captionController.buat);
 
 // Ekspor router
 module.exports = router;
