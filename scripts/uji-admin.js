@@ -1,14 +1,25 @@
 // Skrip uji autentikasi dan kerangka admin berbasis sesi
 // Aplikasi dijalankan di dalam proses pada port acak dengan kredensial uji sementara
-process.env.ADMIN_USER = 'uji';
-process.env.ADMIN_PASSWORD = 'sandi-uji-12345';
-process.env.SESSION_SECRET = require('crypto').randomBytes(48).toString('hex');
+const modeAnak = process.env.UJI_ADMIN_ANAK === '1';
+
+// Proses induk memakai kredensial uji; proses anak menerima nilai dari induk
+if (!modeAnak) {
+  process.env.ADMIN_USER = 'uji';
+  process.env.ADMIN_PASSWORD = 'sandi-uji-12345';
+  process.env.SESSION_SECRET = require('crypto').randomBytes(48).toString('hex');
+}
+
+// Nilai uji disimpan agar pemindaian kebocoran tidak bergantung pada perubahan sementara
+const rahasiaUji = process.env.SESSION_SECRET || '';
+const sandiUji = process.env.ADMIN_PASSWORD || '';
 
 const crypto = require('crypto');
+const { spawnSync } = require('child_process');
 const app = require('../app');
 const config = require('../config');
 const { pool } = require('../config/database');
 const batasLogin = require('../middlewares/batasLogin');
+const { setelUlangLogKonfigurasi } = require('../utils/kredensialAdmin');
 const {
   buatPembantu,
   ambilSid,
@@ -472,42 +483,166 @@ async function jalankan() {
       `status ${setelahMulai.respons.status}`
     );
 
-    // ---------- 12. Konfigurasi belum siap ----------
-    const rahasiaAsli = config.session.secret;
-    const sandiAsli = config.admin.password;
+    // ---------- 12. Konfigurasi admin per variabel pada proses terpisah ----------
+    // Setiap kasus memuat ulang app di proses anak agar urutan baca variabel teruji
+    const envAwal = {
+      ADMIN_USER: process.env.ADMIN_USER,
+      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+      SESSION_SECRET: process.env.SESSION_SECRET,
+    };
 
-    config.session.secret = '';
-    const adminTanpaRahasia = await halaman('/admin', true);
-    const loginTanpaRahasia = await halaman('/admin/login', true);
-    lapor(
-      'tanpa SESSION_SECRET halaman admin dan login dibalas 503',
-      adminTanpaRahasia.respons.status === 503 &&
-        loginTanpaRahasia.respons.status === 503 &&
-        adminTanpaRahasia.teks.includes('Akses admin belum dikonfigurasi'),
-      `status ${adminTanpaRahasia.respons.status} dan ${loginTanpaRahasia.respons.status}`
-    );
-    config.session.secret = rahasiaAsli;
+    function jalankanProsesAnak(user, sandi, rahasia) {
+      const envAnak = {
+        ...process.env,
+        UJI_ADMIN_ANAK: '1',
+        ADMIN_USER: user,
+        ADMIN_PASSWORD: sandi,
+        SESSION_SECRET: rahasia,
+      };
+      const hasil = spawnSync(process.execPath, [__filename], {
+        env: envAnak,
+        encoding: 'utf8',
+        timeout: 30000,
+      });
+      const baris = String(hasil.stdout || '')
+        .split(/\r?\n/)
+        .find(function (nilai) {
+          return nilai.startsWith('HASIL_ANAK:');
+        });
+      if (!baris) {
+        return { gagalJalan: true, kode: hasil.status };
+      }
+      return JSON.parse(baris.slice('HASIL_ANAK:'.length));
+    }
 
-    config.admin.password = '';
-    const adminTanpaSandi = await halaman('/admin', true);
-    const loginTanpaSandi = await halaman('/admin/login', true);
+    function konfigurasiAnak(user, sandi, rahasia) {
+      return jalankanProsesAnak(user, sandi, rahasia);
+    }
+
+    const tanpaRahasiaAnak = konfigurasiAnak(envAwal.ADMIN_USER, envAwal.ADMIN_PASSWORD, '   ');
     lapor(
-      'tanpa ADMIN_PASSWORD halaman admin dan login dibalas 503',
-      adminTanpaSandi.respons.status === 503 && loginTanpaSandi.respons.status === 503,
-      `status ${adminTanpaSandi.respons.status} dan ${loginTanpaSandi.respons.status}`
+      'tanpa SESSION_SECRET proses baru membalas 503',
+      tanpaRahasiaAnak.status === 503,
+      `status ${tanpaRahasiaAnak.status}`
     );
-    config.admin.password = sandiAsli;
+    lapor(
+      'halaman 503 tidak memuat nama variabel, nilai, atau rahasia',
+      tanpaRahasiaAnak.status === 503 &&
+        tanpaRahasiaAnak.petunjuk === true &&
+        tanpaRahasiaAnak.memuatNamaVariabel === false &&
+        tanpaRahasiaAnak.memuatSandi === false &&
+        tanpaRahasiaAnak.memuatRahasia === false,
+      'pesan tetap umum dan memuat petunjuk pengelola'
+    );
+
+    const rahasiaPendekAnak = konfigurasiAnak(
+      envAwal.ADMIN_USER,
+      envAwal.ADMIN_PASSWORD,
+      'x'.repeat(31)
+    );
+    lapor(
+      'SESSION_SECRET 31 karakter pada proses baru dibalas 503',
+      rahasiaPendekAnak.status === 503,
+      `status ${rahasiaPendekAnak.status}`
+    );
+
+    const tanpaUserAnak = konfigurasiAnak('   ', envAwal.ADMIN_PASSWORD, envAwal.SESSION_SECRET);
+    lapor(
+      'tanpa ADMIN_USER pada proses baru dibalas 503',
+      tanpaUserAnak.status === 503,
+      `status ${tanpaUserAnak.status}`
+    );
+
+    const tanpaSandiAnak = konfigurasiAnak(envAwal.ADMIN_USER, '   ', envAwal.SESSION_SECRET);
+    lapor(
+      'tanpa ADMIN_PASSWORD pada proses baru dibalas 503',
+      tanpaSandiAnak.status === 503,
+      `status ${tanpaSandiAnak.status}`
+    );
+
+    const spasiAnak = konfigurasiAnak(
+      '  ' + envAwal.ADMIN_USER + '  ',
+      '  ' + envAwal.ADMIN_PASSWORD + '  ',
+      '  ' + envAwal.SESSION_SECRET + '  '
+    );
+    lapor(
+      'spasi di ujung nilai dibersihkan pada proses baru',
+      spasiAnak.status === 200 && spasiAnak.form === true,
+      `status ${spasiAnak.status}`
+    );
+
+    const kutipAnak = konfigurasiAnak(
+      '"' + envAwal.ADMIN_USER + '"',
+      '"' + envAwal.ADMIN_PASSWORD + '"',
+      '"' + envAwal.SESSION_SECRET + '"'
+    );
+    lapor(
+      'tanda kutip pembungkus diperlakukan seperti tanpa kutip',
+      kutipAnak.status === 200 && kutipAnak.form === true,
+      `status ${kutipAnak.status}`
+    );
+
+    const lengkapAnak = konfigurasiAnak(
+      envAwal.ADMIN_USER,
+      envAwal.ADMIN_PASSWORD,
+      envAwal.SESSION_SECRET
+    );
+    lapor(
+      'konfigurasi lengkap pada proses baru menampilkan form login',
+      lengkapAnak.status === 200 && lengkapAnak.form === true,
+      `status ${lengkapAnak.status}`
+    );
+
+    // Log terminal menyebut variabel bermasalah tetapi tidak pernah nilainya
+    process.env.ADMIN_USER = '   ';
+    process.env.ADMIN_PASSWORD = '   ';
+    process.env.SESSION_SECRET = '   ';
+    setelUlangLogKonfigurasi();
+    const logTertangkap = [];
+    const logAsli = console.log;
+    console.log = function () {
+      logTertangkap.push(Array.from(arguments).join(' '));
+    };
+    try {
+      await halaman('/admin', true);
+      await halaman('/admin/login', true);
+    } finally {
+      console.log = logAsli;
+      process.env.ADMIN_USER = envAwal.ADMIN_USER;
+      process.env.ADMIN_PASSWORD = envAwal.ADMIN_PASSWORD;
+      process.env.SESSION_SECRET = envAwal.SESSION_SECRET;
+    }
+
+    const teksLog = logTertangkap.join('\n');
+    const barisKonfigurasi = logTertangkap.filter(function (baris) {
+      return baris.includes('[admin] Konfigurasi belum siap');
+    });
+    lapor(
+      'log terminal menyebut ketiga variabel yang bermasalah',
+      teksLog.includes('ADMIN_USER') &&
+        teksLog.includes('ADMIN_PASSWORD') &&
+        teksLog.includes('SESSION_SECRET'),
+      'nama variabel tersedia untuk diagnosis'
+    );
+    lapor(
+      'log terminal tidak memuat nilai rahasia atau kata sandi',
+      !teksLog.includes(rahasiaUji) && !teksLog.includes(sandiUji),
+      'pemindaian keluaran konsol'
+    );
+    lapor(
+      'log konfigurasi dibatasi sekali per 60 detik',
+      barisKonfigurasi.length === 1,
+      `${barisKonfigurasi.length} baris untuk dua permintaan`
+    );
 
     const hidup = await mintaJson('/api/status', {}, true);
     lapor('server tetap hidup setelah konfigurasi dipulihkan', hidup.respons.status === 200, `status ${hidup.respons.status}`);
 
     // ---------- 13. Pemindaian kebocoran ----------
     const gabungan = catatanRespons.join('\n');
-    const rahasiaSesi = process.env.SESSION_SECRET;
-    const sandiUji = process.env.ADMIN_PASSWORD;
     lapor(
       'tidak ada password atau rahasia sesi pada respons',
-      !gabungan.includes(sandiUji) && !gabungan.includes(rahasiaSesi),
+      !gabungan.includes(sandiUji) && !gabungan.includes(rahasiaUji),
       'pemindaian teks dan header'
     );
   } finally {
@@ -521,14 +656,59 @@ async function jalankan() {
   }
 }
 
-// Menjalankan pengujian lalu menutup pool dan menentukan kode keluar
-jalankan()
-  .catch(function (galat) {
-    console.error('Uji gagal dijalankan:', galat.message);
-    jumlahGagal += 1;
-  })
-  .finally(async function () {
+// Proses anak memuat app dengan variabel lingkungan yang sudah ditentukan induk
+async function jalankanModeAnak() {
+  let server = null;
+  try {
+    server = await new Promise(function (selesai) {
+      const aktif = app.listen(0, function () {
+        selesai(aktif);
+      });
+    });
+    const dasar = 'http://127.0.0.1:' + server.address().port;
+    const respons = await fetch(dasar + '/admin/login', { redirect: 'manual' });
+    const teks = await respons.text();
+    const sandi = String(process.env.ADMIN_PASSWORD || '').trim();
+    const rahasia = String(process.env.SESSION_SECRET || '').trim();
+    const hasil = {
+      status: respons.status,
+      form:
+        teks.includes('action="/admin/login"') &&
+        teks.includes('name="username"') &&
+        teks.includes('name="password"'),
+      petunjuk: teks.includes('Hubungi pengelola situs.'),
+      memuatNamaVariabel:
+        teks.includes('ADMIN_USER') ||
+        teks.includes('ADMIN_PASSWORD') ||
+        teks.includes('SESSION_SECRET'),
+      memuatSandi: sandi.length > 0 && teks.includes(sandi),
+      memuatRahasia: rahasia.length > 0 && teks.includes(rahasia),
+    };
+    console.log('HASIL_ANAK:' + JSON.stringify(hasil));
+  } catch (galat) {
+    console.log('HASIL_ANAK:' + JSON.stringify({ gagalJalan: true }));
+  } finally {
+    if (server) {
+      await new Promise(function (selesai) {
+        server.close(selesai);
+      });
+    }
     await pool.end();
-    console.log(`Ringkasan: ${jumlahLulus} PASS, ${jumlahGagal} FAIL`);
-    process.exitCode = jumlahGagal === 0 ? 0 : 1;
-  });
+  }
+}
+
+// Proses induk menjalankan seluruh skenario; proses anak hanya melaporkan satu kasus
+if (modeAnak) {
+  jalankanModeAnak();
+} else {
+  jalankan()
+    .catch(function (galat) {
+      console.error('Uji gagal dijalankan:', galat.message);
+      jumlahGagal += 1;
+    })
+    .finally(async function () {
+      await pool.end();
+      console.log(`Ringkasan: ${jumlahLulus} PASS, ${jumlahGagal} FAIL`);
+      process.exitCode = jumlahGagal === 0 ? 0 : 1;
+    });
+}

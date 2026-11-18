@@ -1,6 +1,10 @@
 // Controller autentikasi admin: halaman login, login API, logout, dan status sesi
 const config = require('../config');
-const { cekKredensial, periksaKonfigurasi } = require('../utils/kredensialAdmin');
+const {
+  cekKredensial,
+  periksaKonfigurasi,
+  catatKonfigurasiBelumSiap,
+} = require('../utils/kredensialAdmin');
 const { sesiAdminAktif } = require('../utils/sesiAdmin');
 const batasLogin = require('../middlewares/batasLogin');
 
@@ -75,6 +79,7 @@ function buatSesiAdmin(req, username, selesai) {
 function halamanLogin(req, res) {
   const konfigurasi = periksaKonfigurasi();
   if (!konfigurasi.siap) {
+    catatKonfigurasiBelumSiap(req, konfigurasi);
     return res.status(503).render('admin/login', dataLogin({ belumDikonfigurasi: true }));
   }
 
@@ -95,6 +100,7 @@ function halamanLogin(req, res) {
 function masuk(req, res, next) {
   const konfigurasi = periksaKonfigurasi();
   if (!konfigurasi.siap) {
+    catatKonfigurasiBelumSiap(req, konfigurasi);
     return res.status(503).render('admin/login', dataLogin({ belumDikonfigurasi: true }));
   }
 
@@ -148,6 +154,7 @@ function keluar(req, res, next) {
 function masukApi(req, res, next) {
   const konfigurasi = periksaKonfigurasi();
   if (!konfigurasi.siap) {
+    catatKonfigurasiBelumSiap(req, konfigurasi);
     return res.status(503).json({ pesan: 'Akses admin belum dikonfigurasi' });
   }
 

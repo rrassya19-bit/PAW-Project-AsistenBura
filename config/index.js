@@ -2,6 +2,19 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true });
 
+// Membersihkan spasi dan tanda kutip pembungkus pada nilai lingkungan
+function nilaiBersih(nilai) {
+  let teks = typeof nilai === 'string' ? nilai.trim() : '';
+  if (teks.length >= 2) {
+    const awal = teks[0];
+    const akhir = teks[teks.length - 1];
+    if ((awal === '"' && akhir === '"') || (awal === "'" && akhir === "'")) {
+      teks = teks.slice(1, -1).trim();
+    }
+  }
+  return teks;
+}
+
 // Konfigurasi utama aplikasi
 const config = {
   appName: 'Asisten Bura',
@@ -22,12 +35,12 @@ const config = {
   },
   // Satu akun admin dari lingkungan; kosong berarti area admin belum dikonfigurasi
   admin: {
-    user: process.env.ADMIN_USER || '',
-    password: process.env.ADMIN_PASSWORD || '',
+    user: nilaiBersih(process.env.ADMIN_USER),
+    password: nilaiBersih(process.env.ADMIN_PASSWORD),
   },
   // Pengaturan sesi admin; rahasia pendek ditolak oleh pemeriksaan kesiapan
   session: {
-    secret: process.env.SESSION_SECRET || '',
+    secret: nilaiBersih(process.env.SESSION_SECRET),
     cookieSecure: process.env.COOKIE_SECURE === 'true',
     namaCookie: 'bura.sid',
     // Sesi menganggur berakhir setelah 30 menit

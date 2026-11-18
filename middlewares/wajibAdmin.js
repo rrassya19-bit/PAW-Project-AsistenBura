@@ -1,5 +1,5 @@
 // Pengaman area admin dan endpoint tulis berbasis sesi
-const { periksaKonfigurasi } = require('../utils/kredensialAdmin');
+const { periksaKonfigurasi, catatKonfigurasiBelumSiap } = require('../utils/kredensialAdmin');
 const { sesiAdminAktif } = require('../utils/sesiAdmin');
 
 // Menyusun alamat login dengan tujuan kembali yang aman
@@ -14,6 +14,8 @@ function wajibAdmin(req, res, next) {
 
   // Gagal tertutup: konfigurasi belum siap membuat seluruh akses admin ditolak
   if (!konfigurasi.siap) {
+    // Terminal menyebut variabel bermasalah, halaman tetap memakai pesan umum
+    catatKonfigurasiBelumSiap(req, konfigurasi);
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(503).json({ pesan: 'Akses admin belum dikonfigurasi' });
     }

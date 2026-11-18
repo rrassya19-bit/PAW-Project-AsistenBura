@@ -59,15 +59,19 @@ function jalankanServer() {
 
     // Menampilkan status sesi admin tanpa pernah mencetak kredensial atau rahasianya
     const statusAdmin = periksaKonfigurasi();
-    console.log(statusAdmin.siap ? 'Sesi admin: siap' : 'Sesi admin: BELUM dikonfigurasi');
-
-    // Peringatan hanya menyebut nama variabel yang belum siap, bukan nilainya
-    if (!statusAdmin.siap) {
-      console.log(`Peringatan: ${statusAdmin.alasan}`);
+    if (statusAdmin.siap) {
+      console.log('Sesi admin: siap');
+    } else {
+      // Nama variabel dan alasan aman dicetak, nilainya tidak pernah ikut
+      console.log(
+        `Sesi admin: BELUM dikonfigurasi -> ${statusAdmin.alasan}. ` +
+          'Periksa .env lalu mulai ulang server.'
+      );
+      console.log('Perubahan .env baru terbaca setelah server dimulai ulang.');
     }
 
     // Mengingatkan bila kata sandi admin terlalu pendek, tanpa menampilkan nilainya
-    if (config.admin.password && config.admin.password.length < 10) {
+    if (statusAdmin.sandiPendek) {
       console.log('Peringatan: ADMIN_PASSWORD kurang dari 10 karakter');
     }
 

@@ -31,6 +31,7 @@
     <% if (belumSiap) { %>
       <%# Server menolak login sampai akun dan rahasia sesi diatur %>
       <div class="auth-alert" role="alert">Akses admin belum dikonfigurasi</div>
+      <p class="auth-note">Hubungi pengelola situs.</p>
     <% } else { %>
       <% if (sudahKeluar) { %>
         <p class="auth-note" role="status">Kamu sudah keluar.</p>
