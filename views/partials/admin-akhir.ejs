@@ -1,0 +1,10 @@
+    </main>
+  </div>
+</div>
+<%# Skrip khusus halaman dimuat sebelum skrip navigasi sidebar %>
+<% if (typeof skrip !== 'undefined' && skrip) { %>
+  <%- include('scripts/' + skrip) %>
+<% } %>
+<%- include('scripts/admin-nav') %>
+</body>
+</html>

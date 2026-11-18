@@ -1,9 +1,5 @@
 <%# Halaman form: dipakai untuk tambah dan ubah produk %>
-<%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar-admin', { namaKafe, appName }) %>
-<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
-<main id="konten" class="shell pt-32 pb-24">
-  <%- include('../partials/admin-nav-media', { tabAktif }) %>
+<%- include('../partials/admin-awal', { judul, tabAktif }) %>
   <div class="max-w-3xl">
     <%# Tautan kecil kembali ke daftar produk %>
     <a class="crud-muted inline-flex items-center gap-2" href="/admin">
@@ -94,9 +90,5 @@
       </div>
     </form>
   </div>
-</main>
-<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
 <%# JavaScript sisi klien untuk mengirim form lewat fetch %>
-<%- include('../partials/scripts/produk') %>
-</body>
-</html>
+<%- include('../partials/admin-akhir', { skrip: 'produk' }) %>

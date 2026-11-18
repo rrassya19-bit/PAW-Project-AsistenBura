@@ -1,9 +1,5 @@
 <%# Halaman daftar produk: seluruh baris berasal dari database %>
-<%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar-admin', { namaKafe, appName }) %>
-<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
-<main id="konten" class="shell pt-32 pb-24">
-  <%- include('../partials/admin-nav-media', { tabAktif }) %>
+<%- include('../partials/admin-awal', { judul, tabAktif }) %>
   <%# Kepala halaman tanpa label hiasan: hanya judul, jumlah data, dan aksi %>
   <header class="max-w-3xl">
     <h1 class="section-head__title">Kelola menu Bura Bura.</h1>
@@ -11,7 +7,6 @@
     <p class="section-head__meta"><%= jumlahProduk %> produk tersimpan di database</p>
     <div class="mt-6 flex flex-wrap items-center gap-3">
       <a class="btn btn--primary" href="/admin/tambah">Tambah Menu</a>
-      <a class="btn btn--outline" href="/">Kembali ke beranda</a>
     </div>
   </header>
 
@@ -127,9 +122,5 @@
       <% }); %>
     </div>
   <% } %>
-</main>
-<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
 <%# JavaScript sisi klien untuk tombol hapus dan pesan sukses %>
-<%- include('../partials/scripts/produk') %>
-</body>
-</html>
+<%- include('../partials/admin-akhir', { skrip: 'produk' }) %>

@@ -1,0 +1,130 @@
+// Skrip navigasi sidebar admin: laci seluler, fokus, dan tombol Escape
+(function () {
+  // Elemen utama yang dikendalikan skrip ini
+  const layout = document.querySelector('[data-admin-layout]');
+  const sidebar = document.querySelector('[data-admin-sidebar]');
+  const toggle = document.querySelector('[data-admin-toggle]');
+  const scrim = document.querySelector('[data-admin-scrim]');
+  const tombolTutup = document.querySelector('[data-admin-tutup]');
+
+  // Hentikan skrip bila halaman bukan halaman admin berlayout sidebar
+  if (!layout || !sidebar || !toggle || !scrim) {
+    return;
+  }
+
+  // Media query menentukan apakah sidebar berperilaku sebagai laci
+  const mediaSempit = window.matchMedia('(max-width: 960px)');
+  let fokusTerakhir = null;
+
+  // Mengumpulkan tautan dan tombol yang dapat menerima fokus
+  function daftarFokus() {
+    return Array.from(sidebar.querySelectorAll('a[href], button:not([disabled])')).filter(function (elemen) {
+      return elemen.offsetParent !== null;
+    });
+  }
+
+  // Sidebar yang tertutup pada layar kecil tidak boleh menerima fokus
+  function aturInert() {
+    if (mediaSempit.matches) {
+      sidebar.inert = !layout.classList.contains('admin-layout--terbuka');
+    } else {
+      sidebar.inert = false;
+    }
+  }
+
+  // Membuka laci dan memindahkan fokus ke tautan pertama
+  function buka() {
+    if (!mediaSempit.matches) {
+      return;
+    }
+    fokusTerakhir = document.activeElement;
+    layout.classList.add('admin-layout--terbuka');
+    document.body.classList.add('admin-laci-terbuka');
+    toggle.setAttribute('aria-expanded', 'true');
+    scrim.hidden = false;
+    sidebar.inert = false;
+    const pertama = daftarFokus()[0];
+    if (pertama) {
+      pertama.focus();
+    }
+  }
+
+  // Menutup laci, mengembalikan gulir, dan memulihkan fokus bila diminta
+  function tutup(kembalikanFokus) {
+    if (!layout.classList.contains('admin-layout--terbuka')) {
+      return;
+    }
+    layout.classList.remove('admin-layout--terbuka');
+    document.body.classList.remove('admin-laci-terbuka');
+    toggle.setAttribute('aria-expanded', 'false');
+    scrim.hidden = true;
+    aturInert();
+    if (kembalikanFokus && fokusTerakhir && typeof fokusTerakhir.focus === 'function') {
+      fokusTerakhir.focus();
+    }
+  }
+
+  // Tombol bilah atas membuka atau menutup laci
+  toggle.addEventListener('click', function () {
+    if (layout.classList.contains('admin-layout--terbuka')) {
+      tutup(true);
+    } else {
+      buka();
+    }
+  });
+
+  // Tombol tutup di dalam sidebar dan lapisan gelap menutup laci
+  if (tombolTutup) {
+    tombolTutup.addEventListener('click', function () {
+      tutup(true);
+    });
+  }
+  scrim.addEventListener('click', function () {
+    tutup(true);
+  });
+
+  // Escape menutup laci; Tab berputar di dalam sidebar selama laci terbuka
+  document.addEventListener('keydown', function (peristiwa) {
+    const terbuka = layout.classList.contains('admin-layout--terbuka');
+    if (!terbuka) {
+      return;
+    }
+    if (peristiwa.key === 'Escape') {
+      peristiwa.preventDefault();
+      tutup(true);
+      return;
+    }
+    if (peristiwa.key !== 'Tab') {
+      return;
+    }
+    const fokus = daftarFokus();
+    if (fokus.length === 0) {
+      return;
+    }
+    const pertama = fokus[0];
+    const terakhir = fokus[fokus.length - 1];
+    if (peristiwa.shiftKey && document.activeElement === pertama) {
+      peristiwa.preventDefault();
+      terakhir.focus();
+    } else if (!peristiwa.shiftKey && document.activeElement === terakhir) {
+      peristiwa.preventDefault();
+      pertama.focus();
+    }
+  });
+
+  // Perubahan ukuran layar mengembalikan sidebar ke keadaan desktop
+  mediaSempit.addEventListener('change', function () {
+    if (!mediaSempit.matches) {
+      layout.classList.remove('admin-layout--terbuka');
+      document.body.classList.remove('admin-laci-terbuka');
+      scrim.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      sidebar.inert = false;
+    } else {
+      aturInert();
+    }
+  });
+
+  // Keadaan awal mengikuti lebar layar saat halaman dimuat
+  aturInert();
+})();

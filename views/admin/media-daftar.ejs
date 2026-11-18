@@ -1,14 +1,10 @@
 <%# Halaman daftar media admin: foto atau video yang tersimpan di database %>
-<%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar-admin', { namaKafe, appName, tabAktif }) %>
+<%- include('../partials/admin-awal', { judul, tabAktif }) %>
 <%
   // Alamat dasar dan label menyesuaikan jenis media halaman
   const alamatDaftar = '/admin/' + jenis;
   const labelJenis = jenis === 'foto' ? 'Foto' : 'Video';
 %>
-<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
-<main id="konten" class="shell pt-32 pb-24">
-  <%- include('../partials/admin-nav-media', { tabAktif }) %>
   <%# Kepala halaman tanpa label hiasan: hanya judul, jumlah data, dan aksi %>
   <header class="max-w-3xl">
     <h1 class="section-head__title">Kelola <%= jenis %> Bura Bura.</h1>
@@ -69,9 +65,5 @@
       <% }); %>
     </div>
   <% } %>
-</main>
-<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
 <%# JavaScript sisi klien untuk pesan dan tombol hapus media %>
-<%- include('../partials/scripts/media') %>
-</body>
-</html>
+<%- include('../partials/admin-akhir', { skrip: 'media' }) %>

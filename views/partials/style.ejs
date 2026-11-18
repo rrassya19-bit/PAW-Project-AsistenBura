@@ -2098,81 +2098,349 @@
   }
 }
 
-/* Pintasan navigasi media yang konsisten di seluruh halaman admin */
-.admin-nav {
+/* ---------- Layout admin dengan sidebar (Week 9) ---------- */
+
+/* Sidebar selebar 264px dan konten mengisi sisa lebar layar */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* Tautan lewati tersembunyi sampai menerima fokus papan ketik */
+.admin-skip {
+  position: absolute;
+  top: -80px;
+  left: 16px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--cobalt);
+  color: var(--white);
+  font-weight: 600;
+  transition: top 0.2s var(--ease);
+}
+
+.admin-skip:focus {
+  top: 16px;
+}
+
+/* Sidebar biru tua tetap menempel saat konten digulir */
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100vh;
+  padding: 20px 16px;
+  overflow-y: auto;
+  background: var(--navy);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.admin-sidebar__head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: fit-content;
-  max-width: 100%;
-  margin-bottom: 28px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--white);
-  box-shadow: 0 12px 30px -26px rgba(6, 14, 43, 0.5);
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.admin-nav__link {
+.admin-brand {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 16px;
-  border-radius: 999px;
-  color: var(--muted);
-  font-family: var(--body);
-  font-size: 0.78rem;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: background-color 0.2s, color 0.2s, transform 0.2s var(--ease);
+  gap: 10px;
+  min-width: 0;
+  color: var(--white);
+  font-family: var(--display);
 }
 
-.admin-nav__link svg {
-  width: 17px;
-  height: 17px;
+.admin-brand__mark {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.admin-brand__mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.admin-brand__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.admin-brand__name {
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.admin-brand__app {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Tombol tutup laci hanya ditampilkan pada layar kecil */
+.admin-sidebar__tutup {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--white);
+  cursor: pointer;
+}
+
+.admin-sidebar__tutup svg {
+  width: 20px;
+  height: 20px;
+}
+
+.admin-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-menu__label {
+  margin: 0 0 6px;
+  padding: 0 12px;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.admin-menu__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.admin-menu__link svg {
+  width: 19px;
+  height: 19px;
   flex: none;
 }
 
-.admin-nav__link:hover {
-  background: rgba(0, 47, 167, 0.06);
-  color: var(--cobalt);
-}
-
-.admin-nav__link[aria-current="page"] {
-  background: var(--cobalt);
+.admin-menu__link:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: var(--white);
 }
 
-.admin-nav__link[aria-current="page"]:hover {
+.admin-menu__link[aria-current="page"] {
   background: var(--cobalt-bright);
   color: var(--white);
 }
 
-.admin-nav__link:focus-visible {
-  outline: 2px solid var(--cobalt-bright);
+.admin-menu__link:focus-visible {
+  outline: 2px solid var(--white);
   outline-offset: 2px;
 }
 
-@media (max-width: 520px) {
-  .admin-nav {
-    width: 100%;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 16px;
+/* Kaki sidebar mendorong tautan situs dan tombol keluar ke bawah */
+.admin-sidebar__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-sidebar__foot form {
+  margin: 0;
+}
+
+.admin-keluar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--white);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.admin-keluar svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+
+.admin-keluar:hover {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.admin-keluar:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
+}
+
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Bilah atas setinggi 56px tetap terlihat saat halaman digulir */
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 clamp(16px, 3vw, 28px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(250, 249, 246, 0.94);
+}
+
+@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .admin-topbar {
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    background: rgba(250, 249, 246, 0.8);
+  }
+}
+
+.admin-topbar__toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--navy);
+  cursor: pointer;
+}
+
+.admin-topbar__toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.admin-topbar__judul {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-topbar__badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 47, 167, 0.1);
+  color: var(--cobalt);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-konten {
+  width: 100%;
+  max-width: 1180px;
+  padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 44px) 88px;
+}
+
+.admin-konten:focus {
+  outline: none;
+}
+
+/* Lapisan gelap hanya aktif saat laci terbuka pada layar kecil */
+.admin-scrim {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .admin-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-nav__link {
-    flex: 1;
-    min-height: 40px;
-    padding: 0 8px;
-    font-size: 0.74rem;
+  /* Sidebar berubah menjadi laci selebar 280px yang meluncur dari kiri */
+  .admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: 280px;
+    max-width: 86vw;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.28s var(--ease);
+    box-shadow: 0 30px 80px -40px rgba(6, 14, 43, 0.7);
   }
 
-  .admin-nav__link svg {
-    width: 16px;
-    height: 16px;
+  .admin-layout--terbuka .admin-sidebar {
+    transform: none;
+  }
+
+  .admin-sidebar__tutup {
+    display: inline-flex;
+  }
+
+  .admin-topbar__toggle {
+    display: inline-flex;
+  }
+
+  .admin-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: block;
+    background: rgba(6, 14, 43, 0.5);
+  }
+
+  .admin-scrim[hidden] {
+    display: none;
+  }
+
+  /* Gulir halaman dikunci selama laci terbuka */
+  .admin-laci-terbuka {
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar,
+  .admin-skip {
+    transition: none;
   }
 }
 

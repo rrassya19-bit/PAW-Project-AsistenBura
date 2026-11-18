@@ -1,15 +1,11 @@
 <%# Halaman form media: dipakai untuk tambah dan ubah foto atau video %>
-<%- include('../partials/head', { judul }) %>
-<%- include('../partials/navbar-admin', { namaKafe, appName, tabAktif }) %>
+<%- include('../partials/admin-awal', { judul, tabAktif }) %>
 <%
   // Alamat daftar, label, dan tipe berkas menyesuaikan jenis media
   const alamatDaftar = '/admin/' + jenis;
   const labelJenis = jenis === 'foto' ? 'Foto' : 'Video';
   const tipeBerkas = jenis === 'foto' ? 'image/jpeg,image/png,image/webp' : 'video/mp4,video/webm';
 %>
-<%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
-<main id="konten" class="shell pt-32 pb-24">
-  <%- include('../partials/admin-nav-media', { tabAktif }) %>
   <div class="max-w-3xl">
     <%# Tautan kembali ke daftar media %>
     <a class="crud-muted inline-flex items-center gap-2" href="<%= alamatDaftar %>">
@@ -126,9 +122,5 @@
       </div>
     </form>
   </div>
-</main>
-<%- include('../partials/footer', { namaKafe, appName, tagline, kontak }) %>
 <%# JavaScript sisi klien untuk unggah, pratinjau, dan kesalahan %>
-<%- include('../partials/scripts/media') %>
-</body>
-</html>
+<%- include('../partials/admin-akhir', { skrip: 'media' }) %>
