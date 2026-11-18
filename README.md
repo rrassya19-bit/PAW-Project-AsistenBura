@@ -1,6 +1,6 @@
 # PAW Project Asisten Bura
 
-Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Aplikasi Web. Beranda menampilkan menu dalam kartu berfoto yang dikelompokkan per kategori, ditambah pratinjau galeri dan video. Dokumentasi foto lengkap tersedia di `/galeri`, sedangkan seluruh video dengan kontrol pemutar tersedia di `/video`. Aplikasi menyediakan CRUD produk penuh melalui REST API dengan data yang tersimpan di PostgreSQL. Halaman pengelolaan produk berada di area admin terproteksi HTTP Basic Authentication dan memakai bahasa visual yang sama dengan beranda. Foto galeri dan video juga dikelola dari area admin, disimpan pada tabel `media`, dan disajikan dari berkas di folder `assets`.
+Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Aplikasi Web. Beranda menampilkan menu dalam kartu berfoto yang dikelompokkan per kategori, ditambah pratinjau galeri dan video. Dokumentasi foto lengkap tersedia di `/galeri`, sedangkan seluruh video dengan kontrol pemutar tersedia di `/video`. Aplikasi menyediakan CRUD produk penuh melalui REST API dengan data yang tersimpan di PostgreSQL. Halaman pengelolaan produk berada di area admin terproteksi login sesi dan memakai bahasa visual yang sama dengan beranda. Foto galeri dan video juga dikelola dari area admin, disimpan pada tabel `media`, dan disajikan dari berkas di folder `assets`.
 
 ## Teknologi
 
@@ -10,7 +10,7 @@ Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Apli
 - CSS utama hasil pemulihan desain Week 7 berada di partial `views/partials/style.ejs`
 - JavaScript sisi klien tanpa library berada di partial `views/partials/scripts/`
 - PostgreSQL dengan driver `pg` (node-postgres) memakai `Pool`, tanpa ORM
-- HTTP Basic Authentication untuk area admin, tanpa sesi dan tanpa tabel pengguna
+- Login admin berbasis sesi dengan `express-session`, cookie `bura.sid`, dan penyimpanan sesi PostgreSQL melalui `connect-pg-simple`
 - Arsitektur MVC
 
 ## Struktur Folder
@@ -18,14 +18,14 @@ Aplikasi web pengelolaan menu **Bura Bura Coffee** untuk tugas Pengembangan Apli
 ```
 config/        Konfigurasi aplikasi dan koneksi database (config/database.js)
 controllers/   Alur request dan response; tidak menulis query SQL
-middlewares/   Logger, validasi, autentikasi admin, notFound, dan errorHandler
+middlewares/   Logger, validasi, pengaman sesi admin, pembatas login, pemeriksa asal, notFound, dan errorHandler
 models/        Seluruh operasi dan query database
 routes/        Pemetaan endpoint ke controller, termasuk area /admin
 views/         Template EJS (partials, style.ejs, scripts/*.ejs, beranda, galeri, video, admin, 404, error)
 utils/         Fungsi bantu format rupiah, waktu, slug foto, inisial, dan pengelompokan kategori
 database/      Skema SQL, data awal, seed, dan migrasi
 assets/        Media galeri dan video di assets/galeri serta assets/video (tidak ikut Git), foto menu di assets/menu
-scripts/       Skrip pengisian foto dan uji API
+scripts/       Skrip pengisian foto serta pengujian API, chatbot, dan admin
 app.js         Titik masuk aplikasi
 ```
 
@@ -55,7 +55,7 @@ app.js         Titik masuk aplikasi
    Copy-Item .env.example .env
    ```
 
-   Variabel yang dipakai: `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `ADMIN_USER`, `ADMIN_PASSWORD`. Isi `ADMIN_USER` dan `ADMIN_PASSWORD` dengan akun admin pilihan Anda; jangan memakai nilai contoh di server nyata.
+   Variabel yang dipakai: `PORT`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `ADMIN_USER`, `ADMIN_PASSWORD`, `SESSION_SECRET`, dan `COOKIE_SECURE`. Isi `ADMIN_USER` dan `ADMIN_PASSWORD` dengan akun admin pilihan Anda; jangan memakai nilai contoh di server nyata. Kata sandi sebaiknya minimal 10 karakter. Isi `SESSION_SECRET` dengan teks acak minimal 32 karakter, misalnya hasil `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Biarkan `COOKIE_SECURE=false` untuk `http://localhost`; ubah menjadi `true` hanya bila situs disajikan melalui HTTPS.
 
    Untuk fitur AI, isi juga `GEMINI_API_KEY` dari Google AI Studio dan `GEMINI_MODEL` dengan nama model yang tersedia untuk kunci tersebut. Variabel opsional: `GEMINI_TIMEOUT_MS` (default 60000), `CHAT_BATAS_PER_MENIT` (10), `CHAT_BATAS_PER_HARI` (100), `CHAT_BATAS_GLOBAL_PER_HARI` (500), dan `CAPTION_BATAS_PER_MENIT` (10). Tanpa kunci dan model, aplikasi tetap berjalan; endpoint AI membalas `503` dan terminal mencetak `Gemini: BELUM dikonfigurasi`.
 
@@ -83,7 +83,7 @@ app.js         Titik masuk aplikasi
    npm run migrasi
    ```
 
-   Migrasi bersifat idempotent dan aman dijalankan berulang kali. Instalasi baru yang memakai `schema.sql` terbaru sudah memiliki kolom `foto`, tabel `media`, kolom `hero`, dan kolom `caption`, sehingga langkah ini hanya memastikan skema tetap mutakhir.
+   Migrasi bersifat idempotent dan aman dijalankan berulang kali. Instalasi baru yang memakai `schema.sql` terbaru sudah memiliki kolom `foto`, tabel `media`, kolom `hero`, kolom `caption`, dan tabel `sesi`, sehingga langkah ini hanya memastikan skema tetap mutakhir. Tabel `sesi` dibuat oleh `database/migrasi/005-buat-tabel-sesi.sql` dan wajib ada sebelum login admin dipakai.
 
 6. Daftarkan foto dan video lama yang sudah ada di folder `assets` ke tabel `media`:
 
@@ -107,7 +107,7 @@ app.js         Titik masuk aplikasi
    npm run dev
    ```
 
-   Server berjalan di `http://localhost:3000`. Terminal akan menampilkan `Akses admin: aktif` bila `ADMIN_USER` dan `ADMIN_PASSWORD` terisi, atau `Akses admin: BELUM dikonfigurasi` bila belum. Terminal juga menampilkan `Database terhubung` bila koneksi berhasil.
+   Server berjalan di `http://localhost:3000`. Terminal akan menampilkan `Sesi admin: siap` bila `ADMIN_USER`, `ADMIN_PASSWORD`, dan `SESSION_SECRET` sudah memenuhi syarat, atau `Sesi admin: BELUM dikonfigurasi` beserta nama variabel yang kurang. Terminal juga menampilkan `Database terhubung` bila koneksi berhasil.
 
 ## Halaman Publik
 
@@ -117,7 +117,7 @@ app.js         Titik masuk aplikasi
 | Galeri | `/galeri` | Seluruh foto dengan filter koleksi dan lightbox |
 | Video | `/video` | Seluruh video dengan kontrol pemutar, tanpa autoplay |
 
-Beranda hanya menampilkan 3–4 foto dan satu video sebagai pratinjau. Blok pratinjau disembunyikan bila tidak ada media. Navigasi Galeri dan Video selalu tersedia dari header serta footer.
+Beranda hanya menampilkan 3â€“4 foto dan satu video sebagai pratinjau. Blok pratinjau disembunyikan bila tidak ada media. Navigasi Galeri dan Video selalu tersedia dari header serta footer.
 
 ## Foto Menu
 
@@ -125,12 +125,12 @@ Setiap produk memiliki kolom `foto` opsional berisi path `/media/menu/...` atau 
 
 Nama berkas mengikuti slug nama produk:
 
-- `Espresso` → `espresso.jpg`
-- `Matcha` → `matcha.jpg`
-- `Filter (Seasonal)` → `filter-seasonal.jpg`
-- `ESP-19` → `esp-19.jpg`
-- `On The Rock` → `on-the-rock.jpg`
-- `Ready-To-Drink` → `ready-to-drink.jpg`
+- `Espresso` â†’ `espresso.jpg`
+- `Matcha` â†’ `matcha.jpg`
+- `Filter (Seasonal)` â†’ `filter-seasonal.jpg`
+- `ESP-19` â†’ `esp-19.jpg`
+- `On The Rock` â†’ `on-the-rock.jpg`
+- `Ready-To-Drink` â†’ `ready-to-drink.jpg`
 
 Slug dibuat dengan menghapus diakritik, mengubah huruf menjadi kecil, mengganti `&` menjadi `dan`, lalu mengganti karakter selain huruf dan angka menjadi tanda hubung.
 
@@ -151,7 +151,7 @@ Skrip mencetak jumlah foto yang terisi dan daftar produk yang dilewati beserta a
 Panduan berkas:
 
 - Format yang didukung: JPG, JPEG, PNG, WebP, dan AVIF.
-- Rasio kartu menu 4:3; ukuran 800×600 piksel sudah cukup.
+- Rasio kartu menu 4:3; ukuran 800Ã—600 piksel sudah cukup.
 - Kompres foto agar berada di bawah sekitar 300 KB.
 - Jangan menyimpan video besar di repositori; letakkan video di `assets/` hanya bila memang diperlukan.
 - Foto dimuat `lazy` kecuali kartu pertama, dan gambar yang gagal dimuat diganti placeholder inisial.
@@ -243,7 +243,7 @@ Tombol **Asisten Bura** muncul di beranda, `/galeri`, dan `/video`. Pertanyaan d
 
 Lapisan pengaman yang berjalan sebelum dan sesudah model:
 
-- Pesan wajib berupa teks 1–500 karakter.
+- Pesan wajib berupa teks 1â€“500 karakter.
 - Guardrail lokal menolak upaya mengubah aturan (prompt injection) dan topik yang jelas di luar kedai tanpa memanggil model.
 - Instruksi sistem bersifat tetap, memuat konteks dari database dan kode rahasia acak per proses.
 - Model tidak boleh menulis harga sendiri; ia harus memakai penanda `{harga:ID}` yang diganti server dengan harga terformat dari database.
@@ -256,7 +256,7 @@ Lapisan pengaman yang berjalan sebelum dan sesudah model:
 
 Pada form ubah foto atau video (`/admin/foto/:id/ubah`, `/admin/video/:id/ubah`) tersedia kolom **Caption** dan tombol **Buat caption dengan AI** beserta catatan opsional maksimal 200 karakter. Foto dikirim sebagai `inlineData` bila ukurannya maksimal 3 MB dan formatnya JPEG, PNG, atau WebP; video hanya memakai judul dan catatan.
 
-`POST /api/admin/caption` wajib memakai Basic Auth dan mengembalikan tepat tiga pilihan caption. Setiap caption disaring: maksimal 150 karakter, tanpa angka, harga, tautan, mention, atau hashtag selain `#BuraBuraCoffee` dan `#Yogyakarta`, serta tanpa klaim/superlatif seperti "terbaik", "promo", atau "dijamin". Caption yang lolos tetap harus disimpan manual lewat form; tidak ada penulisan otomatis ke database. Endpoint ini juga dibatasi 10 permintaan per menit per IP secara default.
+`POST /api/admin/caption` wajib memakai cookie sesi admin yang masih berlaku dan mengembalikan tepat tiga pilihan caption. Setiap caption disaring: maksimal 150 karakter, tanpa angka, harga, tautan, mention, atau hashtag selain `#BuraBuraCoffee` dan `#Yogyakarta`, serta tanpa klaim/superlatif seperti "terbaik", "promo", atau "dijamin". Caption yang lolos tetap harus disimpan manual lewat form; tidak ada penulisan otomatis ke database. Endpoint ini juga dibatasi 10 permintaan per menit per IP secara default.
 
 ### Endpoint AI
 
@@ -283,11 +283,10 @@ Contoh respons:
 }
 ```
 
-Contoh caption:
+Contoh caption memakai cookie hasil login (lihat [Akses Admin](#akses-admin)):
 
 ```powershell
-curl.exe -X POST http://localhost:3000/api/admin/caption `
-  -u admin:ganti_dengan_password_kuat `
+curl.exe -b cookie.txt -X POST http://localhost:3000/api/admin/caption `
   -H "Content-Type: application/json" `
   -d '{\"mediaId\":1,\"catatan\":\"suasana pagi\"}'
 ```
@@ -310,15 +309,51 @@ Halaman pengelolaan menu, foto, dan video hanya tersedia di area admin:
 | Tambah video | `/admin/video/tambah` |
 | Ubah video | `/admin/video/:id/ubah` |
 
-Area ini memakai HTTP Basic Authentication. Saat membuka `/admin`, peramban menampilkan dialog login; masukkan nilai `ADMIN_USER` sebagai nama pengguna dan `ADMIN_PASSWORD` sebagai kata sandi. Kredensial yang sama dipakai otomatis oleh form dan tombol hapus saat mengirim request ke API.
+Area ini memakai login berbasis sesi. Saat membuka `/admin` tanpa sesi, server mengalihkan ke `/admin/login?next=...`. Setelah username dan kata sandi benar, server membuat sesi di tabel `sesi` dan mengirim cookie `bura.sid` yang bersifat `HttpOnly` dan `SameSite=Lax`. Form dan tombol hapus di halaman admin memakai cookie tersebut secara otomatis; tidak ada lagi dialog kredensial peramban.
+
+Aturan sesi:
+
+- Sesi menganggur berakhir setelah 30 menit, tetapi diperpanjang selama pengguna aktif. Batas mutlaknya 8 jam sejak login.
+- Tombol **Keluar** di sidebar mengirim `POST /admin/logout`, menghapus baris sesi, dan mengembalikan pengguna ke halaman login.
+- Login yang gagal dibatasi 5 percobaan per 15 menit untuk setiap IP dan setiap username. Percobaan berikutnya dibalas `429` dengan header `Retry-After` dan pesan `Terlalu banyak percobaan. Coba lagi beberapa menit lagi.`. Login yang berhasil mereset hitungan username, bukan hitungan IP.
+- Semua respons halaman admin memakai `Cache-Control: no-store` agar tidak tersimpan di cache peramban bersama.
 
 Aturan akses:
 
-- `GET /api/status`, `GET /api/produk`, `GET /api/produk/:id`, `GET /api/media`, dan `GET /api/media/:id` tetap publik.
-- `POST`, `PUT`, dan `DELETE` pada `/api/produk` serta `/api/media` wajib menyertakan kredensial admin.
-- Tanpa kredensial atau dengan kredensial salah, server membalas `401` dan header `WWW-Authenticate`.
-- Bila `ADMIN_USER` atau `ADMIN_PASSWORD` kosong, server membalas `503` dengan pesan `Akses admin belum dikonfigurasi di server`.
-- Kata sandi admin sebaiknya minimal 8 karakter; server hanya mencetak peringatan bila lebih pendek, bukan menolak konfigurasi.
+- `GET /api/status`, `GET /api/produk`, `GET /api/produk/:id`, `GET /api/media`, `GET /api/media/:id`, dan `POST /api/chat` tetap publik.
+- `POST`, `PUT`, dan `DELETE` pada `/api/produk` serta `/api/media`, juga `POST /api/admin/caption`, wajib memakai sesi admin yang sah.
+- Tanpa sesi atau dengan sesi kedaluwarsa, endpoint JSON membalas `401` dengan pesan `Login admin diperlukan`; halaman admin dialihkan `302` ke halaman login.
+- Permintaan tulis yang jelas berasal dari situs lain (`Origin` berbeda atau `Sec-Fetch-Site: cross-site`) dibalas `403` dengan pesan `Permintaan ditolak`.
+- Bila `ADMIN_USER`, `ADMIN_PASSWORD`, atau `SESSION_SECRET` belum memenuhi syarat, seluruh akses admin dibalas `503` dengan pesan `Akses admin belum dikonfigurasi`.
+- Kata sandi admin sebaiknya minimal 10 karakter; server hanya mencetak peringatan bila lebih pendek, bukan menolak konfigurasi. `SESSION_SECRET` wajib minimal 32 karakter agar aplikasi dianggap siap.
+
+### Login dan logout lewat curl
+
+Login JSON menyimpan cookie ke `cookie.txt`. Ganti nilai contoh dengan kredensial pada `.env` Anda.
+
+```powershell
+curl.exe -s -c cookie.txt -X POST http://localhost:3000/api/admin/login `
+  -H "Content-Type: application/json" `
+  -d "{\"username\":\"admin\",\"password\":\"ganti_dengan_password_kuat\"}"
+```
+
+Setelah berhasil, response `200` berisi `{ "success": true, "data": { "username": "admin" } }` dan cookie `bura.sid` tersimpan di `cookie.txt`. Seluruh contoh endpoint tulis di bawah memakai `-b cookie.txt`.
+
+Periksa sesi yang sedang aktif dan akhiri sesi dengan perintah berikut:
+
+```powershell
+curl.exe -b cookie.txt http://localhost:3000/api/admin/sesi
+curl.exe -b cookie.txt -X POST http://localhost:3000/api/admin/logout
+```
+
+Halaman login juga menerima form biasa. Perintah ini memakai form URL-encoded dan menyimpan cookie yang sama:
+
+```powershell
+curl.exe -s -c cookie.txt -X POST http://localhost:3000/admin/login `
+  -d "username=admin&password=ganti_dengan_password_kuat&next=/admin"
+```
+
+Keterbatasan yang perlu diketahui: hanya ada satu akun admin dari variabel lingkungan, tanpa tabel pengguna, tanpa 2FA, dan tanpa pemulihan kata sandi. Pemeriksaan asal permintaan bukan pengganti token CSRF penuh; lapisan ini mengandalkan `SameSite=Lax` dan header `Origin`/`Sec-Fetch-Site` yang dikirim peramban modern. Pembatas login disimpan di memori proses, sehingga hitungan kembali ke nol saat server dimulai ulang dan tidak dibagi antar-proses.
 
 ## Endpoint REST
 
@@ -338,7 +373,7 @@ Aturan akses:
 | POST | `/api/chat` | Pertanyaan chatbot publik (JSON `pesan`) |
 | POST | `/api/admin/caption` | Tiga saran caption dari AI (wajib admin) |
 
-Endpoint tulis memakai header `Authorization: Basic ...`. Contoh di bawah memakai `-u` dari `curl.exe`; ganti `admin:ganti_dengan_password_kuat` dengan kredensial pada `.env` Anda.
+Endpoint tulis memakai cookie sesi dari login admin. Contoh di bawah memakai `-b cookie.txt` hasil langkah login di [Akses Admin](#akses-admin). Tanpa cookie yang sah, endpoint tulis membalas `401`.
 
 ### Contoh Request dan Response
 
@@ -396,7 +431,7 @@ Response `200` berisi satu objek produk seperti contoh di atas. Bila id tidak ad
 `POST /api/produk`
 
 ```powershell
-curl.exe -X POST http://localhost:3000/api/produk -u admin:ganti_dengan_password_kuat -H "Content-Type: application/json" -d "{\"nama\":\"Dirty Latte\",\"kategori\":\"Coffee Milk Based\",\"harga\":35000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Distilled Milk\",\"foto\":\"/media/menu/dirty-latte.jpg\",\"tersedia\":true}"
+curl.exe -X POST http://localhost:3000/api/produk -b cookie.txt -H "Content-Type: application/json" -d "{\"nama\":\"Dirty Latte\",\"kategori\":\"Coffee Milk Based\",\"harga\":35000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Distilled Milk\",\"foto\":\"/media/menu/dirty-latte.jpg\",\"tersedia\":true}"
 ```
 
 Response `201` berisi objek produk yang baru dibuat, termasuk `id`, `dibuatPada`, dan `diubahPada`.
@@ -404,7 +439,7 @@ Response `201` berisi objek produk yang baru dibuat, termasuk `id`, `dibuatPada`
 `PUT /api/produk/1`
 
 ```powershell
-curl.exe -X PUT http://localhost:3000/api/produk/1 -u admin:ganti_dengan_password_kuat -H "Content-Type: application/json" -d "{\"nama\":\"Boring Dirty Baru\",\"kategori\":\"Espresso & Filter Coffee\",\"harga\":46000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Special Distilled Milk\",\"foto\":\"/media/menu/boring-dirty.jpg\",\"tersedia\":true}"
+curl.exe -X PUT http://localhost:3000/api/produk/1 -b cookie.txt -H "Content-Type: application/json" -d "{\"nama\":\"Boring Dirty Baru\",\"kategori\":\"Espresso & Filter Coffee\",\"harga\":46000,\"hargaMaks\":null,\"deskripsi\":\"Ristretto & Special Distilled Milk\",\"foto\":\"/media/menu/boring-dirty.jpg\",\"tersedia\":true}"
 ```
 
 Response `200` berisi objek yang sudah diperbarui. Bila id tidak ada, response `404`.
@@ -412,7 +447,7 @@ Response `200` berisi objek yang sudah diperbarui. Bila id tidak ada, response `
 `DELETE /api/produk/1`
 
 ```powershell
-curl.exe -X DELETE http://localhost:3000/api/produk/1 -u admin:ganti_dengan_password_kuat
+curl.exe -X DELETE http://localhost:3000/api/produk/1 -b cookie.txt
 ```
 
 ```json
@@ -452,13 +487,13 @@ Aturan kolom `foto`:
 Respons autentikasi pada endpoint tulis:
 
 ```json
-{ "pesan": "Autentikasi admin diperlukan" }
+{ "pesan": "Login admin diperlukan" }
 ```
 
-Response di atas berstatus `401` bila kredensial tidak dikirim atau salah. Bila server belum memiliki `ADMIN_USER` atau `ADMIN_PASSWORD`, endpoint tulis membalas `503`:
+Response di atas berstatus `401` bila cookie sesi tidak dikirim, sudah keluar, atau sudah kedaluwarsa. Untuk login yang kredensialnya salah, endpoint `POST /api/admin/login` membalas `401` dengan pesan `Username atau password salah`; pesan ini sama baik username maupun kata sandinya keliru. Bila server belum memiliki konfigurasi admin yang lengkap, seluruh akses admin membalas `503`:
 
 ```json
-{ "pesan": "Akses admin belum dikonfigurasi di server" }
+{ "pesan": "Akses admin belum dikonfigurasi" }
 ```
 
 ### Contoh Endpoint Media
@@ -490,7 +525,7 @@ curl.exe "http://localhost:3000/api/media?jenis=foto"
 `POST /api/media` memakai `multipart/form-data` dengan field `jenis`, `judul`, `urutan`, `hero`, dan `berkas`:
 
 ```powershell
-curl.exe -X POST http://localhost:3000/api/media -u admin:ganti_dengan_password_kuat -F "jenis=foto" -F "judul=Sudut Mangkubumi" -F "urutan=1" -F "hero=true" -F "berkas=@C:\foto\sudut.jpg;type=image/jpeg"
+curl.exe -X POST http://localhost:3000/api/media -b cookie.txt -F "jenis=foto" -F "judul=Sudut Mangkubumi" -F "urutan=1" -F "hero=true" -F "berkas=@C:\foto\sudut.jpg;type=image/jpeg"
 ```
 
 Response `201` berisi objek media yang baru dibuat. Berkas disimpan server dengan nama aman di `assets/galeri` atau `assets/video`. Field `hero` menerima `true`, `on`, `1`, atau `false`, `0`, kosong; nilai lain dibalas `400`. Menandai video dengan `hero=true` juga dibalas `400` dengan pesan `hero hanya untuk foto`.
@@ -498,7 +533,7 @@ Response `201` berisi objek media yang baru dibuat. Berkas disimpan server denga
 `PUT /api/media/1` mengubah judul, urutan, dan status hero; field `berkas` opsional untuk mengganti berkas lama:
 
 ```powershell
-curl.exe -X PUT http://localhost:3000/api/media/1 -u admin:ganti_dengan_password_kuat -F "judul=Sudut Mangkubumi Baru" -F "urutan=2" -F "hero=false"
+curl.exe -X PUT http://localhost:3000/api/media/1 -b cookie.txt -F "judul=Sudut Mangkubumi Baru" -F "urutan=2" -F "hero=false"
 ```
 
 Bila berkas baru dikirim, berkas lama dihapus hanya setelah pembaruan database berhasil dan berkas lama tidak dirujuk data lain.
@@ -506,7 +541,7 @@ Bila berkas baru dikirim, berkas lama dihapus hanya setelah pembaruan database b
 `DELETE /api/media/1`
 
 ```powershell
-curl.exe -X DELETE http://localhost:3000/api/media/1 -u admin:ganti_dengan_password_kuat
+curl.exe -X DELETE http://localhost:3000/api/media/1 -b cookie.txt
 ```
 
 ```json
@@ -540,7 +575,7 @@ Berkas dengan ekstensi, mimetype, atau isi yang tidak cocok dibalas `400` dan be
 
 ### Uji otomatis API
 
-Jalankan server di satu terminal:
+Jalankan server di satu terminal dengan `.env` yang sudah berisi `ADMIN_USER`, `ADMIN_PASSWORD`, dan `SESSION_SECRET`:
 
 ```powershell
 npm run dev
@@ -552,7 +587,15 @@ Jalankan pengujian di terminal lain:
 npm run uji
 ```
 
-Skrip `scripts/uji-api.js` menguji seluruh endpoint CRUD, memeriksa langsung perubahan data ke database setelah setiap operasi, membersihkan data uji, dan mencetak `PASS`/`FAIL` beserta ringkasan. Skrip juga menguji penyimpanan foto valid, kolom foto kosong, URL `https://`, serta penolakan `javascript:` dan `../`. Untuk media, skrip menguji unggah foto PNG valid, penolakan berkas teks yang diganti nama menjadi `.jpg`, penolakan tanpa kredensial, pembacaan publik, perubahan judul dan urutan, penggantian berkas, penghapusan baris beserta berkas, dan `404` untuk id yang tidak ada. Semua data dan berkas uji dibersihkan di akhir. Penolakan `401` untuk operasi tulis tanpa kredensial atau dengan kredensial salah tetap diuji. Kredensial admin dibaca dari `.env` yang sama dengan server dan tidak pernah dicetak. Skrip keluar dengan kode 1 bila ada langkah yang gagal.
+Skrip `scripts/uji-api.js` login lebih dulu lewat `POST /api/admin/login`, menyimpan cookie sesi, lalu menguji seluruh endpoint CRUD. Skrip memeriksa langsung perubahan data ke database setelah setiap operasi, membersihkan data uji, dan mencetak `PASS`/`FAIL` beserta ringkasan. Skrip juga menguji penyimpanan foto valid, kolom foto kosong, URL `https://`, serta penolakan `javascript:` dan `../`. Untuk media, skrip menguji unggah foto PNG valid, penolakan berkas teks yang diganti nama menjadi `.jpg`, penolakan tanpa sesi, pembacaan publik, perubahan judul dan urutan, penggantian berkas, penghapusan baris beserta berkas, dan `404` untuk id yang tidak ada. Semua data dan berkas uji dibersihkan di akhir. Penolakan `401` untuk operasi tulis tanpa sesi dan pesan login yang salah tetap diuji. Kredensial admin dibaca dari `.env` yang sama dengan server dan tidak pernah dicetak. Skrip keluar dengan kode 1 bila ada langkah yang gagal.
+
+### Uji otomatis autentikasi admin
+
+```powershell
+npm run uji:admin
+```
+
+Skrip `scripts/uji-admin.js` menjalankan server di dalam proses pada port acak dan menguji: pengalihan halaman admin tanpa sesi, tampilan form login, pesan `401` yang sama untuk username atau kata sandi salah, batas 5 percobaan beserta `429` dan `Retry-After`, cookie `HttpOnly`/`SameSite=Lax`, regenerasi ID sesi setelah login, halaman admin beserta `Cache-Control: no-store`, penolakan API tulis tanpa sesi sementara GET publik dan chatbot tetap terbuka, CRUD dengan sesi, penolakan `Origin` asing dan `Sec-Fetch-Site: cross-site`, sanitasi parameter `next`, logout beserta penghapusan baris sesi, penolakan sesi kedaluwarsa dan sesi lebih dari 8 jam, respons `503` saat konfigurasi belum lengkap, serta pemindaian respons agar kata sandi dan `SESSION_SECRET` tidak bocor. Data dan sesi uji dibersihkan di akhir.
 
 ### Uji otomatis fitur AI
 
@@ -565,23 +608,23 @@ Skrip `scripts/uji-chat.js` menjalankan server di dalam proses pada port acak da
 ### Uji manual dengan Thunder Client atau Postman
 
 1. Jalankan `npm run dev`.
-2. Buat request `GET` ke `http://localhost:3000/api/produk` dan pastikan response `200` berisi array produk tanpa perlu kredensial.
+2. Buat request `GET` ke `http://localhost:3000/api/produk` dan pastikan response `200` berisi array produk tanpa perlu sesi.
 3. Buat request `GET` ke `http://localhost:3000/api/produk/1` dan pastikan response `200` berisi satu produk.
-4. Buat request `POST` ke `http://localhost:3000/api/produk` dengan body JSON berisi `nama`, `kategori`, `harga`, `hargaMaks`, `deskripsi`, `foto`, dan `tersedia`, serta Authorization tipe Basic berisi `ADMIN_USER` dan `ADMIN_PASSWORD`. Pastikan response `201`. Coba juga `foto` berisi `javascript:alert(1)` dan pastikan response `400`.
-5. Buat request `PUT` ke `http://localhost:3000/api/produk/<id>` dengan body JSON yang sudah diubah dan Authorization Basic yang sama. Pastikan response `200` dan nilainya berubah.
-6. Buat request `DELETE` ke `http://localhost:3000/api/produk/<id>` dengan Authorization Basic yang sama. Pastikan response `200`.
-7. Ulangi `GET` ke id yang baru dihapus dan pastikan response `404`.
-8. Kirim ulang `POST` tanpa Authorization dan pastikan response `401` berisi `Autentikasi admin diperlukan`.
+4. Buat request `POST` ke `http://localhost:3000/api/admin/login` dengan body JSON `{ "username": "...", "password": "..." }` sesuai `.env`. Pastikan response `200` dan cookie `bura.sid` tersimpan. Di Thunder Client atau Postman, cookie dari respons login disimpan otomatis dan dikirim pada request berikutnya.
+5. Buat request `POST` ke `http://localhost:3000/api/produk` dengan body JSON berisi `nama`, `kategori`, `harga`, `hargaMaks`, `deskripsi`, `foto`, dan `tersedia`. Pastikan response `201`. Coba juga `foto` berisi `javascript:alert(1)` dan pastikan response `400`.
+6. Buat request `PUT` ke `http://localhost:3000/api/produk/<id>` dengan body JSON yang sudah diubah. Pastikan response `200` dan nilainya berubah.
+7. Buat request `DELETE` ke `http://localhost:3000/api/produk/<id>` dan pastikan response `200`, lalu ulangi `GET` ke id tersebut dan pastikan response `404`.
+8. Buat request `POST` ke `http://localhost:3000/api/admin/logout`, lalu kirim ulang `POST` produk tanpa cookie dan pastikan response `401` berisi `Login admin diperlukan`. Coba juga login dengan kata sandi salah dan pastikan pesannya `Username atau password salah`.
 
 ### Uji manual frontend
 
 1. Buka `http://localhost:3000` dan pastikan hero, menu kartu berfoto, cerita, pratinjau galeri/video, serta informasi kunjungan tampil rapi. Menu dikelompokkan per kategori dan harga memakai format rupiah.
 2. Pastikan produk tanpa foto menampilkan placeholder inisial, produk habis diberi penanda, dan gambar yang gagal dimuat tidak menampilkan ikon rusak.
-3. Pastikan pratinjau galeri menampilkan 3–4 foto dan pratinjau video tidak berputar otomatis. Klik **Lihat semua foto** dan **Lihat video** untuk membuka halaman masing-masing.
+3. Pastikan pratinjau galeri menampilkan 3â€“4 foto dan pratinjau video tidak berputar otomatis. Klik **Lihat semua foto** dan **Lihat video** untuk membuka halaman masing-masing.
 4. Buka `http://localhost:3000/galeri`, coba filter koleksi, lalu klik foto untuk memastikan lightbox, tombol sebelumnya/berikutnya, dan tombol tutup bekerja.
 5. Buka `http://localhost:3000/video` dan pastikan setiap video memakai kontrol pemutar serta tidak autoplay.
 6. Pastikan navigasi publik dan hero tidak menampilkan tautan ke area pengelolaan.
-7. Buka `http://localhost:3000/admin`; peramban meminta kredensial Basic. Masukkan `ADMIN_USER` dan `ADMIN_PASSWORD` dari `.env`.
+7. Buka `http://localhost:3000/admin`; server mengalihkan ke halaman login. Masukkan `ADMIN_USER` dan `ADMIN_PASSWORD` dari `.env`. Pastikan sidebar tampil dengan menu **Menu Utama**, **Galeri Foto**, **Video**, tautan **Lihat situs**, dan tombol **Keluar**. Coba kata sandi salah terlebih dahulu dan pastikan pesannya tidak membedakan username atau kata sandi. Setelah masuk, pastikan tombol **Keluar** mengakhiri sesi dan mengembalikan ke halaman login. Perkecil jendela hingga lebar seluler, buka laci navigasi lewat tombol di bilah atas, lalu pastikan fokus berpindah ke sidebar, `Escape` menutup laci, dan halaman di belakang tidak ikut bergulir selama laci terbuka.
 8. Dari daftar menu admin, pastikan gambar mini atau placeholder inisial tampil. Klik **Tambah Menu**, isi form termasuk alamat foto, dan simpan. Pastikan pratinjau foto muncul dan produk baru tampil di daftar admin serta beranda.
 9. Klik **Ubah** pada salah satu produk, ubah nilainya, lalu simpan. Pastikan data terbaru, termasuk foto, tampil di daftar dan form ubah terisi dari database.
 10. Klik **Hapus**, setujui dialog konfirmasi, lalu pastikan produk hilang dari daftar dan beranda.
@@ -605,6 +648,9 @@ Skrip `scripts/uji-chat.js` menjalankan server di dalam proses pada port acak da
 - Folder `assets/` tetap diabaikan, kecuali `assets/menu/` yang disiapkan untuk foto menu. Berkas unggahan media di `assets/galeri` dan `assets/video` juga tidak ikut Git. Jangan menaruh berkas rahasia di folder tersebut.
 - Unggahan media diperiksa dari ekstensi, mimetype, dan tanda tangan byte awal. Nama berkas dibuat server, ukuran dibatasi, dan penghapusan berkas hanya dilakukan untuk path yang ter-resolve di folder media yang diizinkan serta tidak dirujuk data lain.
 - Gunakan `.env.example` sebagai contoh konfigurasi tanpa rahasia.
-- HTTP Basic Authentication mengirim kredensial pada setiap request; gunakan HTTPS saat aplikasi dipasang di server publik.
+- Login admin memakai sesi, bukan kredensial pada setiap request. Cookie `bura.sid` bersifat `HttpOnly` dan `SameSite=Lax`; setel `COOKIE_SECURE=true` dan pakai HTTPS saat aplikasi dipasang di server publik.
+- `SESSION_SECRET` minimal 32 karakter dan hanya disimpan di `.env`. Rahasia ini menandatangani cookie sesi; menggantinya membuat semua sesi lama tidak berlaku.
+- ID sesi dibuat ulang setelah login untuk mencegah session fixation, dan logout menghapus baris sesi dari tabel `sesi`.
 - Perbandingan kredensial admin memakai `crypto.timingSafeEqual` atas digest SHA-256 agar waktu pembandingan tidak membocorkan informasi.
+- Pembatas login dan pemeriksaan asal permintaan adalah lapisan pertahanan tambahan, bukan pengganti HTTPS, token CSRF penuh, atau manajemen pengguna yang lengkap.
 - Seluruh query memakai parameter `$1`, `$2`, dan seterusnya; tidak ada penggabungan string SQL dengan input pengguna.
