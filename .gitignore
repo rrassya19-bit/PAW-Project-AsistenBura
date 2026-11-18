@@ -6,3 +6,4 @@ node_modules/
 assets/*
 !assets/menu/
 !assets/menu/**
+.playwright-cli/

@@ -2098,6 +2098,84 @@
   }
 }
 
+/* Pintasan navigasi media yang konsisten di seluruh halaman admin */
+.admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 28px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: 0 12px 30px -26px rgba(6, 14, 43, 0.5);
+}
+
+.admin-nav__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-family: var(--body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s var(--ease);
+}
+
+.admin-nav__link svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
+.admin-nav__link:hover {
+  background: rgba(0, 47, 167, 0.06);
+  color: var(--cobalt);
+}
+
+.admin-nav__link[aria-current="page"] {
+  background: var(--cobalt);
+  color: var(--white);
+}
+
+.admin-nav__link[aria-current="page"]:hover {
+  background: var(--cobalt-bright);
+  color: var(--white);
+}
+
+.admin-nav__link:focus-visible {
+  outline: 2px solid var(--cobalt-bright);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .admin-nav {
+    width: 100%;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 16px;
+  }
+
+  .admin-nav__link {
+    flex: 1;
+    min-height: 40px;
+    padding: 0 8px;
+    font-size: 0.74rem;
+  }
+
+  .admin-nav__link svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 /* Kartu pembungkus tabel dan form admin */
 .crud-card {
   overflow: hidden;

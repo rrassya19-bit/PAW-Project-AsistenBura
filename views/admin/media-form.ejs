@@ -9,6 +9,7 @@
 %>
 <%# Wadah utama memakai lebar shell dan jarak atas untuk header tetap %>
 <main id="konten" class="shell pt-32 pb-24">
+  <%- include('../partials/admin-nav-media', { tabAktif }) %>
   <div class="max-w-3xl">
     <%# Tautan kembali ke daftar media %>
     <a class="crud-muted inline-flex items-center gap-2" href="<%= alamatDaftar %>">

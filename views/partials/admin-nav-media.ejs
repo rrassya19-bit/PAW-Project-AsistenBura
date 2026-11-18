@@ -1,0 +1,22 @@
+<%
+  // Tab aktif dipakai untuk menandai halaman media yang sedang dibuka
+  const tabAdmin = typeof tabAktif !== 'undefined' ? tabAktif : 'produk';
+%>
+<%# Pintasan pengelolaan galeri dan video yang tampil di seluruh halaman admin %>
+<nav class="admin-nav" aria-label="Navigasi pengelolaan galeri dan video">
+  <a class="admin-nav__link" href="/admin/foto"<% if (tabAdmin === 'foto') { %> aria-current="page"<% } %>>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.6" />
+      <circle cx="9" cy="10" r="1.5" fill="currentColor" />
+      <path d="m5.5 16 4.2-4.2 3.1 3.1 2.4-2.4 3.3 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <span>Kelola Galeri</span>
+  </a>
+  <a class="admin-nav__link" href="/admin/video"<% if (tabAdmin === 'video') { %> aria-current="page"<% } %>>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6" />
+      <path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z" fill="currentColor" />
+    </svg>
+    <span>Kelola Video</span>
+  </a>
+</nav>
