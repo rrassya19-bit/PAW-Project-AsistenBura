@@ -7,6 +7,8 @@ const config = require('./config');
 const gemini = require('./config/gemini');
 const { pool, cekKoneksi } = require('./config/database');
 const routes = require('./routes');
+const { sessionMiddleware } = require('./config/session');
+const { periksaKonfigurasi } = require('./utils/kredensialAdmin');
 const requestLogger = require('./middlewares/requestLogger');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
@@ -30,6 +32,9 @@ app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Sesi admin dipasang sebelum route agar seluruh endpoint dapat membacanya
+app.use(sessionMiddleware);
+
 // Menyediakan nama kedai untuk seluruh template EJS
 app.use((req, res, next) => {
   res.locals.namaKafe = config.namaKafe;
@@ -52,13 +57,18 @@ function jalankanServer() {
     // Alamat server dicetak tanpa nilai rahasia apa pun
     console.log(`Server berjalan di http://localhost:${config.port}`);
 
-    // Menampilkan status konfigurasi admin tanpa pernah mencetak kredensialnya
-    const adminSiap = Boolean(config.admin.user && config.admin.password);
-    console.log(adminSiap ? 'Akses admin: aktif' : 'Akses admin: BELUM dikonfigurasi');
+    // Menampilkan status sesi admin tanpa pernah mencetak kredensial atau rahasianya
+    const statusAdmin = periksaKonfigurasi();
+    console.log(statusAdmin.siap ? 'Sesi admin: siap' : 'Sesi admin: BELUM dikonfigurasi');
+
+    // Peringatan hanya menyebut nama variabel yang belum siap, bukan nilainya
+    if (!statusAdmin.siap) {
+      console.log(`Peringatan: ${statusAdmin.alasan}`);
+    }
 
     // Mengingatkan bila kata sandi admin terlalu pendek, tanpa menampilkan nilainya
-    if (config.admin.password && config.admin.password.length < 8) {
-      console.log('Peringatan: ADMIN_PASSWORD kurang dari 8 karakter');
+    if (config.admin.password && config.admin.password.length < 10) {
+      console.log('Peringatan: ADMIN_PASSWORD kurang dari 10 karakter');
     }
 
     // Status Gemini hanya menyebut siap atau belum, tanpa mencetak kunci

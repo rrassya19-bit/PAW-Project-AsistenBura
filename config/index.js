@@ -20,10 +20,20 @@ const config = {
     password: process.env.DB_PASSWORD || '',
     name: process.env.DB_NAME || 'bura_db',
   },
-  // Akun admin untuk HTTP Basic Authentication; kosong berarti belum dikonfigurasi
+  // Satu akun admin dari lingkungan; kosong berarti area admin belum dikonfigurasi
   admin: {
     user: process.env.ADMIN_USER || '',
     password: process.env.ADMIN_PASSWORD || '',
+  },
+  // Pengaturan sesi admin; rahasia pendek ditolak oleh pemeriksaan kesiapan
+  session: {
+    secret: process.env.SESSION_SECRET || '',
+    cookieSecure: process.env.COOKIE_SECURE === 'true',
+    namaCookie: 'bura.sid',
+    // Sesi menganggur berakhir setelah 30 menit
+    masaIdleMs: 30 * 60 * 1000,
+    // Batas mutlak sesi adalah 8 jam sejak login
+    masaMaksimalMs: 8 * 60 * 60 * 1000,
   },
   // Batas ukuran unggahan media dalam megabyte dengan nilai default aman
   unggah: {
