@@ -21,6 +21,9 @@ router.get('/video', adminController.daftarVideo);
 router.get('/video/tambah', adminController.formTambahVideo);
 router.get('/video/:id/ubah', adminController.formUbahVideo);
 
+// Halaman khusus admin untuk membuat caption media dengan AI
+router.get('/caption', adminController.halamanCaption);
+
 // Form ubah produk diletakkan terakhir agar tidak menutupi rute media
 router.get('/:id/ubah', adminController.formUbah);
 

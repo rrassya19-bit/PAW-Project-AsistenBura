@@ -215,6 +215,7 @@ Rotasi beranda memakai dua lapisan gambar. Foto lama memudar ke warna dasar biru
 | Daftar video | `/admin/video` |
 | Tambah video | `/admin/video/tambah` |
 | Ubah video | `/admin/video/:id/ubah` |
+| AI caption | `/admin/caption` |
 
 Daftar menampilkan kartu dengan thumbnail foto atau elemen video kecil tanpa autoplay, judul, urutan, serta tombol Ubah dan Hapus. Form tambah meminta judul, urutan, dan berkas dengan pratinjau. Form ubah menampilkan berkas saat ini dan menerima berkas baru secara opsional.
 
@@ -254,9 +255,9 @@ Lapisan pengaman yang berjalan sebelum dan sesudah model:
 
 ### Pembuat caption admin
 
-Pada form ubah foto atau video (`/admin/foto/:id/ubah`, `/admin/video/:id/ubah`) tersedia kolom **Caption** dan tombol **Buat caption dengan AI** beserta catatan opsional maksimal 200 karakter. Foto dikirim sebagai `inlineData` bila ukurannya maksimal 3 MB dan formatnya JPEG, PNG, atau WebP; video hanya memakai judul dan catatan.
+Caption dapat dibuat dari halaman khusus admin `/admin/caption` atau langsung pada form ubah foto/video (`/admin/foto/:id/ubah`, `/admin/video/:id/ubah`). Halaman tersebut menampilkan seluruh foto dan video, menerima catatan opsional maksimal 200 karakter, serta menyediakan tombol Simpan caption. Foto dikirim sebagai `inlineData` bila ukurannya maksimal 3 MB dan formatnya JPEG, PNG, atau WebP; video hanya memakai judul dan catatan.
 
-`POST /api/admin/caption` wajib memakai cookie sesi admin yang masih berlaku dan mengembalikan tepat tiga pilihan caption. Setiap caption disaring: maksimal 150 karakter, tanpa angka, harga, tautan, mention, atau hashtag selain `#BuraBuraCoffee` dan `#Yogyakarta`, serta tanpa klaim/superlatif seperti "terbaik", "promo", atau "dijamin". Caption yang lolos tetap harus disimpan manual lewat form; tidak ada penulisan otomatis ke database. Endpoint ini juga dibatasi 10 permintaan per menit per IP secara default.
+`POST /api/admin/caption` wajib memakai cookie sesi admin yang masih berlaku dan mengembalikan tepat tiga pilihan caption. Setiap caption disaring: maksimal 150 karakter, tanpa angka, harga, tautan, mention, atau hashtag selain `#BuraBuraCoffee` dan `#Yogyakarta`, serta tanpa klaim/superlatif seperti "terbaik", "promo", atau "dijamin". Caption yang lolos tetap harus disimpan manual lewat tombol Simpan caption atau form; tidak ada penulisan otomatis ke database. Endpoint ini juga dibatasi 10 permintaan per menit per IP secara default.
 
 ### Endpoint AI
 
@@ -308,6 +309,7 @@ Halaman pengelolaan menu, foto, dan video hanya tersedia di area admin:
 | Daftar video | `/admin/video` |
 | Tambah video | `/admin/video/tambah` |
 | Ubah video | `/admin/video/:id/ubah` |
+| AI caption | `/admin/caption` |
 
 Area ini memakai login berbasis sesi. Saat membuka `/admin` tanpa sesi, server mengalihkan ke `/admin/login?next=...`. Setelah username dan kata sandi benar, server membuat sesi di tabel `sesi` dan mengirim cookie `bura.sid` yang bersifat `HttpOnly` dan `SameSite=Lax`. Form dan tombol hapus di halaman admin memakai cookie tersebut secara otomatis; tidak ada lagi dialog kredensial peramban.
 

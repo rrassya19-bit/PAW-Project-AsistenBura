@@ -195,6 +195,28 @@ function formUbahVideo(req, res, next) {
   return formUbahMedia(req, res, next, 'video');
 }
 
+// GET /admin/caption -> halaman khusus admin untuk membuat caption media
+async function halamanCaption(req, res, next) {
+  try {
+    // Foto dan video diambil bersamaan agar halaman dapat menampilkan keduanya
+    const [daftarFoto, daftarVideo] = await Promise.all([
+      mediaModel.ambilSemua('foto'),
+      mediaModel.ambilSemua('video'),
+    ]);
+
+    return res.render('admin/caption', {
+      judul: 'AI Caption',
+      halaman: 'admin',
+      tabAktif: 'caption',
+      ...konteksHalaman(),
+      daftarFoto,
+      daftarVideo,
+    });
+  } catch (galat) {
+    return next(galat);
+  }
+}
+
 module.exports = {
   daftar,
   formTambah,
@@ -205,4 +227,5 @@ module.exports = {
   formTambahVideo,
   formUbahFoto,
   formUbahVideo,
+  halamanCaption,
 };

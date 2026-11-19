@@ -147,7 +147,7 @@ async function jalankan() {
 
   try {
     // ---------- 1. Halaman admin tanpa sesi ----------
-    for (const jalur of ['/admin', '/admin/foto', '/admin/video', '/admin/foto/tambah']) {
+    for (const jalur of ['/admin', '/admin/foto', '/admin/video', '/admin/foto/tambah', '/admin/caption']) {
       const hasil = await halaman(jalur, true);
       const lokasi = hasil.respons.headers.get('location') || '';
       lapor(
@@ -257,9 +257,23 @@ async function jalankan() {
       `status ${adminMasuk.respons.status}`
     );
     lapor(
+      'skrip navigasi sidebar dimuat di dalam elemen script',
+      /<script>\s*\/\/ Skrip navigasi sidebar admin/.test(judulAdmin),
+      'tidak tampil sebagai teks halaman'
+    );
+    lapor(
       'respons halaman admin memakai Cache-Control no-store',
       String(adminMasuk.respons.headers.get('cache-control') || '').includes('no-store'),
       `Cache-Control ${adminMasuk.respons.headers.get('cache-control')}`
+    );
+
+    const captionMasuk = await halaman('/admin/caption', false);
+    lapor(
+      'GET /admin/caption dengan sesi menampilkan halaman AI caption',
+      captionMasuk.respons.status === 200 &&
+        captionMasuk.teks.includes('Buat caption untuk galeri.') &&
+        captionMasuk.teks.includes('href="/admin/caption"'),
+      `status ${captionMasuk.respons.status}`
     );
 
     const loginSaatMasuk = await halaman('/admin/login', false);

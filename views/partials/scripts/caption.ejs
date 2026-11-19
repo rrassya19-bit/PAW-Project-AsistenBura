@@ -1,0 +1,194 @@
+<script>
+// Skrip halaman AI caption: membuat saran, memilih caption, dan menyimpannya
+(function () {
+  // Membaca JSON dengan aman bila server tidak mengirim body JSON
+  async function bacaJsonCaption(respons) {
+    try {
+      return await respons.json();
+    } catch (galat) {
+      return {};
+    }
+  }
+
+  // Menyusun pesan kesalahan dari body API atau pesan cadangan
+  function pesanGalatCaption(data, cadangan) {
+    let pesan = data && typeof data.pesan === 'string' && data.pesan ? data.pesan : cadangan;
+    if (data && Array.isArray(data.kesalahan) && data.kesalahan.length > 0) {
+      pesan += ' ' + data.kesalahan.join('. ');
+    }
+    return pesan;
+  }
+
+  // Menampilkan status pada kartu tanpa menyisipkan HTML dari model
+  function tampilkanStatusCaption(kotak, teks, galat) {
+    if (!kotak) {
+      return;
+    }
+    kotak.textContent = teks;
+    kotak.classList.remove('hidden');
+    kotak.classList.toggle('caption-saran__info--galat', Boolean(galat));
+  }
+
+  // Menyembunyikan status setelah proses berhasil
+  function sembunyikanStatusCaption(kotak) {
+    if (!kotak) {
+      return;
+    }
+    kotak.textContent = '';
+    kotak.classList.add('hidden');
+    kotak.classList.remove('caption-saran__info--galat');
+  }
+
+  // Membersihkan hasil lama sebelum permintaan baru
+  function kosongkanHasilCaption(wadah) {
+    if (!wadah) {
+      return;
+    }
+    wadah.replaceChildren();
+    wadah.classList.add('hidden');
+  }
+
+  // Menampilkan tiga saran caption sebagai tombol pilihan
+  function tampilkanSaranCaption(wadah, daftar, area, status) {
+    const judul = document.createElement('p');
+    judul.className = 'caption-saran__info';
+    judul.textContent = 'Pilih salah satu caption, lalu edit bila perlu:';
+    wadah.appendChild(judul);
+
+    daftar.forEach(function (teks) {
+      const pilihan = document.createElement('button');
+      pilihan.type = 'button';
+      pilihan.className = 'caption-saran__pilihan';
+      pilihan.textContent = teks;
+
+      pilihan.addEventListener('click', function () {
+        area.value = teks;
+        area.focus();
+        wadah.querySelectorAll('.caption-saran__pilihan').forEach(function (lain) {
+          lain.classList.remove('caption-saran__pilihan--aktif');
+        });
+        pilihan.classList.add('caption-saran__pilihan--aktif');
+        tampilkanStatusCaption(status, 'Caption dipilih. Klik Simpan caption untuk menyimpan.', false);
+      });
+
+      wadah.appendChild(pilihan);
+    });
+
+    wadah.classList.remove('hidden');
+  }
+
+  // Meminta tiga saran caption dari API admin yang sudah ada
+  async function mintaCaption(kartu) {
+    const tombol = kartu.querySelector('[data-caption-ai]');
+    const area = kartu.querySelector('[data-caption-area]');
+    const catatan = kartu.querySelector('[data-caption-catatan]');
+    const status = kartu.querySelector('[data-caption-status]');
+    const wadah = kartu.querySelector('[data-caption-hasil]');
+
+    if (!tombol || !area || !status || !wadah) {
+      return;
+    }
+
+    const teksAsli = tombol.textContent;
+    tombol.disabled = true;
+    tombol.textContent = 'Membuat...';
+    kosongkanHasilCaption(wadah);
+    tampilkanStatusCaption(status, 'Membuat tiga pilihan caption...', false);
+
+    try {
+      const respons = await fetch('/api/admin/caption', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mediaId: Number(kartu.dataset.id),
+          catatan: catatan ? catatan.value.trim() : '',
+        }),
+      });
+      const hasil = await bacaJsonCaption(respons);
+
+      if (!respons.ok) {
+        tampilkanStatusCaption(status, pesanGalatCaption(hasil, 'Gagal membuat caption.'), true);
+        return;
+      }
+
+      const daftar = Array.isArray(hasil.caption) ? hasil.caption : [];
+      if (daftar.length === 0) {
+        tampilkanStatusCaption(status, 'Tidak ada caption yang dapat dipakai.', true);
+        return;
+      }
+
+      sembunyikanStatusCaption(status);
+      tampilkanSaranCaption(wadah, daftar, area, status);
+    } catch (galat) {
+      tampilkanStatusCaption(status, 'Tidak dapat menghubungi server. Coba lagi.', true);
+    } finally {
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+    }
+  }
+
+  // Menyimpan caption memakai endpoint ubah media yang sudah tersedia
+  async function simpanCaption(kartu) {
+    const tombol = kartu.querySelector('[data-caption-simpan]');
+    const area = kartu.querySelector('[data-caption-area]');
+    const status = kartu.querySelector('[data-caption-status]');
+
+    if (!tombol || !area || !status) {
+      return;
+    }
+
+    const teksAsli = tombol.textContent;
+    tombol.disabled = true;
+    tombol.textContent = 'Menyimpan...';
+    tampilkanStatusCaption(status, 'Menyimpan caption...', false);
+
+    const data = new FormData();
+    data.append('judul', kartu.dataset.judul || '');
+    data.append('urutan', kartu.dataset.urutan || '0');
+    data.append('jenis', kartu.dataset.jenis || '');
+    data.append('hero', kartu.dataset.hero === 'true' ? 'true' : 'false');
+    data.append('caption', area.value.trim());
+
+    try {
+      const respons = await fetch('/api/media/' + encodeURIComponent(kartu.dataset.id), {
+        method: 'PUT',
+        credentials: 'same-origin',
+        body: data,
+      });
+      const hasil = await bacaJsonCaption(respons);
+
+      if (!respons.ok) {
+        tampilkanStatusCaption(status, pesanGalatCaption(hasil, 'Gagal menyimpan caption.'), true);
+        return;
+      }
+
+      tampilkanStatusCaption(status, 'Caption tersimpan.', false);
+    } catch (galat) {
+      tampilkanStatusCaption(status, 'Tidak dapat menghubungi server. Coba lagi.', true);
+    } finally {
+      tombol.disabled = false;
+      tombol.textContent = teksAsli;
+    }
+  }
+
+  // Memasang perilaku pada seluruh kartu caption di halaman
+  const daftarKartuCaption = document.querySelectorAll('[data-caption-kartu]');
+  daftarKartuCaption.forEach(function (kartu) {
+    const tombolAi = kartu.querySelector('[data-caption-ai]');
+    const tombolSimpan = kartu.querySelector('[data-caption-simpan]');
+
+    if (tombolAi) {
+      tombolAi.addEventListener('click', function () {
+        mintaCaption(kartu);
+      });
+    }
+
+    if (tombolSimpan) {
+      tombolSimpan.addEventListener('click', function () {
+        simpanCaption(kartu);
+      });
+    }
+  });
+})();
+</script>

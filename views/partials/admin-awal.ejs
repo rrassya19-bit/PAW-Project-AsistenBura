@@ -2,7 +2,14 @@
   // Tab aktif menentukan penanda navigasi dan judul bilah atas
   const tabAdminAwal = typeof tabAktif !== 'undefined' ? tabAktif : 'produk';
   // Label singkat dipakai pada bilah atas agar konteks halaman selalu terlihat
-  const labelTab = tabAdminAwal === 'foto' ? 'Galeri Foto' : tabAdminAwal === 'video' ? 'Video' : 'Menu Utama';
+  const labelTab =
+    tabAdminAwal === 'foto'
+      ? 'Galeri Foto'
+      : tabAdminAwal === 'video'
+        ? 'Video'
+        : tabAdminAwal === 'caption'
+          ? 'AI Caption'
+          : 'Menu Utama';
 %>
 <%- include('head', { judul }) %>
 <%# Tautan lewati memudahkan pengguna papan ketik menuju konten %>
@@ -59,6 +66,13 @@
           <path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z" fill="currentColor" />
         </svg>
         <span>Video</span>
+      </a>
+      <a class="admin-menu__link" href="/admin/caption"<% if (tabAdminAwal === 'caption') { %> aria-current="page"<% } %>>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m12 4 1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M18.5 15.5 19.3 17l1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8.8-1.5Z" fill="currentColor" />
+        </svg>
+        <span>AI Caption</span>
       </a>
     </nav>
 
