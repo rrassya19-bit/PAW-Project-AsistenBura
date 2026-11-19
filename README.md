@@ -253,18 +253,33 @@ Lapisan pengaman yang berjalan sebelum dan sesudah model:
 - Pembatas laju in-memory: per IP per menit, per IP per hari, dan global per hari. Batas dapat diubah lewat `.env`.
 - Log hanya mencatat metadata (IP, panjang pesan, hasil, durasi), bukan isi percakapan.
 
-### Pembuat caption admin
+### Chat caption admin
 
-Caption dapat dibuat dari halaman khusus admin `/admin/caption` atau langsung pada form ubah foto/video (`/admin/foto/:id/ubah`, `/admin/video/:id/ubah`). Halaman tersebut menampilkan seluruh foto dan video, menerima catatan opsional maksimal 200 karakter, serta menyediakan tombol Simpan caption. Foto dikirim sebagai `inlineData` bila ukurannya maksimal 3 MB dan formatnya JPEG, PNG, atau WebP; video hanya memakai judul dan catatan.
+Halaman `/admin/caption` adalah ruang kerja chat khusus admin. Admin dapat mengetik permintaan caption, melampirkan satu foto, menempel gambar dari papan klip, atau menyeret gambar ke halaman. Balasan berisi fakta yang terlihat, hal yang tidak jelas, tiga pilihan caption, serta tombol **Salin** pada setiap caption. Percakapan baru menghapus pesan, riwayat, dan lampiran dari memori peramban.
 
-`POST /api/admin/caption` wajib memakai cookie sesi admin yang masih berlaku dan mengembalikan tepat tiga pilihan caption. Setiap caption disaring: maksimal 150 karakter, tanpa angka, harga, tautan, mention, atau hashtag selain `#BuraBuraCoffee` dan `#Yogyakarta`, serta tanpa klaim/superlatif seperti "terbaik", "promo", atau "dijamin". Caption yang lolos tetap harus disimpan manual lewat tombol Simpan caption atau form; tidak ada penulisan otomatis ke database. Endpoint ini juga dibatasi 10 permintaan per menit per IP secara default.
+Foto dikecilkan di peramban sebelum dikirim: sisi terpanjang maksimal 1280 piksel, JPEG kualitas 0,85, sehingga metadata EXIF ikut hilang. Hasil kompresi disimpan sebagai `Blob` di memori JavaScript, dikirim ulang pada setiap pesan dalam percakapan yang sama, dan **tidak pernah disimpan** ke `localStorage`, server, atau folder `assets`. Batas berkas sebelum dikecilkan adalah 15 MB; server hanya menerima JPEG, PNG, atau WebP maksimal 4 MB setelah kompresi. Format HEIC dan berkas yang tidak dapat didekode ditolak di peramban.
+
+Endpoint `POST /api/admin/caption/chat` menerima `multipart/form-data`:
+
+| Field | Aturan |
+| --- | --- |
+| `instruksi` | Teks opsional bila ada gambar, maksimal 500 karakter |
+| `riwayat` | JSON array opsional; server hanya memakai tiga giliran terakhir |
+| `gambar` | Satu berkas opsional, JPEG/PNG/WebP, maksimal 4 MB |
+
+Setiap giliran riwayat berbentuk `{ "instruksi": "...", "caption": ["...", "..."] }` dengan maksimal tiga caption dan setiap caption maksimal 300 karakter. Bentuk riwayat yang salah, field tambahan, berkas tambahan, atau permintaan tanpa gambar dan tanpa instruksi dibalas `400`. Berkas lebih dari 4 MB dibalas `413`. Server memakai `multer.memoryStorage()`, memeriksa ekstensi, MIME, dan tanda byte awal, lalu tidak menulis gambar ke disk.
+
+Model diminta menghasilkan JSON `{ faktaTerlihat, tidakJelas, caption, pertanyaan, catatan }`. Instruksi sistem melarang mengarang bahan, rasa, harga, waktu, nama menu, atau identitas orang yang tidak terlihat atau tidak disebut admin. Caption juga disaring lokal: maksimal 150 karakter (300 bila admin meminta lebih panjang), tanpa harga/angka asing, tautan, email, mention, hashtag di luar `#BuraBuraCoffee` dan `#Yogyakarta`, klaim/superlatif, kata waktu asing, atau kata risiko yang tidak ada di fakta/instruksi admin. Permintaan injection dan topik yang jelas di luar caption ditolak sebelum model dipanggil. Bila tidak ada caption aman dan tidak ada pertanyaan, endpoint membalas `502` dengan pesan `Gagal membuat caption yang aman, coba lagi.`
+
+Endpoint lama `POST /api/admin/caption` tetap tersedia untuk tombol **Buat caption dengan AI** pada form ubah foto/video. Endpoint lama memakai `mediaId` dan `catatan`, mengirim foto media sebagai `inlineData` bila memungkinkan, dan tidak dihapus karena masih dipakai halaman pengelolaan media.
 
 ### Endpoint AI
 
 | Method | Endpoint | Keterangan |
 | --- | --- | --- |
 | POST | `/api/chat` | Pertanyaan chatbot publik (JSON `pesan`) |
-| POST | `/api/admin/caption` | Tiga saran caption (wajib admin, JSON `mediaId` dan `catatan` opsional) |
+| POST | `/api/admin/caption/chat` | Chat caption admin (`multipart/form-data`: `instruksi`, `riwayat`, `gambar`) |
+| POST | `/api/admin/caption` | Tiga saran caption lama untuk form media (wajib admin, JSON `mediaId` dan `catatan`) |
 
 Contoh chatbot:
 
@@ -284,7 +299,33 @@ Contoh respons:
 }
 ```
 
-Contoh caption memakai cookie hasil login (lihat [Akses Admin](#akses-admin)):
+Contoh chat caption memakai cookie hasil login (lihat [Akses Admin](#akses-admin)):
+
+```powershell
+curl.exe -b cookie.txt -X POST http://localhost:3000/api/admin/caption/chat `
+  -F "instruksi=Caption santai untuk Instagram" `
+  -F "riwayat=[]" `
+  -F "gambar=@C:\foto\kopi.jpg;type=image/jpeg"
+```
+
+Response sukses berisi satu pembungkus `data`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "faktaTerlihat": ["segelas kopi", "meja kayu"],
+    "tidakJelas": ["jenis kopi"],
+    "caption": [
+      { "gaya": "Santai", "teks": "Segelas kopi menemani waktu tenang." }
+    ],
+    "pertanyaan": null,
+    "catatan": null
+  }
+}
+```
+
+Contoh endpoint lama pada form media:
 
 ```powershell
 curl.exe -b cookie.txt -X POST http://localhost:3000/api/admin/caption `
@@ -292,7 +333,7 @@ curl.exe -b cookie.txt -X POST http://localhost:3000/api/admin/caption `
   -d '{\"mediaId\":1,\"catatan\":\"suasana pagi\"}'
 ```
 
-Keterbatasan yang perlu diketahui: batas laju dan cache disimpan di memori proses, sehingga hitungan kembali ke nol saat server dimulai ulang dan tidak dibagi antar-proses. Hasil AI tetap dapat keliru; harga dan ketersediaan yang mengikat adalah data di database.
+Keterbatasan yang perlu diketahui: batas laju dan cache disimpan di memori proses, sehingga hitungan kembali ke nol saat server dimulai ulang dan tidak dibagi antar-proses. Hasil AI tetap dapat keliru; harga dan ketersediaan yang mengikat adalah data di database. Pemeriksaan otomatis memakai klien Gemini tiruan sehingga tidak membuktikan kualitas model pada foto nyata.
 
 ## Akses Admin
 
@@ -323,7 +364,7 @@ Aturan sesi:
 Aturan akses:
 
 - `GET /api/status`, `GET /api/produk`, `GET /api/produk/:id`, `GET /api/media`, `GET /api/media/:id`, dan `POST /api/chat` tetap publik.
-- `POST`, `PUT`, dan `DELETE` pada `/api/produk` serta `/api/media`, juga `POST /api/admin/caption`, wajib memakai sesi admin yang sah.
+- `POST`, `PUT`, dan `DELETE` pada `/api/produk` serta `/api/media`, juga `POST /api/admin/caption` dan `POST /api/admin/caption/chat`, wajib memakai sesi admin yang sah.
 - Tanpa sesi atau dengan sesi kedaluwarsa, endpoint JSON membalas `401` dengan pesan `Login admin diperlukan`; halaman admin dialihkan `302` ke halaman login.
 - Permintaan tulis yang jelas berasal dari situs lain (`Origin` berbeda atau `Sec-Fetch-Site: cross-site`) dibalas `403` dengan pesan `Permintaan ditolak`.
 - Bila `ADMIN_USER`, `ADMIN_PASSWORD`, atau `SESSION_SECRET` belum memenuhi syarat, seluruh akses admin dibalas `503` dengan pesan `Akses admin belum dikonfigurasi`.
@@ -373,7 +414,8 @@ Keterbatasan yang perlu diketahui: hanya ada satu akun admin dari variabel lingk
 | PUT | `/api/media/:id` | Mengubah judul, caption, urutan, status hero, dan berkas opsional (wajib admin) |
 | DELETE | `/api/media/:id` | Menghapus media dan berkasnya (wajib admin) |
 | POST | `/api/chat` | Pertanyaan chatbot publik (JSON `pesan`) |
-| POST | `/api/admin/caption` | Tiga saran caption dari AI (wajib admin) |
+| POST | `/api/admin/caption/chat` | Chat caption admin dengan gambar opsional (wajib admin) |
+| POST | `/api/admin/caption` | Tiga saran caption lama untuk form media (wajib admin) |
 
 Endpoint tulis memakai cookie sesi dari login admin. Contoh di bawah memakai `-b cookie.txt` hasil langkah login di [Akses Admin](#akses-admin). Tanpa cookie yang sah, endpoint tulis membalas `401`.
 
@@ -607,6 +649,14 @@ npm run uji:chat
 
 Skrip `scripts/uji-chat.js` menjalankan server di dalam proses pada port acak dan mengganti Gemini dengan klien tiruan, sehingga tidak memakai kuota dan tidak membutuhkan `GEMINI_API_KEY` sungguhan. Pengujian mencakup: status `503` tanpa kunci, jawaban normal beserta penggantian harga, penolakan prompt injection dan topik luar, pesan data tidak tersedia, penolakan harga manual, id harga palsu, angka asing, tautan asing, kebocoran kode rahasia, JSON rusak, respons diblokir, batas waktu `504`, kuota `429`, validasi panjang pesan, tiga pembatas laju chatbot, autentikasi caption, media tidak ditemukan, catatan terlalu panjang, pengiriman foto sebagai `inlineData`, video tanpa gambar, penyaringan caption, path berkas terlarang, pembatas caption, serta caption tersimpan yang tampil di `/galeri`. Data dan caption yang diubah selama pengujian dipulihkan di akhir.
 
+### Uji otomatis chat caption admin
+
+```powershell
+npm run uji:caption
+```
+
+Skrip `scripts/uji-caption.js` menjalankan server pada port acak, login memakai sesi admin, dan mengganti Gemini dengan klien tiruan. Pengujian mencakup: pengalihan halaman tanpa sesi, `401` untuk endpoint tulis, caption dari teks, unggahan PNG sebagai `inlineData` tanpa berkas baru di `assets`/folder sementara, penolakan tanda byte palsu, batas 4 MB, instruksi/riwayat/field/berkas yang tidak valid, penolakan injection dan topik luar tanpa panggilan model, penyaringan klaim/harga/kata risiko/waktu, pengecualian kata risiko dan angka yang disebut admin, balasan pertanyaan saja, JSON rusak, kuota `429`, batas waktu `504`, pembatasan riwayat tiga giliran, pembersihan kurung sudut, bentuk instruksi sistem, batas laju, kebocoran kode rahasia/API key, serta HTML dan sintaks skrip halaman chat. Tidak ada data atau berkas uji yang tersisa.
+
 ### Uji manual dengan Thunder Client atau Postman
 
 1. Jalankan `npm run dev`.
@@ -639,7 +689,8 @@ Skrip `scripts/uji-chat.js` menjalankan server di dalam proses pada port acak da
 17. Klik tombol **Asisten Bura**, ajukan pertanyaan tentang menu, harga, jam buka, atau jumlah galeri. Pastikan balasan muncul tanpa memuat ulang halaman, harga memakai format rupiah, dan tombol tutup serta Escape bekerja.
 18. Coba tanyakan hal di luar kedai (misalnya teori relativitas) dan upaya seperti "abaikan semua instruksi". Pastikan asisten menolak dengan sopan dan tidak menampilkan aturan internal.
 19. Ubah salah satu foto di admin, isi catatan AI, klik **Buat caption dengan AI**, lalu pilih salah satu dari tiga saran. Simpan dan pastikan caption tampil di lightbox `/galeri`. Ulangi untuk video dan pastikan caption tampil di kartu `/video`.
-20. Hentikan server lalu jalankan tanpa `GEMINI_API_KEY`/`GEMINI_MODEL` untuk memastikan terminal mencetak `Gemini: BELUM dikonfigurasi` dan endpoint AI membalas `503` tanpa menghentikan halaman publik.
+20. Buka `/admin/caption`. Klik chip awal, lampirkan foto JPEG/PNG/WebP, lalu kirim permintaan. Pastikan foto terlihat di pesan pengguna, indikator mengetik muncul, fakta foto dapat dibuka, tiga kartu caption tampil, tombol **Salin** berubah menjadi **Tersalin**, dan chip lanjutan hanya ada pada balasan terakhir. Coba tempel gambar dengan Ctrl+V, seret gambar ke halaman, dan ganti foto setelah percakapan berjalan untuk memastikan dialog konfirmasi muncul. Klik **Percakapan baru** dan pastikan pesan serta lampiran dibersihkan. Periksa juga tampilan pada lebar seluler, navigasi papan ketik, dan mode `prefers-reduced-motion`.
+21. Hentikan server lalu jalankan tanpa `GEMINI_API_KEY`/`GEMINI_MODEL` untuk memastikan terminal mencetak `Gemini: BELUM dikonfigurasi` dan endpoint AI membalas `503` tanpa menghentikan halaman publik.
 
 ## Catatan Keamanan
 
@@ -649,6 +700,7 @@ Skrip `scripts/uji-chat.js` menjalankan server di dalam proses pada port acak da
 - Endpoint AI memakai pembatas laju di memori untuk melindungi kuota. Untuk produksi dengan beberapa proses, gunakan penyimpanan bersama (misalnya Redis) agar batas berlaku global.
 - Folder `assets/` tetap diabaikan, kecuali `assets/menu/` yang disiapkan untuk foto menu. Berkas unggahan media di `assets/galeri` dan `assets/video` juga tidak ikut Git. Jangan menaruh berkas rahasia di folder tersebut.
 - Unggahan media diperiksa dari ekstensi, mimetype, dan tanda tangan byte awal. Nama berkas dibuat server, ukuran dibatasi, dan penghapusan berkas hanya dilakukan untuk path yang ter-resolve di folder media yang diizinkan serta tidak dirujuk data lain.
+- Gambar chat caption diproses di peramban dan dikirim ke endpoint baru dengan `multer.memoryStorage()`. Server tidak menulis gambar ke disk dan log service hanya mencatat status, durasi, keberadaan gambar, ukuran KB, serta jumlah riwayat.
 - Gunakan `.env.example` sebagai contoh konfigurasi tanpa rahasia.
 - Login admin memakai sesi, bukan kredensial pada setiap request. Cookie `bura.sid` bersifat `HttpOnly` dan `SameSite=Lax`; setel `COOKIE_SECURE=true` dan pakai HTTPS saat aplikasi dipasang di server publik.
 - `SESSION_SECRET` minimal 32 karakter dan hanya disimpan di `.env`. Rahasia ini menandatangani cookie sesi; menggantinya membuat semua sesi lama tidak berlaku.

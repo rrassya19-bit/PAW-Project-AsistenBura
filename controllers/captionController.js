@@ -1,5 +1,6 @@
 // Controller caption admin: memetakan hasil dan galat ke respons JSON
 const captionService = require('../services/captionService');
+const captionChatService = require('../services/captionChatService');
 const geminiService = require('../services/geminiService');
 const { PESAN_GAGAL_UMUM } = require('../config/instruksi');
 
@@ -50,5 +51,45 @@ async function buat(req, res, next) {
   }
 }
 
-// Ekspor handler
-module.exports = { buat };
+// POST /api/admin/caption/chat -> chat caption dengan gambar opsional
+async function chat(req, res, next) {
+  try {
+    // Data sudah divalidasi middleware dan gambar berada di memori
+    const hasil = await captionChatService.buatCaptionChat({
+      instruksi: req.captionChatTervalidasi.instruksi,
+      riwayat: req.captionChatTervalidasi.riwayat,
+      gambar: req.gambarCaption,
+    });
+    // Bentuk sukses baru selalu memakai pembungkus data
+    return res.json({ success: true, data: hasil });
+  } catch (galat) {
+    // Penolakan lokal dan keluaran tidak aman tidak pernah memanggil Gemini
+    if (galat instanceof captionChatService.GalatCaptionChat) {
+      if (galat.kode === captionChatService.KODE.TOLAK) {
+        return res.status(400).json({ pesan: galat.message });
+      }
+      return res.status(502).json({ pesan: captionChatService.PESAN_TIDAK_AMAN });
+    }
+
+    // Galat Gemini dipetakan ke status yang sama dengan chatbot
+    if (galat instanceof geminiService.GalatGemini) {
+      const kode = galat.kode;
+      if (kode === geminiService.KODE.KUNCI_BELUM_ADA) {
+        return res.status(503).json({ pesan: 'Fitur AI belum dikonfigurasi oleh pengelola.' });
+      }
+      if (kode === geminiService.KODE.KUOTA_HABIS) {
+        return res.status(429).json({ pesan: 'Layanan AI sedang sibuk. Coba lagi beberapa saat lagi.' });
+      }
+      if (kode === geminiService.KODE.TIMEOUT) {
+        return res.status(504).json({ pesan: 'Permintaan melewati batas waktu. Silakan coba lagi.' });
+      }
+      return res.status(502).json({ pesan: PESAN_GAGAL_UMUM });
+    }
+
+    // Galat tak terduga diteruskan ke error handler
+    return next(galat);
+  }
+}
+
+// Ekspor handler lama dan chat baru
+module.exports = { buat, chat };

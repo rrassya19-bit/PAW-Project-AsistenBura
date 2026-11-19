@@ -10,6 +10,9 @@
         : tabAdminAwal === 'caption'
           ? 'AI Caption'
           : 'Menu Utama';
+  // Kelas tambahan dari halaman dipakai untuk tata letak khusus seperti chat
+  const kelasAdminKonten =
+    typeof kelasKonten !== 'undefined' && kelasKonten ? ' ' + kelasKonten : '';
 %>
 <%- include('head', { judul }) %>
 <%# Tautan lewati memudahkan pengguna papan ketik menuju konten %>
@@ -110,4 +113,4 @@
       <p class="admin-topbar__judul"><%= labelTab %></p>
       <span class="admin-topbar__badge">Admin</span>
     </header>
-    <main class="admin-konten" id="konten" tabindex="-1">
+    <main class="admin-konten<%= kelasAdminKonten %>" id="konten" tabindex="-1">

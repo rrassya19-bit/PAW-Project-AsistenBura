@@ -269,10 +269,12 @@ async function jalankan() {
 
     const captionMasuk = await halaman('/admin/caption', false);
     lapor(
-      'GET /admin/caption dengan sesi menampilkan halaman AI caption',
+      'GET /admin/caption dengan sesi menampilkan chat AI caption',
       captionMasuk.respons.status === 200 &&
-        captionMasuk.teks.includes('Buat caption untuk galeri.') &&
-        captionMasuk.teks.includes('href="/admin/caption"'),
+        captionMasuk.teks.includes('Tulis permintaan caption...') &&
+        captionMasuk.teks.includes('data-caption-chat') &&
+        captionMasuk.teks.includes('href="/admin/caption"') &&
+        !captionMasuk.teks.includes('Buat caption untuk galeri.'),
       `status ${captionMasuk.respons.status}`
     );
 

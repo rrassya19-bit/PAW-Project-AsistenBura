@@ -3369,4 +3369,591 @@ body.lightbox-open .chat {
   font-size: 0.8rem;
   line-height: 1.5;
 }
-</style>
+
+/* Chat AI caption admin */
+.admin-konten--caption {
+  max-width: none;
+  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.caption-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--paper);
+}
+
+.caption-chat__bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px clamp(16px, 3vw, 24px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(250, 249, 246, 0.92);
+}
+
+.caption-chat__judul {
+  margin: 0;
+  color: var(--navy);
+  font-family: var(--body);
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.caption-chat__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.caption-chat__reset:hover {
+  border-color: var(--cobalt-bright);
+  background: var(--paper-soft);
+}
+
+.caption-chat__reset svg {
+  width: 16px;
+  height: 16px;
+}
+
+.caption-chat__log {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px clamp(16px, 3vw, 24px) 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.caption-chat__baris {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 14px;
+}
+
+.caption-chat__baris--pengguna {
+  justify-content: flex-end;
+}
+
+.caption-chat__avatar {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--cobalt);
+  color: var(--white);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.caption-chat__balon {
+  max-width: min(100%, 620px);
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px 16px 16px 16px;
+  background: var(--white);
+  color: var(--navy);
+  font-size: 0.89rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.caption-chat__balon p {
+  margin: 0;
+}
+
+.caption-chat__balon--pengguna {
+  border: 0;
+  border-radius: 16px 4px 16px 16px;
+  background: var(--cobalt);
+  color: var(--white);
+}
+
+.caption-chat__balon--galat {
+  border-color: #E2B8AF;
+  background: #FFF8F5;
+  color: #7E2418;
+}
+
+.caption-chat__gambar-pesan {
+  display: block;
+  width: auto;
+  max-width: 240px;
+  max-height: 180px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.caption-chat__chip-grup,
+.caption-chat__aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.caption-chat__chip,
+.caption-chat__aksi button {
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-soft);
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.caption-chat__chip:hover,
+.caption-chat__aksi button:hover {
+  border-color: var(--cobalt-bright);
+  background: #EEF3FF;
+}
+
+.caption-chat__catatan {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.caption-chat__detail {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.caption-chat__detail summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.caption-chat__detail summary::-webkit-details-marker {
+  display: none;
+}
+
+.caption-chat__detail summary::before {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+  content: "";
+  transition: transform 0.16s ease;
+}
+
+.caption-chat__detail[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.caption-chat__pil-grup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.caption-chat__pil {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-soft);
+  color: var(--navy);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.caption-chat__tidak-jelas {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.caption-chat__kartu {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--paper-soft);
+}
+
+.caption-chat__kartu-atas,
+.caption-chat__kartu-bawah {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.caption-chat__kartu-label {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.caption-chat__kartu-teks {
+  margin: 7px 0 9px;
+  color: var(--navy);
+  font-size: 0.89rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.caption-chat__kartu-hitung {
+  color: var(--muted);
+  font-size: 0.69rem;
+}
+
+.caption-chat__salin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--white);
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.73rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.caption-chat__salin:hover {
+  border-color: var(--cobalt-bright);
+}
+
+.caption-chat__salin svg {
+  width: 14px;
+  height: 14px;
+}
+
+.caption-chat__salin--aktif {
+  border-color: #9BC7AA;
+  background: #EAF6EF;
+  color: #1D6538;
+}
+
+.caption-chat__aksi {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.caption-chat__mengetik {
+  display: flex;
+  gap: 4px;
+  padding: 5px 1px;
+}
+
+.caption-chat__mengetik span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: caption-chat-detik 1s ease-in-out infinite;
+}
+
+.caption-chat__mengetik span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.caption-chat__mengetik span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes caption-chat-detik {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.caption-chat__form {
+  flex: 0 0 auto;
+  padding: 8px clamp(16px, 3vw, 24px) max(12px, env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, rgba(250, 249, 246, 0), var(--paper) 22%);
+}
+
+.caption-chat__form-isi {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.caption-chat__lampiran {
+  margin-bottom: 8px;
+}
+
+.caption-chat__lampiran-kartu {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 5px 6px 5px 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.caption-chat__lampiran-gambar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.caption-chat__lampiran-nama {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--navy);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caption-chat__lampiran-hapus {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.caption-chat__lampiran-hapus:hover {
+  background: var(--paper-soft);
+  color: var(--navy);
+}
+
+.caption-chat__lampiran-hapus svg {
+  width: 16px;
+  height: 16px;
+}
+
+.caption-chat__kotak {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--white);
+  box-shadow: 0 8px 22px rgba(9, 20, 48, 0.06);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.caption-chat__kotak:focus-within {
+  border-color: var(--cobalt-bright);
+  box-shadow: 0 0 0 3px rgba(0, 47, 167, 0.1);
+}
+
+.caption-chat__ikon,
+.caption-chat__kirim {
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.caption-chat__ikon {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.caption-chat__ikon:hover {
+  background: var(--paper-soft);
+  color: var(--cobalt);
+}
+
+.caption-chat__ikon svg,
+.caption-chat__kirim svg {
+  width: 18px;
+  height: 18px;
+}
+
+.caption-chat__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: 120px;
+  padding: 8px 2px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  resize: none;
+}
+
+.caption-chat__kirim {
+  border: 0;
+  background: var(--cobalt);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.caption-chat__kirim:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.caption-chat__galat {
+  margin: 8px 4px 0;
+  color: #8A2C1D;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.caption-chat__drop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 20, 48, 0.46);
+  pointer-events: none;
+}
+
+.caption-chat__drop[hidden] {
+  display: none;
+}
+
+.caption-chat__drop-kartu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 360px);
+  padding: 28px 24px;
+  border: 2px dashed rgba(255, 255, 255, 0.8);
+  border-radius: 22px;
+  background: rgba(9, 20, 48, 0.82);
+  color: var(--white);
+  text-align: center;
+}
+
+.caption-chat__drop-kartu svg {
+  width: 32px;
+  height: 32px;
+}
+
+.caption-chat__drop-kartu p {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .caption-chat__bar {
+    padding: 8px 12px;
+  }
+
+  .caption-chat__reset {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+
+  .caption-chat__log {
+    padding: 16px 12px 6px;
+  }
+
+  .caption-chat__balon {
+    max-width: calc(100% - 38px);
+  }
+
+  .caption-chat__baris--pengguna .caption-chat__balon {
+    max-width: 88%;
+  }
+
+  .caption-chat__form {
+    padding: 6px 12px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .caption-chat__input {
+    font-size: 16px;
+  }
+
+  .caption-chat__chip,
+  .caption-chat__aksi button,
+  .caption-chat__salin {
+    min-height: 40px;
+  }
+
+  .caption-chat__ikon,
+  .caption-chat__kirim {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caption-chat__log {
+    scroll-behavior: auto;
+  }
+
+  .caption-chat__reset,
+  .caption-chat__chip,
+  .caption-chat__aksi button,
+  .caption-chat__salin,
+  .caption-chat__kotak,
+  .caption-chat__detail summary::before {
+    transition: none;
+  }
+
+  .caption-chat__mengetik span {
+    animation: none;
+    opacity: 0.65;
+  }
+}</style>

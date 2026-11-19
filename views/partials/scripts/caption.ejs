@@ -1,8 +1,510 @@
 <script>
-// Skrip halaman AI caption: membuat saran, memilih caption, dan menyimpannya
+// Skrip chat caption admin: unggah gambar, kirim permintaan, salin hasil
 (function () {
-  // Membaca JSON dengan aman bila server tidak mengirim body JSON
-  async function bacaJsonCaption(respons) {
+  // Akar halaman menjadi penanda skrip hanya berjalan di halaman caption
+  const akar = document.querySelector('[data-caption-chat]');
+  if (!akar) {
+    return;
+  }
+
+  // Seluruh elemen utama dibaca sekali agar tidak berulang
+  const log = akar.querySelector('[data-caption-log]');
+  const form = akar.querySelector('[data-caption-form]');
+  const input = akar.querySelector('[data-caption-input]');
+  const berkas = akar.querySelector('[data-caption-file]');
+  const tombolLampir = akar.querySelector('[data-caption-attach]');
+  const tombolKirim = akar.querySelector('[data-caption-send]');
+  const wadahLampiran = akar.querySelector('[data-caption-lampiran]');
+  const gambarLampiran = akar.querySelector('[data-caption-thumb]');
+  const namaLampiran = akar.querySelector('[data-caption-nama]');
+  const tombolHapus = akar.querySelector('[data-caption-hapus]');
+  const galatForm = akar.querySelector('[data-caption-error]');
+  const lapisanDrop = akar.querySelector('[data-caption-drop]');
+  const tombolReset = akar.querySelector('[data-caption-reset]');
+
+  // Batas gambar sebelum dikecilkan di browser
+  const MAKS_ASLI = 15 * 1024 * 1024;
+  // Batas hasil kompresi agar sesuai batas server
+  const MAKS_KOMPRES = 4 * 1024 * 1024;
+  // Daftar teks chip lanjutan pada balasan terakhir
+  const CHIP_LANJUTAN = [
+    'Lebih singkat',
+    'Lebih santai',
+    'Tambahkan ajakan datang',
+    'Tanpa emoji',
+  ];
+  // Petunjuk umum saat gambar dikirim tanpa teks
+  const INSTRUKSI_FOTO = 'Buatkan tiga pilihan caption untuk foto ini.';
+
+  // Keadaan halaman disimpan di memori saja
+  let fotoAktif = null;
+  let sedangKirim = false;
+  let adaPesan = false;
+  let riwayat = [];
+  let kedalamanSeret = 0;
+
+  // Membuat elemen teks tanpa menyisipkan HTML dari pengguna atau server
+  function buat(tag, kelas, teks) {
+    const node = document.createElement(tag);
+    if (kelas) {
+      node.className = kelas;
+    }
+    if (typeof teks === 'string') {
+      node.textContent = teks;
+    }
+    return node;
+  }
+
+  // Membuat ikon SVG dari satu atau beberapa jalur
+  function buatIkon(jalur, lebar) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('aria-hidden', 'true');
+    if (lebar) {
+      svg.style.width = lebar;
+      svg.style.height = lebar;
+    }
+    jalur.forEach(function (d) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('stroke', 'currentColor');
+      path.setAttribute('stroke-width', '1.7');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(path);
+    });
+    return svg;
+  }
+
+  // Membuat avatar kecil untuk balasan asisten
+  function buatAvatar() {
+    const avatar = buat('div', 'caption-chat__avatar', 'B');
+    avatar.setAttribute('aria-hidden', 'true');
+    return avatar;
+  }
+
+  // Membuat baris percakapan dengan arah pengirim tertentu
+  function buatBaris(jenis) {
+    return buat(
+      'div',
+      'caption-chat__baris caption-chat__baris--' + jenis
+    );
+  }
+
+  // Menggulir log ke pesan terbaru setelah DOM diperbarui
+  function gulirBawah() {
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Menampilkan galat kecil di bawah composer
+  function tampilkanGalatForm(pesan) {
+    if (!galatForm) {
+      return;
+    }
+    galatForm.textContent = pesan;
+    galatForm.hidden = false;
+  }
+
+  // Menyembunyikan galat kecil di bawah composer
+  function sembunyikanGalatForm() {
+    if (!galatForm) {
+      return;
+    }
+    galatForm.textContent = '';
+    galatForm.hidden = true;
+  }
+
+  // Menyesuaikan tinggi textarea sampai batas 120px
+  function sesuaikanTinggi() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  }
+
+  // Memperbarui keadaan tombol kirim berdasarkan isi dan foto
+  function perbaruiTombol() {
+    const adaIsi = Boolean(input.value.trim());
+    tombolKirim.disabled = sedangKirim || (!adaIsi && !fotoAktif);
+  }
+
+  // Mengaktifkan atau menonaktifkan composer selama permintaan berjalan
+  function aturSibuk(nilai) {
+    sedangKirim = nilai;
+    input.disabled = nilai;
+    tombolLampir.disabled = nilai;
+    berkas.disabled = nilai;
+    tombolHapus.disabled = nilai;
+    tombolReset.disabled = nilai;
+    perbaruiTombol();
+  }
+
+  // Membuat pesan sambutan dan chip awal secara dinamis untuk reset
+  function buatSambutan() {
+    const baris = buatBaris('asisten');
+    baris.setAttribute('data-caption-awal', '');
+    baris.appendChild(buatAvatar());
+    const balon = buat('div', 'caption-chat__balon');
+    balon.appendChild(buat('p', '', 'Unggah foto dan tulis permintaanmu. Aku bantu buatkan caption.'));
+    const grup = buat('div', 'caption-chat__chip-grup');
+    grup.setAttribute('data-caption-chip-awal', '');
+    [
+      'Caption santai untuk Instagram',
+      'Satu kalimat singkat',
+      'Ajakan berkunjung',
+      'Versi bahasa Inggris',
+    ].forEach(function (isi) {
+      const chip = buat('button', 'caption-chat__chip', isi);
+      chip.type = 'button';
+      chip.setAttribute('data-caption-chip', '');
+      chip.setAttribute('data-isi', isi);
+      grup.appendChild(chip);
+    });
+    balon.appendChild(grup);
+    baris.appendChild(balon);
+    log.appendChild(baris);
+  }
+
+  // Mengubah nama berkas menjadi nama aman berformat JPEG untuk server
+  function namaUntukServer(nama) {
+    const dasar = String(nama || 'gambar').replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '');
+    return (dasar || 'gambar') + '.jpg';
+  }
+
+  // Melepas URL objek lama agar memori browser tidak menumpuk
+  function lepasFoto() {
+    if (fotoAktif && fotoAktif.url) {
+      URL.revokeObjectURL(fotoAktif.url);
+    }
+    fotoAktif = null;
+    if (gambarLampiran) {
+      gambarLampiran.removeAttribute('src');
+    }
+    if (namaLampiran) {
+      namaLampiran.textContent = '';
+    }
+    if (wadahLampiran) {
+      wadahLampiran.hidden = true;
+    }
+  }
+
+  // Menyimpan hasil kompresi sebagai Blob di memori dan menampilkan pratinjau
+  function pasangFoto(blob, nama) {
+    lepasFoto();
+    fotoAktif = {
+      blob,
+      nama: String(nama || 'gambar'),
+      url: URL.createObjectURL(blob),
+    };
+    gambarLampiran.src = fotoAktif.url;
+    gambarLampiran.alt = 'Pratinjau ' + fotoAktif.nama;
+    namaLampiran.textContent = fotoAktif.nama;
+    wadahLampiran.hidden = false;
+    perbaruiTombol();
+  }
+
+  // Mengubah berkas gambar menjadi bitmap untuk digambar ke canvas
+  async function muatBitmap(berkasGambar) {
+    if (typeof createImageBitmap === 'function') {
+      return createImageBitmap(berkasGambar);
+    }
+    return new Promise(function (selesai, gagal) {
+      const gambar = new Image();
+      const url = URL.createObjectURL(berkasGambar);
+      gambar.onload = function () {
+        URL.revokeObjectURL(url);
+        selesai(gambar);
+      };
+      gambar.onerror = function () {
+        URL.revokeObjectURL(url);
+        gagal(new Error('decode'));
+      };
+      gambar.src = url;
+    });
+  }
+
+  // Mengecilkan gambar ke sisi terpanjang 1280 dan membuang metadata EXIF
+  async function kecilkanGambar(berkasGambar) {
+    const bitmap = await muatBitmap(berkasGambar);
+    const lebarAsli = bitmap.width || bitmap.naturalWidth;
+    const tinggiAsli = bitmap.height || bitmap.naturalHeight;
+    if (!lebarAsli || !tinggiAsli) {
+      throw new Error('ukuran');
+    }
+    const skala = Math.min(1, 1280 / Math.max(lebarAsli, tinggiAsli));
+    const kanvas = document.createElement('canvas');
+    kanvas.width = Math.max(1, Math.round(lebarAsli * skala));
+    kanvas.height = Math.max(1, Math.round(tinggiAsli * skala));
+    const konteks = kanvas.getContext('2d');
+    if (!konteks) {
+      throw new Error('kanvas');
+    }
+    konteks.fillStyle = '#FFFFFF';
+    konteks.fillRect(0, 0, kanvas.width, kanvas.height);
+    konteks.drawImage(bitmap, 0, 0, kanvas.width, kanvas.height);
+    if (typeof bitmap.close === 'function') {
+      bitmap.close();
+    }
+    const hasil = await new Promise(function (selesai) {
+      kanvas.toBlob(selesai, 'image/jpeg', 0.85);
+    });
+    if (!hasil) {
+      throw new Error('kompresi');
+    }
+    if (hasil.size > MAKS_KOMPRES) {
+      throw new Error('besar');
+    }
+    return hasil;
+  }
+
+  // Memproses berkas dari input, tempel, atau seret lepas
+  async function prosesGambar(berkasGambar) {
+    if (!berkasGambar) {
+      return;
+    }
+    sembunyikanGalatForm();
+    const ekstensiCocok = /\.(jpe?g|png|webp)$/i.test(String(berkasGambar.name || ''));
+    const tipeCocok = ['image/jpeg', 'image/png', 'image/webp'].includes(berkasGambar.type);
+    if (!tipeCocok && !(berkasGambar.type === '' && ekstensiCocok)) {
+      tampilkanGalatForm('Format gambar harus JPEG, PNG, atau WebP.');
+      return;
+    }
+    if (berkasGambar.size > MAKS_ASLI) {
+      tampilkanGalatForm('Ukuran gambar maksimal 15 MB sebelum dikecilkan.');
+      return;
+    }
+    if (adaPesan) {
+      const setuju = window.confirm('Ganti foto untuk percakapan ini?');
+      if (!setuju) {
+        return;
+      }
+    }
+    try {
+      const hasil = await kecilkanGambar(berkasGambar);
+      pasangFoto(hasil, berkasGambar.name);
+    } catch (galat) {
+      if (galat.message === 'besar') {
+        tampilkanGalatForm('Gambar masih terlalu besar setelah dikecilkan. Coba foto lain.');
+      } else {
+        tampilkanGalatForm('Gambar tidak dapat dibaca. Coba berkas JPEG atau PNG.');
+      }
+    }
+  }
+
+  // Membuat balon pengguna beserta gambar bila ada
+  function tambahPesanPengguna(teks, foto) {
+    const baris = buatBaris('pengguna');
+    const balon = buat('div', 'caption-chat__balon caption-chat__balon--pengguna');
+    if (foto) {
+      const gambar = buat('img', 'caption-chat__gambar-pesan');
+      gambar.src = foto.url;
+      gambar.alt = 'Gambar yang dilampirkan';
+      balon.appendChild(gambar);
+    }
+    balon.appendChild(buat('p', '', teks || INSTRUKSI_FOTO));
+    baris.appendChild(balon);
+    log.appendChild(baris);
+    adaPesan = true;
+    gulirBawah();
+  }
+
+  // Menampilkan indikator tiga titik selama menunggu balasan
+  function tambahMengetik() {
+    const baris = buatBaris('asisten');
+    baris.setAttribute('data-caption-mengetik', '');
+    baris.appendChild(buatAvatar());
+    const balon = buat('div', 'caption-chat__balon');
+    const titik = buat('div', 'caption-chat__mengetik');
+    titik.setAttribute('aria-label', 'AI sedang menulis');
+    for (let i = 0; i < 3; i += 1) {
+      titik.appendChild(buat('span'));
+    }
+    balon.appendChild(titik);
+    baris.appendChild(balon);
+    log.appendChild(baris);
+    gulirBawah();
+    return baris;
+  }
+
+  // Menghapus chip dan tombol pada balasan lama
+  function hapusAksiLama() {
+    log.querySelectorAll('[data-caption-aksi]').forEach(function (node) {
+      node.remove();
+    });
+    const chipAwal = log.querySelector('[data-caption-chip-awal]');
+    if (chipAwal) {
+      chipAwal.remove();
+    }
+  }
+
+  // Menyalin teks dengan Clipboard API dan cadangan textarea
+  function salinCadangan(teks) {
+    const area = document.createElement('textarea');
+    area.value = teks;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    const berhasil = document.execCommand('copy');
+    area.remove();
+    if (!berhasil) {
+      throw new Error('salin');
+    }
+  }
+
+  // Menandai tombol salin berhasil untuk sementara
+  function tandaiTersalin(tombol) {
+    const label = tombol.querySelector('span');
+    if (!label) {
+      return;
+    }
+    label.textContent = 'Tersalin';
+    tombol.classList.add('caption-chat__salin--aktif');
+    if (tombol.dataset.timer) {
+      clearTimeout(Number(tombol.dataset.timer));
+    }
+    const timer = setTimeout(function () {
+      label.textContent = 'Salin';
+      tombol.classList.remove('caption-chat__salin--aktif');
+      delete tombol.dataset.timer;
+    }, 1500);
+    tombol.dataset.timer = String(timer);
+  }
+
+  // Menyalin satu caption lalu memberi umpan balik pada tombol
+  async function salinCaption(teks, tombol) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(teks);
+      } else {
+        salinCadangan(teks);
+      }
+      tandaiTersalin(tombol);
+    } catch (galat) {
+      try {
+        salinCadangan(teks);
+        tandaiTersalin(tombol);
+      } catch (gagal) {
+        tampilkanGalatForm('Caption tidak dapat disalin otomatis. Pilih teksnya secara manual.');
+      }
+    }
+  }
+
+  // Membuat satu kartu caption dengan tombol salin
+  function buatKartuCaption(item) {
+    const kartu = buat('div', 'caption-chat__kartu');
+    const atas = buat('div', 'caption-chat__kartu-atas');
+    atas.appendChild(buat('span', 'caption-chat__kartu-label', item.gaya || 'Caption'));
+    kartu.appendChild(atas);
+    kartu.appendChild(buat('p', 'caption-chat__kartu-teks', item.teks));
+    const bawah = buat('div', 'caption-chat__kartu-bawah');
+    bawah.appendChild(buat('span', 'caption-chat__kartu-hitung', item.teks.length + ' karakter'));
+    const tombol = buat('button', 'caption-chat__salin');
+    tombol.type = 'button';
+    tombol.appendChild(buatIkon(['M9 9V6.5A2.5 2.5 0 0 1 11.5 4h6A2.5 2.5 0 0 1 20 6.5v6a2.5 2.5 0 0 1-2.5 2.5H15', 'M5 9.5A2.5 2.5 0 0 1 7.5 7h5A2.5 2.5 0 0 1 15 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 5 16.5v-7Z']));
+    tombol.appendChild(buat('span', '', 'Salin'));
+    tombol.addEventListener('click', function () {
+      salinCaption(item.teks, tombol);
+    });
+    bawah.appendChild(tombol);
+    kartu.appendChild(bawah);
+    return kartu;
+  }
+
+  // Membuat tombol aksi dan chip lanjutan untuk balasan terbaru
+  function buatAksi() {
+    const aksi = buat('div', 'caption-chat__aksi');
+    aksi.setAttribute('data-caption-aksi', '');
+    const ulang = buat('button', '', 'Buat ulang');
+    ulang.type = 'button';
+    ulang.addEventListener('click', function () {
+      kirimPesan('Buat ulang tiga pilihan caption dengan sudut pandang berbeda.');
+    });
+    aksi.appendChild(ulang);
+    CHIP_LANJUTAN.forEach(function (teks) {
+      const chip = buat('button', '', teks);
+      chip.type = 'button';
+      chip.addEventListener('click', function () {
+        kirimPesan(teks);
+      });
+      aksi.appendChild(chip);
+    });
+    return aksi;
+  }
+
+  // Menampilkan balasan asisten tanpa HTML mentah
+  function tampilkanBalasan(data) {
+    hapusAksiLama();
+    const balon = buat('div', 'caption-chat__balon');
+
+    if (data.pertanyaan) {
+      balon.appendChild(buat('p', '', data.pertanyaan));
+    }
+    if (data.catatan) {
+      balon.appendChild(buat('p', 'caption-chat__catatan', data.catatan));
+    }
+
+    const fakta = Array.isArray(data.faktaTerlihat) ? data.faktaTerlihat : [];
+    const tidakJelas = Array.isArray(data.tidakJelas) ? data.tidakJelas : [];
+    if (fakta.length || tidakJelas.length) {
+      const detail = document.createElement('details');
+      detail.className = 'caption-chat__detail';
+      const ringkas = document.createElement('summary');
+      ringkas.textContent = 'Yang terlihat di foto (' + fakta.length + ')';
+      detail.appendChild(ringkas);
+      if (fakta.length) {
+        const grup = buat('div', 'caption-chat__pil-grup');
+        fakta.forEach(function (teks) {
+          grup.appendChild(buat('span', 'caption-chat__pil', teks));
+        });
+        detail.appendChild(grup);
+      }
+      if (tidakJelas.length) {
+        detail.appendChild(
+          buat('p', 'caption-chat__tidak-jelas', 'Tidak dipakai karena tidak jelas: ' + tidakJelas.join(', '))
+        );
+      }
+      balon.appendChild(detail);
+    }
+
+    const daftarCaption = Array.isArray(data.caption) ? data.caption : [];
+    daftarCaption.forEach(function (item) {
+      balon.appendChild(buatKartuCaption(item));
+    });
+    balon.appendChild(buatAksi());
+
+    const baris = buatBaris('asisten');
+    baris.appendChild(buatAvatar());
+    baris.appendChild(balon);
+    log.appendChild(baris);
+    gulirBawah();
+  }
+
+  // Menampilkan galat permintaan dengan tombol coba lagi
+  function tampilkanGalatPermintaan(pesan, percobaan) {
+    const baris = buatBaris('asisten');
+    baris.setAttribute('data-caption-galat', '');
+    baris.appendChild(buatAvatar());
+    const balon = buat('div', 'caption-chat__balon caption-chat__balon--galat');
+    balon.appendChild(buat('p', '', pesan));
+    if (percobaan) {
+      const ulang = buat('button', 'caption-chat__chip', 'Coba lagi');
+      ulang.type = 'button';
+      ulang.style.marginTop = '9px';
+      ulang.addEventListener('click', function () {
+        baris.remove();
+        kirimPesan(percobaan.teks, { ulang: true, foto: percobaan.foto });
+      });
+      balon.appendChild(ulang);
+    }
+    baris.appendChild(balon);
+    log.appendChild(baris);
+    gulirBawah();
+  }
+
+  // Membaca JSON respons tanpa melempar saat body tidak valid
+  async function bacaJson(respons) {
     try {
       return await respons.json();
     } catch (galat) {
@@ -10,185 +512,265 @@
     }
   }
 
-  // Menyusun pesan kesalahan dari body API atau pesan cadangan
-  function pesanGalatCaption(data, cadangan) {
-    let pesan = data && typeof data.pesan === 'string' && data.pesan ? data.pesan : cadangan;
-    if (data && Array.isArray(data.kesalahan) && data.kesalahan.length > 0) {
-      pesan += ' ' + data.kesalahan.join('. ');
+  // Menentukan pesan galat berdasarkan status HTTP
+  function pesanStatus(status, data) {
+    if (status === 413) {
+      return 'Ukuran gambar maksimal 4 MB.';
     }
-    return pesan;
+    if (status === 429) {
+      return 'Layanan AI sedang sibuk. Coba lagi beberapa saat lagi.';
+    }
+    if (status === 502) {
+      return 'Layanan AI gagal membuat caption yang aman. Coba lagi.';
+    }
+    if (status === 503) {
+      return 'Fitur AI belum dikonfigurasi oleh pengelola.';
+    }
+    if (status === 504) {
+      return 'Permintaan melewati batas waktu. Coba lagi.';
+    }
+    if (data && typeof data.pesan === 'string' && data.pesan) {
+      return data.pesan;
+    }
+    return 'Permintaan gagal. Coba lagi.';
   }
 
-  // Menampilkan status pada kartu tanpa menyisipkan HTML dari model
-  function tampilkanStatusCaption(kotak, teks, galat) {
-    if (!kotak) {
+  // Mengirim permintaan caption beserta riwayat dan foto aktif
+  async function kirimPesan(teks, opsi) {
+    if (sedangKirim) {
       return;
     }
-    kotak.textContent = teks;
-    kotak.classList.remove('hidden');
-    kotak.classList.toggle('caption-saran__info--galat', Boolean(galat));
-  }
+    const pengaturan = opsi || {};
+    const fotoKirim = pengaturan.foto === undefined ? fotoAktif : pengaturan.foto;
+    const teksKirim = String(teks || '').trim();
+    const percobaan = { teks: teksKirim, foto: fotoKirim };
 
-  // Menyembunyikan status setelah proses berhasil
-  function sembunyikanStatusCaption(kotak) {
-    if (!kotak) {
-      return;
+    sembunyikanGalatForm();
+    hapusAksiLama();
+    if (!pengaturan.ulang) {
+      tambahPesanPengguna(teksKirim, fotoKirim);
     }
-    kotak.textContent = '';
-    kotak.classList.add('hidden');
-    kotak.classList.remove('caption-saran__info--galat');
-  }
+    aturSibuk(true);
+    const mengetik = tambahMengetik();
+    const pengendali = new AbortController();
+    const timer = setTimeout(function () {
+      pengendali.abort();
+    }, 40000);
 
-  // Membersihkan hasil lama sebelum permintaan baru
-  function kosongkanHasilCaption(wadah) {
-    if (!wadah) {
-      return;
+    const dataKirim = new FormData();
+    dataKirim.append('instruksi', teksKirim);
+    if (riwayat.length) {
+      dataKirim.append('riwayat', JSON.stringify(riwayat));
     }
-    wadah.replaceChildren();
-    wadah.classList.add('hidden');
-  }
-
-  // Menampilkan tiga saran caption sebagai tombol pilihan
-  function tampilkanSaranCaption(wadah, daftar, area, status) {
-    const judul = document.createElement('p');
-    judul.className = 'caption-saran__info';
-    judul.textContent = 'Pilih salah satu caption, lalu edit bila perlu:';
-    wadah.appendChild(judul);
-
-    daftar.forEach(function (teks) {
-      const pilihan = document.createElement('button');
-      pilihan.type = 'button';
-      pilihan.className = 'caption-saran__pilihan';
-      pilihan.textContent = teks;
-
-      pilihan.addEventListener('click', function () {
-        area.value = teks;
-        area.focus();
-        wadah.querySelectorAll('.caption-saran__pilihan').forEach(function (lain) {
-          lain.classList.remove('caption-saran__pilihan--aktif');
-        });
-        pilihan.classList.add('caption-saran__pilihan--aktif');
-        tampilkanStatusCaption(status, 'Caption dipilih. Klik Simpan caption untuk menyimpan.', false);
-      });
-
-      wadah.appendChild(pilihan);
-    });
-
-    wadah.classList.remove('hidden');
-  }
-
-  // Meminta tiga saran caption dari API admin yang sudah ada
-  async function mintaCaption(kartu) {
-    const tombol = kartu.querySelector('[data-caption-ai]');
-    const area = kartu.querySelector('[data-caption-area]');
-    const catatan = kartu.querySelector('[data-caption-catatan]');
-    const status = kartu.querySelector('[data-caption-status]');
-    const wadah = kartu.querySelector('[data-caption-hasil]');
-
-    if (!tombol || !area || !status || !wadah) {
-      return;
+    if (fotoKirim) {
+      dataKirim.append('gambar', fotoKirim.blob, namaUntukServer(fotoKirim.nama));
     }
-
-    const teksAsli = tombol.textContent;
-    tombol.disabled = true;
-    tombol.textContent = 'Membuat...';
-    kosongkanHasilCaption(wadah);
-    tampilkanStatusCaption(status, 'Membuat tiga pilihan caption...', false);
 
     try {
-      const respons = await fetch('/api/admin/caption', {
+      const respons = await fetch('/api/admin/caption/chat', {
         method: 'POST',
+        body: dataKirim,
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mediaId: Number(kartu.dataset.id),
-          catatan: catatan ? catatan.value.trim() : '',
-        }),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        signal: pengendali.signal,
       });
-      const hasil = await bacaJsonCaption(respons);
+      const data = await bacaJson(respons);
+      mengetik.remove();
 
+      if (respons.status === 401) {
+        const tujuan = encodeURIComponent(window.location.pathname);
+        window.location.href = '/admin/login?next=' + tujuan;
+        return;
+      }
       if (!respons.ok) {
-        tampilkanStatusCaption(status, pesanGalatCaption(hasil, 'Gagal membuat caption.'), true);
+        tampilkanGalatPermintaan(pesanStatus(respons.status, data), percobaan);
+        return;
+      }
+      if (!data || data.success !== true || !data.data) {
+        tampilkanGalatPermintaan('Balasan AI tidak valid. Coba lagi.', percobaan);
         return;
       }
 
-      const daftar = Array.isArray(hasil.caption) ? hasil.caption : [];
-      if (daftar.length === 0) {
-        tampilkanStatusCaption(status, 'Tidak ada caption yang dapat dipakai.', true);
-        return;
+      tampilkanBalasan(data.data);
+      const captionSukses = Array.isArray(data.data.caption) ? data.data.caption : [];
+      if (captionSukses.length) {
+        riwayat.push({
+          instruksi: teksKirim || INSTRUKSI_FOTO,
+          caption: captionSukses.map(function (item) {
+            return item.teks;
+          }),
+        });
+        riwayat = riwayat.slice(-3);
       }
-
-      sembunyikanStatusCaption(status);
-      tampilkanSaranCaption(wadah, daftar, area, status);
     } catch (galat) {
-      tampilkanStatusCaption(status, 'Tidak dapat menghubungi server. Coba lagi.', true);
+      mengetik.remove();
+      if (galat && galat.name === 'AbortError') {
+        tampilkanGalatPermintaan('Permintaan melewati batas waktu. Coba lagi.', percobaan);
+      } else {
+        tampilkanGalatPermintaan('Koneksi ke server bermasalah. Coba lagi.', percobaan);
+      }
     } finally {
-      tombol.disabled = false;
-      tombol.textContent = teksAsli;
+      clearTimeout(timer);
+      aturSibuk(false);
     }
   }
 
-  // Menyimpan caption memakai endpoint ubah media yang sudah tersedia
-  async function simpanCaption(kartu) {
-    const tombol = kartu.querySelector('[data-caption-simpan]');
-    const area = kartu.querySelector('[data-caption-area]');
-    const status = kartu.querySelector('[data-caption-status]');
-
-    if (!tombol || !area || !status) {
+  // Menangani chip awal yang hanya mengisi textarea
+  log.addEventListener('click', function (peristiwa) {
+    const chip = peristiwa.target.closest('[data-caption-chip]');
+    if (!chip || chip.closest('[data-caption-aksi]')) {
       return;
     }
+    input.value = chip.getAttribute('data-isi') || chip.textContent || '';
+    sesuaikanTinggi();
+    perbaruiTombol();
+    input.focus();
+  });
 
-    const teksAsli = tombol.textContent;
-    tombol.disabled = true;
-    tombol.textContent = 'Menyimpan...';
-    tampilkanStatusCaption(status, 'Menyimpan caption...', false);
-
-    const data = new FormData();
-    data.append('judul', kartu.dataset.judul || '');
-    data.append('urutan', kartu.dataset.urutan || '0');
-    data.append('jenis', kartu.dataset.jenis || '');
-    data.append('hero', kartu.dataset.hero === 'true' ? 'true' : 'false');
-    data.append('caption', area.value.trim());
-
-    try {
-      const respons = await fetch('/api/media/' + encodeURIComponent(kartu.dataset.id), {
-        method: 'PUT',
-        credentials: 'same-origin',
-        body: data,
-      });
-      const hasil = await bacaJsonCaption(respons);
-
-      if (!respons.ok) {
-        tampilkanStatusCaption(status, pesanGalatCaption(hasil, 'Gagal menyimpan caption.'), true);
-        return;
-      }
-
-      tampilkanStatusCaption(status, 'Caption tersimpan.', false);
-    } catch (galat) {
-      tampilkanStatusCaption(status, 'Tidak dapat menghubungi server. Coba lagi.', true);
-    } finally {
-      tombol.disabled = false;
-      tombol.textContent = teksAsli;
+  // Mengirim isi composer
+  form.addEventListener('submit', function (peristiwa) {
+    peristiwa.preventDefault();
+    if (sedangKirim) {
+      return;
     }
-  }
-
-  // Memasang perilaku pada seluruh kartu caption di halaman
-  const daftarKartuCaption = document.querySelectorAll('[data-caption-kartu]');
-  daftarKartuCaption.forEach(function (kartu) {
-    const tombolAi = kartu.querySelector('[data-caption-ai]');
-    const tombolSimpan = kartu.querySelector('[data-caption-simpan]');
-
-    if (tombolAi) {
-      tombolAi.addEventListener('click', function () {
-        mintaCaption(kartu);
-      });
+    const teks = input.value.trim();
+    if (!teks && !fotoAktif) {
+      return;
     }
+    input.value = '';
+    sesuaikanTinggi();
+    perbaruiTombol();
+    kirimPesan(teks);
+  });
 
-    if (tombolSimpan) {
-      tombolSimpan.addEventListener('click', function () {
-        simpanCaption(kartu);
-      });
+  // Enter mengirim dan Shift+Enter membuat baris baru
+  input.addEventListener('keydown', function (peristiwa) {
+    if (peristiwa.key === 'Enter' && !peristiwa.shiftKey && !peristiwa.isComposing) {
+      peristiwa.preventDefault();
+      form.requestSubmit();
     }
   });
+
+  // Tinggi textarea mengikuti isi
+  input.addEventListener('input', function () {
+    sesuaikanTinggi();
+    perbaruiTombol();
+    if (galatForm && !galatForm.hidden) {
+      sembunyikanGalatForm();
+    }
+  });
+
+  // Tombol lampiran membuka pemilih berkas
+  tombolLampir.addEventListener('click', function () {
+    berkas.click();
+  });
+
+  // Berkas yang dipilih diproses lalu input dikosongkan agar bisa memilih ulang
+  berkas.addEventListener('change', function () {
+    const berkasPilihan = berkas.files && berkas.files[0];
+    berkas.value = '';
+    prosesGambar(berkasPilihan);
+  });
+
+  // Tombol hapus melepas gambar aktif
+  tombolHapus.addEventListener('click', function () {
+    if (sedangKirim) {
+      return;
+    }
+    lepasFoto();
+    perbaruiTombol();
+    sembunyikanGalatForm();
+  });
+
+  // Tempel gambar dari papan klip
+  document.addEventListener('paste', function (peristiwa) {
+    if (sedangKirim || !peristiwa.clipboardData) {
+      return;
+    }
+    const item = Array.from(peristiwa.clipboardData.items || []).find(function (bagian) {
+      return bagian.type && bagian.type.indexOf('image/') === 0;
+    });
+    if (!item) {
+      return;
+    }
+    const berkasTempel = item.getAsFile();
+    if (!berkasTempel) {
+      return;
+    }
+    peristiwa.preventDefault();
+    prosesGambar(berkasTempel);
+  });
+
+  // Seret dan lepas gambar ke area halaman
+  document.addEventListener('dragenter', function (peristiwa) {
+    if (sedangKirim || !peristiwa.dataTransfer) {
+      return;
+    }
+    const adaBerkas = Array.from(peristiwa.dataTransfer.types || []).includes('Files');
+    if (!adaBerkas) {
+      return;
+    }
+    peristiwa.preventDefault();
+    kedalamanSeret += 1;
+    lapisanDrop.hidden = false;
+  });
+
+  // Seret di atas halaman harus dicegah agar browser tidak membuka gambar
+  document.addEventListener('dragover', function (peristiwa) {
+    if (peristiwa.dataTransfer && Array.from(peristiwa.dataTransfer.types || []).includes('Files')) {
+      peristiwa.preventDefault();
+    }
+  });
+
+  // Lapisan disembunyikan setelah kursor keluar dari halaman
+  document.addEventListener('dragleave', function (peristiwa) {
+    if (lapisanDrop.hidden) {
+      return;
+    }
+    peristiwa.preventDefault();
+    kedalamanSeret -= 1;
+    if (kedalamanSeret <= 0) {
+      kedalamanSeret = 0;
+      lapisanDrop.hidden = true;
+    }
+  });
+
+  // Berkas yang dilepas diproses sebagai gambar baru
+  document.addEventListener('drop', function (peristiwa) {
+    if (sedangKirim) {
+      return;
+    }
+    peristiwa.preventDefault();
+    kedalamanSeret = 0;
+    lapisanDrop.hidden = true;
+    const berkasJatuh = peristiwa.dataTransfer && peristiwa.dataTransfer.files
+      ? peristiwa.dataTransfer.files[0]
+      : null;
+    prosesGambar(berkasJatuh);
+  });
+
+  // Percakapan baru menghapus pesan, riwayat, dan lampiran
+  tombolReset.addEventListener('click', function () {
+    if (sedangKirim) {
+      return;
+    }
+    if ((adaPesan || fotoAktif) && !window.confirm('Mulai percakapan baru? Semua pesan dan lampiran akan dihapus.')) {
+      return;
+    }
+    lepasFoto();
+    riwayat = [];
+    adaPesan = false;
+    input.value = '';
+    sembunyikanGalatForm();
+    log.replaceChildren();
+    buatSambutan();
+    sesuaikanTinggi();
+    perbaruiTombol();
+    input.focus();
+  });
+
+  // Keadaan awal disiapkan setelah seluruh listener terpasang
+  sesuaikanTinggi();
+  perbaruiTombol();
 })();
 </script>

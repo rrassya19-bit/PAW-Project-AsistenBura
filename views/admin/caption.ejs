@@ -1,127 +1,74 @@
-<%# Halaman AI caption khusus admin untuk foto dan video %>
-<%- include('../partials/admin-awal', { judul, tabAktif }) %>
-<%
-  // Seluruh media digabung untuk menentukan keadaan kosong halaman
-  const totalMediaCaption = daftarFoto.length + daftarVideo.length;
-%>
-  <header class="max-w-3xl">
-    <p class="kicker">AI Caption</p>
-    <h1 class="section-head__title">Buat caption untuk galeri.</h1>
-    <p class="section-head__meta">Pilih foto atau video, tambahkan catatan bila perlu, lalu minta tiga saran caption dari AI. Caption yang dipilih dapat langsung disimpan.</p>
+<%# Halaman chat caption AI khusus admin %>
+<%- include('../partials/admin-awal', { judul, tabAktif, kelasKonten: 'admin-konten--caption' }) %>
+<section class="caption-chat" data-caption-chat aria-label="Chat AI Caption">
+  <%# Bilah atas kecil berisi judul dan tombol percakapan baru %>
+  <header class="caption-chat__bar">
+    <h1 class="caption-chat__judul">AI Caption</h1>
+    <button class="caption-chat__reset" type="button" data-caption-reset>
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Percakapan baru</span>
+    </button>
   </header>
 
-  <%# Keadaan kosong bila belum ada media yang dapat diberi caption %>
-  <% if (totalMediaCaption === 0) { %>
-    <div class="crud-empty mt-10">
-      <h2 style="font-family: var(--display); font-size: 1.5rem;">Belum ada media.</h2>
-      <p class="crud-muted mt-2">Tambahkan foto atau video terlebih dahulu untuk memakai AI caption.</p>
-      <div class="mt-6 flex flex-wrap justify-center gap-3">
-        <a class="btn btn--primary" href="/admin/foto/tambah">Tambah Foto</a>
-        <a class="btn btn--outline" href="/admin/video/tambah">Tambah Video</a>
+  <%# Daftar pesan menjadi satu-satunya area yang bergulir %>
+  <div class="caption-chat__log" data-caption-log role="log" aria-live="polite" aria-relevant="additions">
+    <div class="caption-chat__baris caption-chat__baris--asisten" data-caption-awal>
+      <div class="caption-chat__avatar" aria-hidden="true">B</div>
+      <div class="caption-chat__balon">
+        <p>Unggah foto dan tulis permintaanmu. Aku bantu buatkan caption.</p>
+        <div class="caption-chat__chip-grup" data-caption-chip-awal>
+          <button class="caption-chat__chip" type="button" data-caption-chip data-isi="Caption santai untuk Instagram">Caption santai untuk Instagram</button>
+          <button class="caption-chat__chip" type="button" data-caption-chip data-isi="Satu kalimat singkat">Satu kalimat singkat</button>
+          <button class="caption-chat__chip" type="button" data-caption-chip data-isi="Ajakan berkunjung">Ajakan berkunjung</button>
+          <button class="caption-chat__chip" type="button" data-caption-chip data-isi="Versi bahasa Inggris">Versi bahasa Inggris</button>
+        </div>
       </div>
     </div>
-  <% } else { %>
-    <%
-      // Setiap jenis dirender pada bagiannya sendiri agar mudah dipindai
-      const bagianCaption = [
-        ['foto', 'Foto', daftarFoto],
-        ['video', 'Video', daftarVideo],
-      ];
-    %>
-    <% bagianCaption.forEach(function (bagian) { %>
-      <%
-        const jenisCaption = bagian[0];
-        const labelCaption = bagian[1];
-        const daftarCaption = bagian[2];
-      %>
-      <% if (daftarCaption.length > 0) { %>
-        <section class="mt-10" aria-labelledby="judul-caption-<%= jenisCaption %>">
-          <div class="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 id="judul-caption-<%= jenisCaption %>" style="font-family: var(--display); font-size: 1.6rem;"><%= labelCaption %></h2>
-              <p class="crud-muted mt-1"><%= daftarCaption.length %> <%= jenisCaption %> siap diberi caption.</p>
-            </div>
-          </div>
+  </div>
 
-          <div class="mt-6 grid gap-5 lg:grid-cols-2">
-            <% daftarCaption.forEach(function (item) { %>
-              <article
-                class="crud-card"
-                data-caption-kartu
-                data-id="<%= item.id %>"
-                data-jenis="<%= jenisCaption %>"
-                data-judul="<%= item.judul %>"
-                data-urutan="<%= item.urutan %>"
-                data-hero="<%= item.hero ? 'true' : 'false' %>"
-              >
-                <%# Thumbnail foto atau elemen video tanpa autoplay %>
-                <div class="relative w-full overflow-hidden" style="aspect-ratio: 4 / 3; background: var(--paper-soft);">
-                  <% if (jenisCaption === 'foto') { %>
-                    <img class="h-full w-full object-cover" src="<%= item.berkas %>" alt="<%= item.judul %>" width="600" height="450" loading="lazy" decoding="async" />
-                  <% } else { %>
-                    <%
-                      // Tipe sumber video dipilih dari ekstensi berkas
-                      const tipeVideoCaption = item.berkas.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4';
-                    %>
-                    <video class="h-full w-full object-cover" muted playsinline preload="metadata" aria-label="<%= item.judul %>">
-                      <source src="<%= item.berkas %>" type="<%= tipeVideoCaption %>" />
-                    </video>
-                  <% } %>
-                </div>
+  <%# Composer menempel di bawah dan tidak ikut bergulir %>
+  <form class="caption-chat__form" data-caption-form novalidate>
+    <div class="caption-chat__form-isi">
+      <div class="caption-chat__lampiran" data-caption-lampiran hidden>
+        <div class="caption-chat__lampiran-kartu">
+          <img class="caption-chat__lampiran-gambar" data-caption-thumb alt="" width="40" height="40" />
+          <span class="caption-chat__lampiran-nama" data-caption-nama></span>
+          <button class="caption-chat__lampiran-hapus" type="button" data-caption-hapus aria-label="Hapus gambar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-                <div class="p-5">
-                  <%# Identitas media dan tautan menuju form ubah %>
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="crud-name"><%= item.judul %></h3>
-                        <span class="crud-badge crud-badge--online"><%= labelCaption %></span>
-                        <% if (jenisCaption === 'foto' && item.hero) { %>
-                          <span class="crud-badge crud-badge--online">Hero</span>
-                        <% } %>
-                      </div>
-                      <p class="crud-muted mt-1">Urutan <%= item.urutan %></p>
-                    </div>
-                    <a class="crud-btn" href="/admin/<%= jenisCaption %>/<%= item.id %>/ubah">Ubah detail</a>
-                  </div>
+      <div class="caption-chat__kotak">
+        <input class="visually-hidden" id="caption-gambar" type="file" accept="image/jpeg,image/png,image/webp" data-caption-file tabindex="-1" aria-hidden="true" />
+        <button class="caption-chat__ikon" type="button" data-caption-attach aria-label="Lampirkan foto" title="Lampirkan foto">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M20 12.5 12.7 19.8a4.5 4.5 0 0 1-6.4-6.4l8.2-8.2a3 3 0 0 1 4.3 4.3l-8.2 8.2a1.5 1.5 0 0 1-2.1-2.1l7.5-7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <textarea class="caption-chat__input" id="caption-input" rows="1" maxlength="500" placeholder="Tulis permintaan caption..." data-caption-input></textarea>
+        <button class="caption-chat__kirim" type="submit" data-caption-send aria-label="Kirim permintaan" title="Kirim permintaan" disabled>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m5 12 14-7-4.5 14-3-5.5L5 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <p class="caption-chat__galat" data-caption-error role="alert" hidden></p>
+    </div>
+  </form>
 
-                  <%# Kolom caption yang dapat diisi dari saran AI atau ditulis manual %>
-                  <label class="crud-label mt-4" for="caption-<%= jenisCaption %>-<%= item.id %>">Caption</label>
-                  <textarea
-                    class="crud-input"
-                    id="caption-<%= jenisCaption %>-<%= item.id %>"
-                    rows="3"
-                    maxlength="300"
-                    placeholder="Tulis caption singkat untuk media ini"
-                    data-caption-area
-                  ><%= item.caption %></textarea>
-
-                  <%# Catatan opsional menjadi konteks tambahan untuk model %>
-                  <label class="crud-label mt-3" for="catatan-<%= jenisCaption %>-<%= item.id %>">Catatan untuk AI (opsional)</label>
-                  <input
-                    class="crud-input"
-                    id="catatan-<%= jenisCaption %>-<%= item.id %>"
-                    type="text"
-                    maxlength="200"
-                    placeholder="Contoh: suasana pagi, tanpa menyebut harga"
-                    data-caption-catatan
-                  />
-
-                  <div class="mt-4 flex flex-wrap gap-2">
-                    <button class="btn btn--ghost" type="button" data-caption-ai>Buat caption dengan AI</button>
-                    <button class="btn btn--primary" type="button" data-caption-simpan>Simpan caption</button>
-                  </div>
-
-                  <%# Status dan hasil AI diisi oleh skrip halaman %>
-                  <p class="caption-saran__info mt-3 hidden" data-caption-status role="status" aria-live="polite"></p>
-                  <div class="caption-saran__wadah hidden" data-caption-hasil aria-live="polite"></div>
-                </div>
-              </article>
-            <% }); %>
-          </div>
-        </section>
-      <% } %>
-    <% }); %>
-  <% } %>
-<%# Skrip halaman untuk membuat dan menyimpan caption %>
+  <%# Lapisan petunjuk saat gambar diseret ke halaman %>
+  <div class="caption-chat__drop" data-caption-drop hidden aria-hidden="true">
+    <div class="caption-chat__drop-kartu">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <p>Lepaskan gambar di sini</p>
+    </div>
+  </div>
+</section>
 <%- include('../partials/admin-akhir', { skrip: 'caption' }) %>

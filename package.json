@@ -13,7 +13,8 @@
     "hero:saring": "node scripts/saring-hero.js",
     "uji": "node scripts/uji-api.js",
     "uji:chat": "node scripts/uji-chat.js",
-    "uji:admin": "node scripts/uji-admin.js"
+    "uji:admin": "node scripts/uji-admin.js",
+    "uji:caption": "node scripts/uji-caption.js"
   },
   "repository": {
     "type": "git",

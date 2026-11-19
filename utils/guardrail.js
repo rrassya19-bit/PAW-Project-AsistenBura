@@ -296,12 +296,308 @@ function validasiCaption(teks) {
   return { valid: true, caption, alasan: '' };
 }
 
+// Daftar kata klaim yang tidak boleh muncul pada caption chat baru
+const KATA_KLAIM_CHAT_CAPTION = [
+  'terbaik',
+  'terenak',
+  'ternikmat',
+  'paling',
+  'nomor satu',
+  'no. 1',
+  'satu-satunya',
+  'dijamin',
+  'gratis',
+  'diskon',
+  'promo',
+  'sehat',
+  'halal',
+  'asli',
+  'rendah kalori',
+];
+
+// Daftar kata waktu yang hanya boleh muncul bila admin menyebutkannya
+const KATA_WAKTU_CHAT_CAPTION = [
+  'pagi',
+  'siang',
+  'sore',
+  'malam',
+  'akhir pekan',
+  'hari ini',
+  'besok',
+];
+
+// Daftar kata risiko yang harus sudah ada di fakta atau instruksi admin
+const KATA_RISIKO_CHAT_CAPTION = [
+  'espresso',
+  'latte',
+  'cappuccino',
+  'americano',
+  'mocha',
+  'macchiato',
+  'flat white',
+  'matcha',
+  'cokelat',
+  'coklat',
+  'karamel',
+  'caramel',
+  'vanila',
+  'vanilla',
+  'susu',
+  'oat',
+  'hazelnut',
+  'butterscotch',
+  'aren',
+  'gula aren',
+  'sirup',
+  'kopi susu',
+  'cold brew',
+  'v60',
+  'tubruk',
+];
+
+// Hashtag dasar yang selalu boleh dipakai caption chat
+const HASHTAG_CHAT_CAPTION = ['#buraburacoffee', '#yogyakarta'];
+
+// Melarikan karakter khusus regex agar kata dicocokkan sebagai teks biasa
+function pelarianRegex(teks) {
+  // Karakter regex diberi garis miring terbalik
+  return String(teks).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Memeriksa kata atau frasa utuh tanpa membedakan huruf besar kecil
+function adaKataUtuh(teks, kata) {
+  // Teks dan kata dinormalkan lebih dulu
+  const sumber = String(teks || '').toLowerCase();
+  // Pola memakai batas nonhuruf agar tidak menangkap kata lain
+  const pola = new RegExp('(^|[^a-z])' + pelarianRegex(kata) + '($|[^a-z])', 'i');
+  // Hasil pencocokan dikembalikan sebagai boolean
+  return pola.test(sumber);
+}
+
+// Membersihkan satu nilai teks keluaran model tanpa menyisakan tag pembatas
+function bersihkanTeksChatCaption(nilai, maks) {
+  // Nilai bukan teks menjadi teks kosong
+  const awal = typeof nilai === 'string' ? nilai : '';
+  // Kurung sudut dibuang agar tidak dapat menutup tag pembatas
+  return awal
+    .replace(/[<>]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maks);
+}
+
+// Mengubah teks JSON model menjadi objek, termasuk bila dibungkus pagar kode
+function bacaJsonChatCaption(teks) {
+  // Teks diubah ke string dan dirapikan
+  const bersih = String(teks || '').trim();
+  // Pagar kode Markdown dibuang bila model menambahkannya
+  const tanpaPagar = bersih.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  // JSON diurai dan galat diteruskan ke pemanggil
+  return JSON.parse(tanpaPagar);
+}
+
+// Memvalidasi keluaran chat caption sesuai aturan anti-halusinasi
+function validasiCaptionChat(teksModel, opsi) {
+  // Opsi dibaca dengan nilai aman agar fungsi tetap murni
+  const pengaturan = opsi || {};
+  // Instruksi admin dipakai sebagai sumber kata yang diizinkan
+  const instruksiAdmin = typeof pengaturan.instruksiAdmin === 'string' ? pengaturan.instruksiAdmin : '';
+  // Riwayat hanya menyumbang instruksi admin, bukan caption lama
+  const riwayat = Array.isArray(pengaturan.riwayat) ? pengaturan.riwayat : [];
+  // Kode rahasia proses tidak boleh bocor ke caption
+  const kodeRahasia = typeof pengaturan.kodeRahasia === 'string' ? pengaturan.kodeRahasia : '';
+  // Batas awal caption adalah 150 karakter
+  let batas = Number.isInteger(pengaturan.batasKarakter) && pengaturan.batasKarakter > 0
+    ? pengaturan.batasKarakter
+    : 150;
+  // Admin boleh meminta caption sampai 300 karakter secara eksplisit
+  if (/300|lebih panjang|lebih dari 150|maksimal 300/i.test(instruksiAdmin)) {
+    batas = 300;
+  }
+  // Batas mutlak dari skema tetap 300 karakter
+  batas = Math.min(batas, 300);
+
+  // JSON model diurai; bentuk rusak langsung ditolak
+  let hasil;
+  try {
+    hasil = bacaJsonChatCaption(teksModel);
+  } catch (galat) {
+    return { valid: false, alasan: 'json', data: null };
+  }
+  // Akar keluaran wajib berupa objek biasa
+  if (!hasil || typeof hasil !== 'object' || Array.isArray(hasil)) {
+    return { valid: false, alasan: 'bentuk', data: null };
+  }
+  // Tiga daftar wajib berupa array
+  if (
+    !Array.isArray(hasil.faktaTerlihat) ||
+    !Array.isArray(hasil.tidakJelas) ||
+    !Array.isArray(hasil.caption)
+  ) {
+    return { valid: false, alasan: 'bentuk', data: null };
+  }
+  // Pertanyaan dan catatan boleh null tetapi harus teks bila diisi
+  if (
+    (hasil.pertanyaan !== null && typeof hasil.pertanyaan !== 'string') ||
+    (hasil.catatan !== null && typeof hasil.catatan !== 'string')
+  ) {
+    return { valid: false, alasan: 'bentuk', data: null };
+  }
+
+  // Fakta dibatasi jumlah dan panjangnya sebelum dipakai aturan risiko
+  const faktaTerlihat = hasil.faktaTerlihat
+    .filter(function (item) {
+      return typeof item === 'string';
+    })
+    .map(function (item) {
+      return bersihkanTeksChatCaption(item, 160);
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+  // Ketidakjelasan dibatasi dengan cara yang sama
+  const tidakJelas = hasil.tidakJelas
+    .filter(function (item) {
+      return typeof item === 'string';
+    })
+    .map(function (item) {
+      return bersihkanTeksChatCaption(item, 160);
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+
+  // Angka dari instruksi admin boleh muncul kembali di caption
+  const angkaInstruksi = new Set((instruksiAdmin.match(/\d+/g) || []).map(String));
+  // Hashtag tambahan yang diketik admin ikut diizinkan
+  const hashtagDiizinkan = new Set(HASHTAG_CHAT_CAPTION);
+  // Seluruh hashtag instruksi ditambahkan ke daftar izin
+  (instruksiAdmin.match(/#[\w]+/g) || []).forEach(function (tag) {
+    hashtagDiizinkan.add(tag.toLowerCase());
+  });
+  // Gabungan fakta dan instruksi menjadi sumber kata risiko
+  const sumberRisiko =
+    faktaTerlihat.join(' ') +
+    ' ' +
+    instruksiAdmin +
+    ' ' +
+    riwayat
+      .map(function (giliran) {
+        return giliran && typeof giliran.instruksi === 'string' ? giliran.instruksi : '';
+      })
+      .join(' ');
+
+  // Caption yang sudah dipakai dicegah berulang
+  const teksDipakai = new Set();
+  // Hasil akhir hanya memuat caption yang lolos seluruh pemeriksaan
+  const caption = [];
+
+  // Setiap item caption diperiksa satu per satu
+  hasil.caption.forEach(function (item) {
+    // Item harus berupa objek dengan teks string
+    if (!item || typeof item !== 'object' || Array.isArray(item) || typeof item.teks !== 'string') {
+      return;
+    }
+    // Teks caption dirapikan dan dibatasi
+    const teks = bersihkanTeksChatCaption(item.teks, 300);
+    // Caption kosong dan terlalu panjang ditolak
+    if (!teks || teks.length > batas) {
+      return;
+    }
+    // Caption yang sama tidak dikembalikan dua kali
+    const kunci = teks.toLowerCase();
+    if (teksDipakai.has(kunci)) {
+      return;
+    }
+    // Kode rahasia tidak boleh muncul dalam bentuk apa pun
+    if (kodeRahasia && teks.includes(kodeRahasia)) {
+      return;
+    }
+    // Rupiah, nominal pendek, dan tautan selalu ditolak
+    if (/\bRp\b/i.test(teks) || /\b(rb|ribu)\b/i.test(teks) || /https?:\/\/|www\./i.test(teks)) {
+      return;
+    }
+    // Email dan mention akun tidak boleh muncul
+    if (/[\w.+-]+@[\w-]+\.[\w.-]+/i.test(teks) || /@\w/.test(teks)) {
+      return;
+    }
+    // Setiap angka harus sudah ada pada instruksi admin
+    const angkaCaption = teks.match(/\d+/g) || [];
+    for (let i = 0; i < angkaCaption.length; i += 1) {
+      if (!angkaInstruksi.has(angkaCaption[i]) && !angkaInstruksi.has(String(Number(angkaCaption[i])))) {
+        return;
+      }
+    }
+    // Seluruh hashtag harus termasuk daftar izin
+    const daftarHashtag = teks.match(/#[\w]+/g) || [];
+    for (let i = 0; i < daftarHashtag.length; i += 1) {
+      if (!hashtagDiizinkan.has(daftarHashtag[i].toLowerCase())) {
+        return;
+      }
+    }
+    // Kata klaim dan superlatif selalu ditolak
+    for (let i = 0; i < KATA_KLAIM_CHAT_CAPTION.length; i += 1) {
+      if (adaKataUtuh(teks, KATA_KLAIM_CHAT_CAPTION[i])) {
+        return;
+      }
+    }
+    // Kata waktu hanya boleh bila sudah ada di instruksi admin
+    for (let i = 0; i < KATA_WAKTU_CHAT_CAPTION.length; i += 1) {
+      if (
+        adaKataUtuh(teks, KATA_WAKTU_CHAT_CAPTION[i]) &&
+        !adaKataUtuh(instruksiAdmin, KATA_WAKTU_CHAT_CAPTION[i])
+      ) {
+        return;
+      }
+    }
+    // Kata risiko hanya boleh bila muncul di fakta atau instruksi admin
+    for (let i = 0; i < KATA_RISIKO_CHAT_CAPTION.length; i += 1) {
+      if (
+        adaKataUtuh(teks, KATA_RISIKO_CHAT_CAPTION[i]) &&
+        !adaKataUtuh(sumberRisiko, KATA_RISIKO_CHAT_CAPTION[i])
+      ) {
+        return;
+      }
+    }
+    // Gaya dirapikan dan diberi cadangan bila kosong
+    const gaya = bersihkanTeksChatCaption(item.gaya, 40) || 'Caption';
+    // Caption lolos seluruh pemeriksaan
+    caption.push({ gaya, teks });
+    // Teks ditandai agar tidak muncul lagi
+    teksDipakai.add(kunci);
+    // Maksimal tiga caption dikembalikan
+    if (caption.length >= 3) {
+      return;
+    }
+  });
+
+  // Caption dibatasi tepat maksimal tiga item
+  const captionAkhir = caption.slice(0, 3);
+  // Pertanyaan dibersihkan dan diubah menjadi null bila kosong
+  const pertanyaan = bersihkanTeksChatCaption(hasil.pertanyaan, 300) || null;
+  // Catatan dibersihkan dan diubah menjadi null bila kosong
+  const catatan = bersihkanTeksChatCaption(hasil.catatan, 500) || null;
+  // Tanpa caption dan tanpa pertanyaan, keluaran dianggap tidak aman
+  if (captionAkhir.length === 0 && !pertanyaan) {
+    return { valid: false, alasan: 'tidak-aman', data: null };
+  }
+
+  // Hasil bersih dikembalikan ke service
+  return {
+    valid: true,
+    alasan: '',
+    data: { faktaTerlihat, tidakJelas, caption: captionAkhir, pertanyaan, catatan },
+  };
+}
+
 // Ekspor seluruh fungsi murni dan konstanta batas
 module.exports = {
   MAKS_JAWABAN,
   MAKS_CAPTION,
   HASHTAG_DIIZINKAN,
   KATA_TERLARANG_CAPTION,
+  KATA_KLAIM_CHAT_CAPTION,
+  KATA_WAKTU_CHAT_CAPTION,
+  KATA_RISIKO_CHAT_CAPTION,
+  HASHTAG_CHAT_CAPTION,
   normalisasiTeks,
   cekInjeksi,
   cekDiLuarTopikJelas,
@@ -309,4 +605,5 @@ module.exports = {
   gantiPenandaHarga,
   validasiKeluaranChat,
   validasiCaption,
+  validasiCaptionChat,
 };
